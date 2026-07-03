@@ -1,0 +1,269 @@
+// app/(auth)/setup/widget/page.tsx (Step 2: Widget Setup)
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { 
+  ArrowRight, 
+  Copy, 
+  Check, 
+  Code, 
+  Sparkles,
+  MessageCircle,
+  Mail,
+  LifeBuoy,
+  HelpCircle,
+  Bot,
+  Smile,
+  User,
+  Shield,
+  Zap,
+  Star,
+  Heart
+} from "lucide-react";
+
+interface IconOption {
+  value: string;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const iconOptions: IconOption[] = [
+  { 
+    value: "chat", 
+    label: "Chat", 
+    icon: <MessageCircle className="w-5 h-5" /> 
+  },
+  { 
+    value: "message", 
+    label: "Message", 
+    icon: <Mail className="w-5 h-5" /> 
+  },
+  { 
+    value: "support", 
+    label: "Support", 
+    icon: <LifeBuoy className="w-5 h-5" /> 
+  },
+  { 
+    value: "help", 
+    label: "Help", 
+    icon: <HelpCircle className="w-5 h-5" /> 
+  },
+  { 
+    value: "bot", 
+    label: "Bot", 
+    icon: <Bot className="w-5 h-5" /> 
+  },
+  { 
+    value: "smile", 
+    label: "Smile", 
+    icon: <Smile className="w-5 h-5" /> 
+  },
+  { 
+    value: "user", 
+    label: "User", 
+    icon: <User className="w-5 h-5" /> 
+  },
+  { 
+    value: "shield", 
+    label: "Shield", 
+    icon: <Shield className="w-5 h-5" /> 
+  },
+  { 
+    value: "zap", 
+    label: "Zap", 
+    icon: <Zap className="w-5 h-5" /> 
+  },
+  { 
+    value: "star", 
+    label: "Star", 
+    icon: <Star className="w-5 h-5" /> 
+  },
+  { 
+    value: "heart", 
+    label: "Heart", 
+    icon: <Heart className="w-5 h-5" /> 
+  },
+];
+
+export default function SetupWidgetPage() {
+  const router = useRouter();
+  const [copied, setCopied] = useState(false);
+  const [widgetPosition, setWidgetPosition] = useState("bottom-right");
+  const [widgetColor, setWidgetColor] = useState("#F97316");
+  const [widgetIcon, setWidgetIcon] = useState("chat");
+
+  const selectedIcon = iconOptions.find(icon => icon.value === widgetIcon);
+
+  const embedCode = `<script>
+  window.comviaSettings = {
+    position: "${widgetPosition}",
+    color: "${widgetColor}",
+    icon: "${widgetIcon}"
+  };
+</script>
+<script src="https://cdn.comvia.app/widget.js" async></script>`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(embedCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleContinue = () => {
+    router.push("/setup/branding");
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium border border-primary/20 mb-3">
+          <Sparkles className="w-3 h-3" />
+          Step 2 of 6
+        </div>
+        <h1 className="text-2xl font-bold">Install the widget</h1>
+        <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+          Add the widget to your website with a single line of code
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          {/* Widget Position */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">
+              Widget Position
+            </label>
+            <select
+              value={widgetPosition}
+              onChange={(e) => setWidgetPosition(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+              aria-label="Select widget position"
+            >
+              <option value="bottom-right">Bottom Right</option>
+              <option value="bottom-left">Bottom Left</option>
+              <option value="top-right">Top Right</option>
+              <option value="top-left">Top Left</option>
+            </select>
+          </div>
+
+          {/* Widget Color */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">
+              Widget Color
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={widgetColor}
+                onChange={(e) => setWidgetColor(e.target.value)}
+                className="w-12 h-12 rounded-xl cursor-pointer border border-gray-200 dark:border-gray-800"
+                aria-label="Select widget color"
+              />
+              <input
+                type="text"
+                value={widgetColor}
+                onChange={(e) => setWidgetColor(e.target.value)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+                aria-label="Enter widget color"
+              />
+            </div>
+          </div>
+
+          {/* Widget Icon */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">
+              Widget Icon
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {iconOptions.map((icon) => (
+                <button
+                  key={icon.value}
+                  onClick={() => setWidgetIcon(icon.value)}
+                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
+                    widgetIcon === icon.value
+                      ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
+                      : "border-gray-200 dark:border-gray-800 hover:border-primary/30 hover:bg-primary/5"
+                  }`}
+                  aria-label={`Select ${icon.label} icon`}
+                >
+                  <div className={widgetIcon === icon.value ? "text-primary" : "text-gray-500"}>
+                    {icon.icon}
+                  </div>
+                  <span className={`text-xs ${
+                    widgetIcon === icon.value 
+                      ? "text-primary font-medium" 
+                      : "text-gray-500 dark:text-gray-400"
+                  }`}>
+                    {icon.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Live Preview */}
+          <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Live Preview</p>
+            <div className="flex items-center justify-center p-4">
+              <div 
+                className="relative w-16 h-16 rounded-full flex items-center justify-center shadow-lg"
+                style={{ backgroundColor: widgetColor }}
+              >
+                {selectedIcon?.icon}
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900" />
+              </div>
+            </div>
+            <div className="text-center text-xs text-gray-500 dark:text-gray-400">
+              Preview of your widget button
+            </div>
+          </div>
+        </div>
+
+        {/* Embed Code */}
+        <div>
+          <label className="block text-sm font-medium mb-1.5">
+            Embed Code
+          </label>
+          <div className="relative">
+            <pre className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-xs overflow-x-auto">
+              <code>{embedCode}</code>
+            </pre>
+            <button
+              onClick={handleCopy}
+              className="absolute top-3 right-3 p-2 rounded-lg bg-background border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Copy embed code"
+            >
+              {copied ? (
+                <Check className="w-4 h-4 text-emerald-500" />
+              ) : (
+                <Copy className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            Paste this code in the <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">&lt;head&gt;</code> of your website
+          </p>
+
+          {/* Quick tips */}
+          <div className="mt-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/20">
+            <h4 className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-2">💡 Quick Tips</h4>
+            <ul className="text-xs space-y-1 text-blue-600 dark:text-blue-300">
+              <li>• Place the code just before the closing <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/30 rounded">&lt;/head&gt;</code> tag</li>
+              <li>• The widget will automatically appear on all pages</li>
+              <li>• You can customize these settings later in your dashboard</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={handleContinue}
+        className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2"
+      >
+        Continue to Branding
+        <ArrowRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
