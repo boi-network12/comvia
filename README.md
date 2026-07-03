@@ -1,45 +1,63 @@
 # Comvia
 
-Comvia is a modern customer support platform that enables businesses to communicate with website visitors in real time through a customizable live chat widget.
+<div align="center">
 
-Designed with developers in mind, Comvia is lightweight, easy to integrate, and flexible enough to match any website's branding.
+Modern customer support platform with customizable live chat and AI-powered assistance.
+
+Built for developers who want a simple, fast, and flexible support system.
+
+> 🚧 Currently under active development.
+
+</div>
 
 ---
 
-## Features
+## ✨ Overview
+
+Comvia is a modern customer communication platform that enables businesses to chat with website visitors in real time.
+
+Instead of locking developers into predefined designs, Comvia focuses on flexibility, allowing complete customization while keeping integration as simple as adding a single script.
+
+---
+
+## 🚀 Features
 
 ### Live Chat
-- Real-time messaging powered by Socket.IO
-- Instant message delivery
+
+- Real-time messaging
+- Socket.IO powered communication
 - Typing indicators
 - Read receipts
-- Online/Offline status
+- Online/offline status
 
-### Customizable Widget
+### Custom Widget
+
 - Floating support widget
 - Custom SVG icons
 - Custom colors
-- Left/Right positioning
-- Theme customization
-- Responsive design
+- Left or right positioning
+- Responsive UI
+- Brand customization
 
 ### Dashboard
-- Inbox management
-- Conversation history
-- Visitor management
-- Workspace settings
-- Team members
 
-### AI Support (Premium)
+- Workspace management
+- Conversation inbox
+- Visitor management
+- Team members
+- Widget settings
+
+### AI (Premium)
+
 - Automatic replies
 - AI assistant
-- Knowledge base
 - Smart conversation summaries
 - Suggested responses
+- Knowledge base
 
 ---
 
-# Tech Stack
+# 🛠 Tech Stack
 
 ## Frontend
 
@@ -51,108 +69,115 @@ Designed with developers in mind, Comvia is lightweight, easy to integrate, and 
 ## Backend
 
 - Express.js
-- Socket.IO
 - MongoDB
 - JWT Authentication
 
+## Real-time
+
+- Socket.IO
+
 ## Mobile
 
-- Expo (Coming Soon)
+- Expo (Planned)
 
 ---
 
-# Project Structure
+# 📂 Project Structure
 
 ```
 comvia/
 │
-├── frontend/          # Next.js Dashboard
-├── backend/           # Express REST API
-├── realtime/          # Socket.IO Server
-├── widget/            # Embeddable Chat Widget
-├── shared/            # Shared Types & Utilities
+├── web/              # Next.js Dashboard & Landing Page
+├── server/           # Express REST API
+├── realtime/         # Socket.IO Server
+├── shared/           # Shared Types & Utilities (Planned)
+├── widget/           # Embeddable Widget (Planned)
 └── docs/
 ```
 
 ---
 
-# Widget Installation
+# 💡 Philosophy
 
-Simply add one script to your website.
+Comvia is built around one simple idea:
+
+> Customer support should be simple.
+
+Developers should be able to integrate a modern live chat system within minutes without unnecessary complexity.
+
+The free experience focuses on real-time communication, while premium plans unlock AI-powered automation and advanced collaboration features.
+
+---
+
+# 🎯 Roadmap
+
+## MVP
+
+- Authentication
+- Workspace creation
+- Live chat
+- Dashboard
+- Real-time messaging
+- Visitor management
+- File uploads
+
+## Future
+
+- AI replies
+- Mobile application
+- Analytics
+- Saved replies
+- Team collaboration
+- Ticketing
+- REST API
+- SDK
+- Integrations
+
+---
+
+# 📦 Widget Installation
+
+Coming soon.
+
+The goal is to make integration as simple as:
 
 ```html
 <script
-    src="https://your-domain/widget.js"
+    src="https://cdn.comvia.app/widget.js"
     data-workspace="YOUR_WORKSPACE_ID">
 </script>
 ```
 
-Developers can customize the widget using script attributes or dashboard settings.
-
 ---
 
-# Philosophy
+# 🌍 Why Comvia?
 
-Comvia is built around one simple idea:
-
-> Customer support should be simple, customizable, and accessible.
-
-The core live chat experience is free.
-
-Premium features focus on AI automation and advanced productivity instead of limiting basic communication.
-
----
-
-# Roadmap
-
-## Version 1
-
-- User Authentication
-- Workspace Creation
-- Live Chat
-- Chat Widget
-- Dashboard
-- Visitor Management
-- File Uploads
-
-## Version 2
-
-- Mobile App
-- AI Assistant
-- Analytics
-- Team Collaboration
-- Saved Replies
-- Visitor Notes
-
-## Version 3
-
-- Ticketing System
-- Voice Messages
-- Video Calls
-- CRM Integration
-- Multi-language Support
-- API & SDK
-
----
-
-# Why Comvia?
-
+- Developer First
 - Lightweight
 - Fast
-- Developer Friendly
+- Modern UI
 - Fully Customizable
-- Real-time Communication
 - AI Ready
-- Built for Everyone
+- Real-time Communication
 
 ---
 
-# License
+# 🤝 Contributing
 
-This project is currently under active development.
+Contributions, ideas, and feedback are welcome.
 
-License information will be added upon the first public release.
+Feel free to open an issue or submit a pull request.
 
 ---
+
+# 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+<div align="center">
 
 Made with ❤️ by the Comvia Team.
+
+</div>
