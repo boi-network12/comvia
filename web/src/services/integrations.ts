@@ -65,7 +65,7 @@ export interface EmailIntegration {
   };
 }
 
-export interface IntegrationStatus {
+export type IntegrationStatus = {
   slack: SlackIntegration | { enabled: false };
   facebook: FacebookIntegration | { enabled: false };
   instagram: InstagramIntegration | { enabled: false };
@@ -74,6 +74,49 @@ export interface IntegrationStatus {
   zoom: ZoomIntegration | { enabled: false };
   zapier: ZapierIntegration | { enabled: false };
   email: EmailIntegration;
+};
+
+// API Response types
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
+export interface SlackStatusResponse {
+  slack: SlackIntegration | { enabled: false };
+}
+
+export interface FacebookStatusResponse {
+  facebook: FacebookIntegration | { enabled: false };
+}
+
+export interface InstagramStatusResponse {
+  instagram: InstagramIntegration | { enabled: false };
+}
+
+export interface TwitterStatusResponse {
+  twitter: TwitterIntegration | { enabled: false };
+}
+
+export interface GitHubStatusResponse {
+  github: GitHubIntegration | { enabled: false };
+}
+
+export interface ZoomStatusResponse {
+  zoom: ZoomIntegration | { enabled: false };
+}
+
+export interface ZapierStatusResponse {
+  zapier: ZapierIntegration | { enabled: false };
+}
+
+export interface EmailSettingsResponse {
+  email: EmailIntegration;
+}
+
+export interface WebhookResponse {
+  webhookUrl: string;
 }
 
 // ============================================
@@ -109,7 +152,6 @@ class IntegrationService {
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
           try {
-            // Import authAPI dynamically to avoid circular dependency
             const { authAPI } = await import('./auth');
             await authAPI.refreshToken();
             const token = localStorage.getItem('accessToken');
@@ -130,28 +172,18 @@ class IntegrationService {
   // Slack Integration
   // ============================================
 
-  async connectSlack(webhookUrl: string, channel: string) {
-    const response = await this.api.post<{
-      success: boolean;
-      message: string;
-      data: { slack: SlackIntegration };
-    }>('/slack/connect', { webhookUrl, channel });
+  async connectSlack(webhookUrl: string, channel: string): Promise<ApiResponse<{ slack: SlackIntegration }>> {
+    const response = await this.api.post<ApiResponse<{ slack: SlackIntegration }>>('/slack/connect', { webhookUrl, channel });
     return response.data;
   }
 
-  async disconnectSlack() {
-    const response = await this.api.delete<{
-      success: boolean;
-      message: string;
-    }>('/slack/disconnect');
+  async disconnectSlack(): Promise<ApiResponse> {
+    const response = await this.api.delete<ApiResponse>('/slack/disconnect');
     return response.data;
   }
 
-  async getSlackStatus() {
-    const response = await this.api.get<{
-      success: boolean;
-      data: { slack: SlackIntegration | { enabled: false } };
-    }>('/slack/status');
+  async getSlackStatus(): Promise<ApiResponse<SlackStatusResponse>> {
+    const response = await this.api.get<ApiResponse<SlackStatusResponse>>('/slack/status');
     return response.data;
   }
 
@@ -159,28 +191,18 @@ class IntegrationService {
   // Facebook Integration
   // ============================================
 
-  async connectFacebook(pageId: string, accessToken: string, pageName?: string) {
-    const response = await this.api.post<{
-      success: boolean;
-      message: string;
-      data: { facebook: FacebookIntegration };
-    }>('/facebook/connect', { pageId, accessToken, pageName });
+  async connectFacebook(pageId: string, accessToken: string, pageName?: string): Promise<ApiResponse<{ facebook: FacebookIntegration }>> {
+    const response = await this.api.post<ApiResponse<{ facebook: FacebookIntegration }>>('/facebook/connect', { pageId, accessToken, pageName });
     return response.data;
   }
 
-  async disconnectFacebook() {
-    const response = await this.api.delete<{
-      success: boolean;
-      message: string;
-    }>('/facebook/disconnect');
+  async disconnectFacebook(): Promise<ApiResponse> {
+    const response = await this.api.delete<ApiResponse>('/facebook/disconnect');
     return response.data;
   }
 
-  async getFacebookStatus() {
-    const response = await this.api.get<{
-      success: boolean;
-      data: { facebook: FacebookIntegration | { enabled: false } };
-    }>('/facebook/status');
+  async getFacebookStatus(): Promise<ApiResponse<FacebookStatusResponse>> {
+    const response = await this.api.get<ApiResponse<FacebookStatusResponse>>('/facebook/status');
     return response.data;
   }
 
@@ -188,28 +210,18 @@ class IntegrationService {
   // Instagram Integration
   // ============================================
 
-  async connectInstagram(businessId: string, accessToken: string, username?: string) {
-    const response = await this.api.post<{
-      success: boolean;
-      message: string;
-      data: { instagram: InstagramIntegration };
-    }>('/instagram/connect', { businessId, accessToken, username });
+  async connectInstagram(businessId: string, accessToken: string, username?: string): Promise<ApiResponse<{ instagram: InstagramIntegration }>> {
+    const response = await this.api.post<ApiResponse<{ instagram: InstagramIntegration }>>('/instagram/connect', { businessId, accessToken, username });
     return response.data;
   }
 
-  async disconnectInstagram() {
-    const response = await this.api.delete<{
-      success: boolean;
-      message: string;
-    }>('/instagram/disconnect');
+  async disconnectInstagram(): Promise<ApiResponse> {
+    const response = await this.api.delete<ApiResponse>('/instagram/disconnect');
     return response.data;
   }
 
-  async getInstagramStatus() {
-    const response = await this.api.get<{
-      success: boolean;
-      data: { instagram: InstagramIntegration | { enabled: false } };
-    }>('/instagram/status');
+  async getInstagramStatus(): Promise<ApiResponse<InstagramStatusResponse>> {
+    const response = await this.api.get<ApiResponse<InstagramStatusResponse>>('/instagram/status');
     return response.data;
   }
 
@@ -222,28 +234,18 @@ class IntegrationService {
     accessToken: string,
     accessTokenSecret: string,
     username?: string
-  ) {
-    const response = await this.api.post<{
-      success: boolean;
-      message: string;
-      data: { twitter: TwitterIntegration };
-    }>('/twitter/connect', { userId, accessToken, accessTokenSecret, username });
+  ): Promise<ApiResponse<{ twitter: TwitterIntegration }>> {
+    const response = await this.api.post<ApiResponse<{ twitter: TwitterIntegration }>>('/twitter/connect', { userId, accessToken, accessTokenSecret, username });
     return response.data;
   }
 
-  async disconnectTwitter() {
-    const response = await this.api.delete<{
-      success: boolean;
-      message: string;
-    }>('/twitter/disconnect');
+  async disconnectTwitter(): Promise<ApiResponse> {
+    const response = await this.api.delete<ApiResponse>('/twitter/disconnect');
     return response.data;
   }
 
-  async getTwitterStatus() {
-    const response = await this.api.get<{
-      success: boolean;
-      data: { twitter: TwitterIntegration | { enabled: false } };
-    }>('/twitter/status');
+  async getTwitterStatus(): Promise<ApiResponse<TwitterStatusResponse>> {
+    const response = await this.api.get<ApiResponse<TwitterStatusResponse>>('/twitter/status');
     return response.data;
   }
 
@@ -251,28 +253,18 @@ class IntegrationService {
   // GitHub Integration
   // ============================================
 
-  async connectGitHub(accessToken: string, repo: string, owner?: string, syncIssues?: boolean) {
-    const response = await this.api.post<{
-      success: boolean;
-      message: string;
-      data: { github: GitHubIntegration };
-    }>('/github/connect', { accessToken, repo, owner, syncIssues });
+  async connectGitHub(accessToken: string, repo: string, owner?: string, syncIssues?: boolean): Promise<ApiResponse<{ github: GitHubIntegration }>> {
+    const response = await this.api.post<ApiResponse<{ github: GitHubIntegration }>>('/github/connect', { accessToken, repo, owner, syncIssues });
     return response.data;
   }
 
-  async disconnectGitHub() {
-    const response = await this.api.delete<{
-      success: boolean;
-      message: string;
-    }>('/github/disconnect');
+  async disconnectGitHub(): Promise<ApiResponse> {
+    const response = await this.api.delete<ApiResponse>('/github/disconnect');
     return response.data;
   }
 
-  async getGitHubStatus() {
-    const response = await this.api.get<{
-      success: boolean;
-      data: { github: GitHubIntegration | { enabled: false } };
-    }>('/github/status');
+  async getGitHubStatus(): Promise<ApiResponse<GitHubStatusResponse>> {
+    const response = await this.api.get<ApiResponse<GitHubStatusResponse>>('/github/status');
     return response.data;
   }
 
@@ -280,28 +272,18 @@ class IntegrationService {
   // Zoom Integration
   // ============================================
 
-  async connectZoom(accountId: string, clientId: string, clientSecret: string) {
-    const response = await this.api.post<{
-      success: boolean;
-      message: string;
-      data: { zoom: ZoomIntegration };
-    }>('/zoom/connect', { accountId, clientId, clientSecret });
+  async connectZoom(accountId: string, clientId: string, clientSecret: string): Promise<ApiResponse<{ zoom: ZoomIntegration }>> {
+    const response = await this.api.post<ApiResponse<{ zoom: ZoomIntegration }>>('/zoom/connect', { accountId, clientId, clientSecret });
     return response.data;
   }
 
-  async disconnectZoom() {
-    const response = await this.api.delete<{
-      success: boolean;
-      message: string;
-    }>('/zoom/disconnect');
+  async disconnectZoom(): Promise<ApiResponse> {
+    const response = await this.api.delete<ApiResponse>('/zoom/disconnect');
     return response.data;
   }
 
-  async getZoomStatus() {
-    const response = await this.api.get<{
-      success: boolean;
-      data: { zoom: ZoomIntegration | { enabled: false } };
-    }>('/zoom/status');
+  async getZoomStatus(): Promise<ApiResponse<ZoomStatusResponse>> {
+    const response = await this.api.get<ApiResponse<ZoomStatusResponse>>('/zoom/status');
     return response.data;
   }
 
@@ -309,28 +291,18 @@ class IntegrationService {
   // Zapier Integration
   // ============================================
 
-  async connectZapier(webhookUrl: string, triggers?: string[]) {
-    const response = await this.api.post<{
-      success: boolean;
-      message: string;
-      data: { zapier: ZapierIntegration };
-    }>('/zapier/connect', { webhookUrl, triggers });
+  async connectZapier(webhookUrl: string, triggers?: string[]): Promise<ApiResponse<{ zapier: ZapierIntegration }>> {
+    const response = await this.api.post<ApiResponse<{ zapier: ZapierIntegration }>>('/zapier/connect', { webhookUrl, triggers });
     return response.data;
   }
 
-  async disconnectZapier() {
-    const response = await this.api.delete<{
-      success: boolean;
-      message: string;
-    }>('/zapier/disconnect');
+  async disconnectZapier(): Promise<ApiResponse> {
+    const response = await this.api.delete<ApiResponse>('/zapier/disconnect');
     return response.data;
   }
 
-  async getZapierStatus() {
-    const response = await this.api.get<{
-      success: boolean;
-      data: { zapier: ZapierIntegration | { enabled: false } };
-    }>('/zapier/status');
+  async getZapierStatus(): Promise<ApiResponse<ZapierStatusResponse>> {
+    const response = await this.api.get<ApiResponse<ZapierStatusResponse>>('/zapier/status');
     return response.data;
   }
 
@@ -342,20 +314,13 @@ class IntegrationService {
     newMessage?: boolean;
     newTicket?: boolean;
     teamInvite?: boolean;
-  }) {
-    const response = await this.api.put<{
-      success: boolean;
-      message: string;
-      data: { email: EmailIntegration };
-    }>('/email/update', { enabled, notifications });
+  }): Promise<ApiResponse<{ email: EmailIntegration }>> {
+    const response = await this.api.put<ApiResponse<{ email: EmailIntegration }>>('/email/update', { enabled, notifications });
     return response.data;
   }
 
-  async getEmailSettings() {
-    const response = await this.api.get<{
-      success: boolean;
-      data: { email: EmailIntegration };
-    }>('/email/settings');
+  async getEmailSettings(): Promise<ApiResponse<EmailSettingsResponse>> {
+    const response = await this.api.get<ApiResponse<EmailSettingsResponse>>('/email/settings');
     return response.data;
   }
 
@@ -363,7 +328,7 @@ class IntegrationService {
   // Bulk Operations
   // ============================================
 
-  async getAllIntegrationStatus() {
+  async getAllIntegrationStatus(): Promise<IntegrationStatus> {
     const [slack, facebook, instagram, twitter, github, zoom, zapier, email] =
       await Promise.all([
         this.getSlackStatus(),
@@ -392,19 +357,13 @@ class IntegrationService {
   // Webhook Helpers (for Zapier)
   // ============================================
 
-  async getWebhookUrl(integration: 'slack' | 'zapier' | 'github') {
-    const response = await this.api.get<{
-      success: boolean;
-      data: { webhookUrl: string };
-    }>(`/${integration}/webhook`);
+  async getWebhookUrl(integration: 'slack' | 'zapier' | 'github'): Promise<ApiResponse<WebhookResponse>> {
+    const response = await this.api.get<ApiResponse<WebhookResponse>>(`/${integration}/webhook`);
     return response.data;
   }
 
-  async testWebhook(integration: 'slack' | 'zapier', webhookUrl: string) {
-    const response = await this.api.post<{
-      success: boolean;
-      message: string;
-    }>('/test-webhook', { integration, webhookUrl });
+  async testWebhook(integration: 'slack' | 'zapier', webhookUrl: string): Promise<ApiResponse> {
+    const response = await this.api.post<ApiResponse>('/test-webhook', { integration, webhookUrl });
     return response.data;
   }
 }

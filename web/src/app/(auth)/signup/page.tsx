@@ -163,17 +163,17 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
     
-    if (!captchaToken) {
-      setCaptchaError(true);
-      return;
-    }
+    // if (!captchaToken) {
+    //   setCaptchaError(true);
+    //   return;
+    // }
 
 
-    setCaptchaError(false);
+    setCaptchaError(true);
     
     try {
       // Add your signup logic here
-      await register(name, email, password, captchaToken);
+      await register(name, email, password) //, captchaToken);
       
     } catch (error: unknown) {
       const err = error as Error & { response?: { data?: { message?: string } } };
@@ -305,7 +305,8 @@ export default function SignupPage() {
         {/* Submit */}
         <button
           type="submit"
-          disabled={isLoading || !captchaToken}
+          // disabled={isLoading || !captchaToken}
+          disabled={isLoading}
           className="w-full py-3.5 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
         >
           {isLoading ? (

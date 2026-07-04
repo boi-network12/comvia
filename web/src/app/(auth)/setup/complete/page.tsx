@@ -3,9 +3,13 @@
 
 import { useRouter } from "next/navigation";
 import { Check, Sparkles, ArrowRight, Users, MessageSquare, Palette, Zap } from "lucide-react";
+import { useAuth } from "@/contexts";
+import { useState } from "react";
 
 export default function SetupCompletePage() {
   const router = useRouter();
+  const { completeSetup, isLoading: authLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
 
   const stats = [
     { icon: MessageSquare, label: "Live Chat", value: "Active" },
@@ -13,6 +17,20 @@ export default function SetupCompletePage() {
     { icon: Users, label: "Team Members", value: "Invited" },
     { icon: Zap, label: "Integrations", value: "Connected" },
   ];
+
+  const handleComplete = async () => {
+    setIsLoading(true);
+    try {
+      // Use AuthContext's completeSetup method
+      await completeSetup();
+      // The AuthContext's completeSetup already shows success toast and updates user
+      router.push("/dashboard");
+    } catch (error) {
+      
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="text-center space-y-6">
@@ -45,11 +63,21 @@ export default function SetupCompletePage() {
 
       <div className="space-y-3 pt-4">
         <button
-          onClick={() => router.push("/dashboard")}
-          className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2"
+          onClick={handleComplete}
+          disabled={isLoading || authLoading}
+          className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Go to Dashboard
-          <ArrowRight className="w-4 h-4" />
+          {isLoading || authLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+              Completing Setup...
+            </>
+          ) : (
+            <>
+              Go to Dashboard
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
         </button>
         
         <button

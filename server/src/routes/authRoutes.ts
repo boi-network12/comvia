@@ -19,7 +19,7 @@ import {
   completeSetup,
 } from '../controllers/authController';
 import { protect, restrictTo, isEmailVerified } from '../middlewares/auth';
-import { uploadAvatar } from '../middlewares/uploadMiddleware';
+import { uploadAvatar, uploadCompanyLogo } from '../middlewares/uploadMiddleware';
 
 const router = Router();
 
@@ -43,7 +43,7 @@ router.put('/profile', uploadAvatar, updateProfile);
 // Setup routes
 router.post('/setup/product', setupProduct);
 router.post('/setup/widget', setupWidget);
-router.post('/setup/branding', setupBranding);
+router.post('/setup/branding', uploadCompanyLogo, setupBranding);
 router.post('/setup/team', setupTeam);
 router.post('/setup/integrations', setupIntegrations);
 router.post('/setup/complete', completeSetup);

@@ -2,30 +2,35 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowRight, Upload, Sparkles, X, MessageCircle, Send } from "lucide-react";
 import Image from "next/image";
+import { useAuth } from "@/contexts";
 
 export default function SetupBrandingPage() {
   const router = useRouter();
-  const [companyName, setCompanyName] = useState("");
-  const [brandColor, setBrandColor] = useState("#F97316");
-  const [logo, setLogo] = useState<string | null>(null);
-  const [font, setFont] = useState("inter");
-  const [welcomeMessage, setWelcomeMessage] = useState("Hi there! 👋 How can I help you today?");
-  const [quickReplies, setQuickReplies] = useState([
-    "Pricing",
-    "Features",
-    "Support",
-    "Demo"
-  ]);
+  const { setupBranding, isLoading: authLoading, user } = useAuth();
+  
+  // Initialize with user data if available
+  const [companyName, setCompanyName] = useState(user?.companyName || "");
+  const [brandColor, setBrandColor] = useState(user?.widgetSettings?.color || "#F97316");
+  const [logo, setLogo] = useState<string | null>(user?.companyLogo || null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [font, setFont] = useState(user?.widgetSettings?.font || "inter");
+  const [welcomeMessage, setWelcomeMessage] = useState(
+    user?.widgetSettings?.welcomeMessage || "Hi there! 👋 How can I help you today?"
+  );
+  const [quickReplies, setQuickReplies] = useState(
+    user?.widgetSettings?.quickReplies || ["Pricing", "Features", "Support", "Demo"]
+  );
   const [newReply, setNewReply] = useState("");
-  const [showWidget, setShowWidget] = useState(true);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setLogoFile(file);
       const reader = new FileReader();
       reader.onload = (event) => {
         setLogo(event.target?.result as string);
@@ -45,8 +50,39 @@ export default function SetupBrandingPage() {
     setQuickReplies(quickReplies.filter((_, i) => i !== index));
   };
 
-  const handleContinue = () => {
-    router.push("/setup/team");
+  type BrandingData = {
+    companyName: string;
+    brandColor: string;
+    font: string;
+    welcomeMessage: string;
+    quickReplies: string[];
+    logo?: File;
+  };
+
+  const handleContinue = async () => {
+    setIsLoading(true);
+    try {
+      // Prepare the data for API
+      const brandingData: BrandingData = {
+        companyName: companyName || "My Company",
+        brandColor: brandColor,
+        font: font,
+        welcomeMessage: welcomeMessage,
+        quickReplies: quickReplies,
+      };
+
+      // Add logo file if uploaded
+      if (logoFile) {
+        brandingData.logo = logoFile;
+      }
+
+      await setupBranding(brandingData);
+      router.push("/setup/team");
+    } catch (error) {
+      console.error("Error saving branding:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -98,6 +134,9 @@ export default function SetupBrandingPage() {
                 aria-label="Enter brand color"
               />
             </div>
+            <p className="text-xs text-gray-500 mt-1">
+              This color will be used across your widget and dashboard
+            </p>
           </div>
 
           <div>
@@ -132,7 +171,10 @@ export default function SetupBrandingPage() {
                     className="object-contain"
                   />
                   <button
-                    onClick={() => setLogo(null)}
+                    onClick={() => {
+                      setLogo(null);
+                      setLogoFile(null);
+                    }}
                     className="absolute -top-2 -right-2 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
                     aria-label="Remove logo"
                   >
@@ -154,6 +196,9 @@ export default function SetupBrandingPage() {
                 </label>
               )}
             </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Recommended: Square image, PNG or JPG, max 5MB
+            </p>
           </div>
 
           <div>
@@ -276,7 +321,9 @@ export default function SetupBrandingPage() {
                       </div>
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                        <span className="text-sm font-bold">C</span>
+                        <span className="text-sm font-bold">
+                          {companyName?.charAt(0).toUpperCase() || "C"}
+                        </span>
                       </div>
                     )}
                     <div>
@@ -290,7 +337,9 @@ export default function SetupBrandingPage() {
                 <div className="p-4 h-60 overflow-y-auto bg-gray-50 dark:bg-gray-900/50">
                   <div className="flex items-start gap-2 mb-4">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: brandColor }}>
-                      <span className="text-white text-xs font-bold">C</span>
+                      <span className="text-white text-xs font-bold">
+                        {companyName?.charAt(0).toUpperCase() || "C"}
+                      </span>
                     </div>
                     <div className="max-w-[80%]">
                       <div className="p-3 rounded-2xl rounded-tl-none bg-white dark:bg-gray-800 shadow-sm">
@@ -347,10 +396,20 @@ export default function SetupBrandingPage() {
 
       <button
         onClick={handleContinue}
-        className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2"
+        disabled={isLoading || authLoading}
+        className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Continue to Team Setup
-        <ArrowRight className="w-4 h-4" />
+        {isLoading || authLoading ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+            Saving...
+          </>
+        ) : (
+          <>
+            Continue to Team Setup
+            <ArrowRight className="w-4 h-4" />
+          </>
+        )}
       </button>
     </div>
   );

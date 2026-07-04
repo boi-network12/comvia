@@ -456,6 +456,8 @@ export const getMe = async (req: Request, res: Response, next: NextFunction) => 
   }
 };
 
+// server/src/controllers/authController.ts - Update the updateProfile function
+
 // @desc    Update profile
 // @route   PUT /api/auth/profile
 // @access  Private
@@ -471,11 +473,29 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
     // Update fields
     if (validatedData.name) user.name = validatedData.name;
     if (validatedData.companyName) user.companyName = validatedData.companyName;
+    if (validatedData.setupCompleted !== undefined) {
+      user.setupCompleted = validatedData.setupCompleted;
+    }
+    
+    // Update widget settings if provided
     if (validatedData.widgetSettings) {
       user.widgetSettings = {
         ...user.widgetSettings,
         ...validatedData.widgetSettings,
       };
+    }
+
+    // Update products if provided
+    if (validatedData.products) {
+      user.products = validatedData.products;
+    }
+
+    // Update team members if provided
+    if (validatedData.teamMembers) {
+      user.teamMembers = validatedData.teamMembers.map((teamMember) => ({
+        ...teamMember,
+        invitedAt: teamMember.invitedAt ?? new Date(),
+      }));
     }
 
     // Handle avatar upload
@@ -494,6 +514,10 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
 
     const userResponse = user.toObject();
     delete (userResponse as any).password;
+    delete (userResponse as any).emailVerificationToken;
+    delete (userResponse as any).emailVerificationExpires;
+    delete (userResponse as any).resetPasswordToken;
+    delete (userResponse as any).resetPasswordExpires;
 
     res.status(200).json({
       success: true,
@@ -543,6 +567,10 @@ export const setupProduct = async (req: Request, res: Response, next: NextFuncti
       message: 'Product selected successfully',
       data: {
         products: user.products,
+        setupProgress: {
+          currentStep: 'product',
+          completed: ['product'],
+        },
       },
     });
   } catch (error) {
@@ -556,6 +584,7 @@ export const setupProduct = async (req: Request, res: Response, next: NextFuncti
     next(error);
   }
 };
+
 
 // @desc    Setup widget
 // @route   POST /api/auth/setup/widget
@@ -602,29 +631,89 @@ export const setupWidget = async (req: Request, res: Response, next: NextFunctio
 // @access  Private
 export const setupBranding = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const validatedData = setupBrandingSchema.parse(req.body);
+    let validatedData;
+    
+    // Check if request is multipart/form-data or JSON
+    const isFormData = req.headers['content-type']?.includes('multipart/form-data');
+    
+    if (isFormData) {
+      // Handle FormData - parse JSON strings
+      validatedData = {
+        companyName: req.body.companyName,
+        brandColor: req.body.brandColor,
+        font: req.body.font,
+        welcomeMessage: req.body.welcomeMessage,
+        quickReplies: req.body.quickReplies ? JSON.parse(req.body.quickReplies) : undefined,
+      };
+    } else {
+      // Handle JSON
+      validatedData = setupBrandingSchema.parse(req.body);
+    }
+
     const user = await User.findById(req.user?.id);
 
     if (!user) {
       throw new NotFoundError('User not found');
     }
 
-    user.companyName = validatedData.companyName;
+    // Update company name
+    if (validatedData.companyName) {
+      user.companyName = validatedData.companyName;
+    }
+
+    // Update widget settings
     user.widgetSettings = {
       ...user.widgetSettings,
-      color: validatedData.brandColor,
-      font: validatedData.font,
-      welcomeMessage: validatedData.welcomeMessage,
-      quickReplies: validatedData.quickReplies.slice(0, 6),
+      color: validatedData.brandColor || user.widgetSettings.color,
+      font: validatedData.font || user.widgetSettings.font,
+      welcomeMessage: validatedData.welcomeMessage || user.widgetSettings.welcomeMessage,
+      quickReplies: validatedData.quickReplies ? validatedData.quickReplies.slice(0, 6) : user.widgetSettings.quickReplies,
     };
 
+    // Handle logo upload if present (from FormData)
+    if (req.file) {
+      // Delete old logo if exists
+      if (user.companyLogoPublicId) {
+        await deleteFromCloudinary(user.companyLogoPublicId);
+      }
+
+      const result = await uploadToCloudinary(req.file.buffer, 'company-logos');
+      user.companyLogo = result.secure_url;
+      user.companyLogoPublicId = result.public_id;
+    }
+
+    // Also check if logo was sent as base64 in JSON (from non-formdata requests)
+    if (!isFormData && req.body.logo && req.body.logo.startsWith('data:image')) {
+      // Convert base64 to buffer
+      const base64Data = req.body.logo.split(',')[1];
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      // Delete old logo if exists
+      if (user.companyLogoPublicId) {
+        await deleteFromCloudinary(user.companyLogoPublicId);
+      }
+
+      const result = await uploadToCloudinary(buffer, 'company-logos');
+      user.companyLogo = result.secure_url;
+      user.companyLogoPublicId = result.public_id;
+    }
+
     await user.save();
+
+    // Remove sensitive data from response
+    const userResponse = user.toObject();
+    delete (userResponse as any).password;
+    delete (userResponse as any).emailVerificationToken;
+    delete (userResponse as any).emailVerificationExpires;
+    delete (userResponse as any).resetPasswordToken;
+    delete (userResponse as any).resetPasswordExpires;
 
     res.status(200).json({
       success: true,
       message: 'Branding settings saved successfully',
       data: {
         companyName: user.companyName,
+        companyLogo: user.companyLogo,
         widgetSettings: user.widgetSettings,
       },
     });
@@ -701,6 +790,8 @@ export const setupTeam = async (req: Request, res: Response, next: NextFunction)
   }
 };
 
+// server/src/controllers/authController.ts - Simpler version
+
 // @desc    Setup integrations
 // @route   POST /api/auth/setup/integrations
 // @access  Private
@@ -713,16 +804,77 @@ export const setupIntegrations = async (req: Request, res: Response, next: NextF
       throw new NotFoundError('User not found');
     }
 
-    // Store selected integrations (just track which ones are selected)
-    // You can store this in a separate collection or a field in User
-    // For now, we'll just acknowledge them
-    const selected = validatedData.integrations;
+    const { integrations } = validatedData;
+
+    // Initialize integrations object if it doesn't exist
+    if (!user.integrations) {
+      user.integrations = {} as any;
+    }
+
+    // Define all possible integrations
+    const allIntegrations = ['slack', 'email', 'facebook', 'instagram', 'twitter', 'github', 'zoom', 'zapier'] as const;
+    type IntegrationKey = (typeof allIntegrations)[number];
+
+    // Create a set of selected integration IDs for easy lookup
+    const selectedSet = new Set<IntegrationKey>(integrations as IntegrationKey[]);
+
+    // Update each integration
+    allIntegrations.forEach((key) => {
+      const isSelected = selectedSet.has(key);
+      
+      if (user.integrations[key]) {
+        // Update existing integration
+        user.integrations[key].enabled = isSelected;
+      } else {
+        // Create new integration with default values
+        const defaultIntegration = (() => {
+          switch (key) {
+            case 'email':
+              return {
+                enabled: isSelected,
+                notifications: {
+                  newMessage: true,
+                  newTicket: true,
+                  teamInvite: true,
+                },
+              };
+            case 'github':
+              return {
+                enabled: isSelected,
+                syncIssues: true,
+              };
+            case 'zapier':
+              return {
+                enabled: isSelected,
+                triggers: ['newMessage'],
+              };
+            default:
+              return {
+                enabled: isSelected,
+              };
+          }
+        })();
+
+        user.integrations[key] = defaultIntegration as any;
+      }
+    });
+
+    await user.save();
+
+    // Remove sensitive data from response
+    const userResponse = user.toObject();
+    delete (userResponse as any).password;
+    delete (userResponse as any).emailVerificationToken;
+    delete (userResponse as any).emailVerificationExpires;
+    delete (userResponse as any).resetPasswordToken;
+    delete (userResponse as any).resetPasswordExpires;
 
     res.status(200).json({
       success: true,
       message: 'Integrations saved successfully',
       data: {
-        integrations: selected,
+        user: userResponse,
+        integrations: user.integrations,
       },
     });
   } catch (error) {
@@ -749,13 +901,22 @@ export const completeSetup = async (req: Request, res: Response, next: NextFunct
     }
 
     // Mark setup as complete - you can add a field for this
-    // user.setupCompleted = true;
+    user.setupCompleted = true;
     await user.save();
+
+    // Remove sensitive data
+    const userResponse = user.toObject();
+    delete (userResponse as any).password;
+    delete (userResponse as any).emailVerificationToken;
+    delete (userResponse as any).emailVerificationExpires;
+    delete (userResponse as any).resetPasswordToken;
+    delete (userResponse as any).resetPasswordExpires;
 
     res.status(200).json({
       success: true,
       message: 'Setup completed successfully',
       data: {
+        user: userResponse,
         setupCompleted: true,
       },
     });

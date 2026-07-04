@@ -2,18 +2,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { 
   ArrowRight, 
   Sparkles, 
   Check,
   Zap,
   Mail as MailIcon,
-  MessageCircle,
 } from "lucide-react";
 import { FaGithub, FaSlack } from "react-icons/fa6";
 import { FaFacebook, FaInstagram, FaTwitter } from "react-icons/fa";
 import { FiZoomIn } from "react-icons/fi";
+import { useAuth } from "@/contexts";
+
 
 const integrations = [
   { id: "slack", icon: FaSlack, name: "Slack", description: "Get notifications in Slack" },
@@ -26,9 +27,37 @@ const integrations = [
   { id: "zapier", icon: Zap, name: "Zapier", description: "Connect 1000+ apps" },
 ];
 
+// Type for integration entries
+type IntegrationEntry = {
+  enabled: boolean;
+  [key: string]: unknown;
+};
+
 export default function SetupIntegrationsPage() {
   const router = useRouter();
-  const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>(["slack", "email"]);
+  const { user, setupIntegrations, isLoading: authLoading } = useAuth();
+  const defaultSelected = ["slack", "email"];
+   const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>(defaultSelected);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Load existing integrations from user data
+   useEffect(() => {
+    if (user?.integrations) {
+      // Type-safe way to get enabled integrations
+      const enabledIntegrations = Object.entries(user.integrations)
+        .filter(([, value]) => {
+          // Type guard to check if value has an 'enabled' property
+          const integration = value as IntegrationEntry | undefined;
+          return integration?.enabled === true;
+        })
+        .map(([key]) => key);
+      
+      if (enabledIntegrations.length > 0) {
+        // eslint-disable-next-line
+        setSelectedIntegrations(enabledIntegrations);
+      }
+    }
+  }, [user]);
 
   const toggleIntegration = (id: string) => {
     setSelectedIntegrations((prev) =>
@@ -37,9 +66,19 @@ export default function SetupIntegrationsPage() {
         : [...prev, id]
     );
   };
+  
 
-  const handleContinue = () => {
-    router.push("/setup/complete");
+  const handleContinue = async () => {
+    setIsLoading(true);
+    try {
+      // Use AuthContext's setupIntegrations method
+      await setupIntegrations(selectedIntegrations);
+      router.push("/setup/complete");
+    } catch (error) {
+      
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -93,10 +132,20 @@ export default function SetupIntegrationsPage() {
 
       <button
         onClick={handleContinue}
-        className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2"
+        disabled={isLoading || authLoading}
+        className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Complete Setup
-        <ArrowRight className="w-4 h-4" />
+        {isLoading || authLoading ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+            Saving...
+          </>
+        ) : (
+          <>
+            Complete Setup
+            <ArrowRight className="w-4 h-4" />
+          </>
+        )}
       </button>
     </div>
   );

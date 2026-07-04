@@ -12,10 +12,11 @@ import {
   Check,
   Sparkles
 } from "lucide-react";
+import { useAuth } from "@/contexts";
 
 const products = [
   {
-    id: "live-chat",
+    id: "live-chat" as const,
     icon: MessageSquare,
     title: "Live Chat",
     description: "Add real-time chat to your website",
@@ -24,7 +25,7 @@ const products = [
     popular: true,
   },
   {
-    id: "ticketing",
+    id: "ticketing" as const,
     icon: Ticket,
     title: "Ticketing",
     description: "Turn conversations into tickets",
@@ -33,7 +34,7 @@ const products = [
     popular: false,
   },
   {
-    id: "knowledge-base",
+    id: "knowledge-base" as const,
     icon: BookOpen,
     title: "Knowledge Base",
     description: "Create self-service content",
@@ -42,7 +43,7 @@ const products = [
     popular: false,
   },
   {
-    id: "pages",
+    id: "pages" as const,
     icon: Globe,
     title: "Brand Pages",
     description: "Get a dedicated support page",
@@ -52,12 +53,25 @@ const products = [
   },
 ];
 
+type ProductId = typeof products[number]['id'];
+
 export default function SetupProductPage() {
   const router = useRouter();
-  const [selectedProduct, setSelectedProduct] = useState<string>("live-chat");
+  const { setupProduct, isLoading: authLoading } = useAuth();
+  const [selectedProduct, setSelectedProduct] = useState<ProductId>("live-chat");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleContinue = () => {
-    router.push("/setup/widget");
+  const handleContinue = async () => {
+    setIsLoading(true);
+    try {
+      // Use AuthContext's setupProduct method
+      await setupProduct(selectedProduct);
+      router.push("/setup/widget");
+    } catch (error) {
+      
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -118,10 +132,20 @@ export default function SetupProductPage() {
 
       <button
         onClick={handleContinue}
-        className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2"
+        disabled={isLoading || authLoading}
+        className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Continue Setup
-        <ArrowRight className="w-4 h-4" />
+        {isLoading || authLoading ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+            Saving...
+          </>
+        ) : (
+          <>
+            Continue Setup
+            <ArrowRight className="w-4 h-4" />
+          </>
+        )}
       </button>
     </div>
   );

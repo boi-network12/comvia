@@ -4,6 +4,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowRight, UserPlus, Mail, Sparkles, X } from "lucide-react";
+import { useAuth } from "@/contexts";
 
 interface TeamMember {
   id: string;
@@ -20,14 +21,16 @@ interface NewMember {
 
 export default function SetupTeamPage() {
   const router = useRouter();
+  const { user, setupTeam, isLoading: authLoading } = useAuth();
   const [members, setMembers] = useState<TeamMember[]>([
-    { id: "1", name: "John Doe", email: "john@company.com", role: "admin" },
+    { id: "1", name: user?.name || "", email: user?.email || "", role: "admin" },
   ]);
   const [newMember, setNewMember] = useState<NewMember>({ 
     name: "", 
     email: "", 
     role: "agent" 
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const addMember = () => {
     if (newMember.name && newMember.email) {
@@ -48,8 +51,23 @@ export default function SetupTeamPage() {
     setMembers(members.filter((m) => m.id !== id));
   };
 
-  const handleContinue = () => {
-    router.push("/setup/integrations");
+  const handleContinue = async () => {
+    setIsLoading(true);
+    try {
+      // Use AuthContext's setupTeam method
+      const teamMembers = members.map(m => ({
+        name: m.name,
+        email: m.email,
+        role: m.role,
+      }));
+      
+      await setupTeam(teamMembers);
+      router.push("/setup/integrations");
+    } catch (error) {
+      
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -147,7 +165,6 @@ export default function SetupTeamPage() {
           </div>
         </div>
 
-        {/* Optional: Add note about email invitations */}
         <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
           Team members will receive an email invitation to join your workspace
         </p>
@@ -155,10 +172,20 @@ export default function SetupTeamPage() {
 
       <button
         onClick={handleContinue}
-        className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2"
+        disabled={isLoading || authLoading}
+        className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Continue to Integrations
-        <ArrowRight className="w-4 h-4" />
+        {isLoading || authLoading ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+            Saving...
+          </>
+        ) : (
+          <>
+            Continue to Integrations
+            <ArrowRight className="w-4 h-4" />
+          </>
+        )}
       </button>
     </div>
   );

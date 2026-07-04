@@ -2,6 +2,77 @@
 import { API_ENDPOINT } from '@/config/base_url';
 import axios, { AxiosInstance } from 'axios';
 
+// Define Integration types first
+export interface SlackIntegration {
+  webhookUrl?: string;
+  channel?: string;
+  enabled: boolean;
+}
+
+export interface EmailIntegration {
+  enabled: boolean;
+  notifications: {
+    newMessage: boolean;
+    newTicket: boolean;
+    teamInvite: boolean;
+  };
+}
+
+export interface FacebookIntegration {
+  pageId?: string;
+  accessToken?: string;
+  enabled: boolean;
+  pageName?: string;
+}
+
+export interface InstagramIntegration {
+  businessId?: string;
+  accessToken?: string;
+  enabled: boolean;
+  username?: string;
+}
+
+export interface TwitterIntegration {
+  userId?: string;
+  accessToken?: string;
+  accessTokenSecret?: string;
+  enabled: boolean;
+  username?: string;
+}
+
+export interface GitHubIntegration {
+  accessToken?: string;
+  repo?: string;
+  owner?: string;
+  enabled: boolean;
+  syncIssues: boolean;
+}
+
+export interface ZoomIntegration {
+  accountId?: string;
+  clientId?: string;
+  clientSecret?: string;
+  enabled: boolean;
+  userId?: string;
+}
+
+export interface ZapierIntegration {
+  webhookUrl?: string;
+  enabled: boolean;
+  triggers: string[];
+}
+
+export interface Integrations {
+  slack?: SlackIntegration;
+  email?: EmailIntegration;
+  facebook?: FacebookIntegration;
+  instagram?: InstagramIntegration;
+  twitter?: TwitterIntegration;
+  github?: GitHubIntegration;
+  zoom?: ZoomIntegration;
+  zapier?: ZapierIntegration;
+}
+
 export interface User {
   _id: string;
   name: string;
@@ -11,6 +82,8 @@ export interface User {
   avatar?: string;
   companyName?: string;
   companyLogo?: string;
+  setupCompleted: boolean;
+  integrations?: Integrations; 
   widgetSettings: {
     position: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
     color: string;
@@ -37,6 +110,87 @@ export interface AuthResponse {
     user: User;
     accessToken: string;
   };
+}
+
+// Setup response types
+export interface SetupProductResponse {
+  success: boolean;
+  message: string;
+  data: {
+    products: string[];
+    setupProgress?: {
+      currentStep: string;
+      completed: string[];
+    };
+  };
+}
+
+export interface SetupWidgetResponse {
+  success: boolean;
+  message: string;
+  data: {
+    widgetSettings: User['widgetSettings'];
+  };
+}
+
+export interface SetupBrandingResponse {
+  success: boolean;
+  message: string;
+  data: {
+    companyName: string;
+    companyLogo?: string; 
+    widgetSettings: User['widgetSettings'];
+  };
+}
+
+export interface SetupTeamResponse {
+  success: boolean;
+  message: string;
+  data: {
+    teamMembers: User['teamMembers'];
+  };
+}
+
+export interface SetupIntegrationsResponse {
+  success: boolean;
+  message: string;
+  data: {
+    user?: User;
+    integrations: {
+      slack?: { enabled: boolean };
+      email?: { enabled: boolean; notifications?: {
+        newMessage?: boolean;
+        newTicket?: boolean;
+        teamInvite?: boolean;
+      } };
+      facebook?: { enabled: boolean };
+      instagram?: { enabled: boolean };
+      twitter?: { enabled: boolean };
+      github?: { enabled: boolean; syncIssues?: boolean };
+      zoom?: { enabled: boolean };
+      zapier?: { enabled: boolean; triggers?: string[] };
+    };
+  };
+}
+
+export interface CompleteSetupResponse {
+  success: boolean;
+  message: string;
+  data: {
+    user: User;
+    setupCompleted: boolean;
+  };
+}
+
+export interface UpdateProfileResponse {
+  success: boolean;
+  data: User;
+}
+
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  message: string;
+  data: T;
 }
 
 class AuthService {
@@ -169,17 +323,18 @@ class AuthService {
   }
 
   // Setup methods
-  async setupProduct(productId: string) {
-    const response = await this.api.post('/setup/product', { productId });
+  async setupProduct(productId: string): Promise<SetupProductResponse> {
+    const response = await this.api.post<SetupProductResponse>('/setup/product', { productId });
     return response.data;
   }
+
 
   async setupWidget(settings: {
     position: string;
     color: string;
     icon: string;
-  }) {
-    const response = await this.api.post('/setup/widget', settings);
+  }): Promise<SetupWidgetResponse> {
+    const response = await this.api.post<SetupWidgetResponse>('/setup/widget', settings);
     return response.data;
   }
 
@@ -189,23 +344,47 @@ class AuthService {
     font: string;
     welcomeMessage: string;
     quickReplies: string[];
-  }) {
-    const response = await this.api.post('/setup/branding', settings);
+    logo?: File | string; // Add optional logo
+  }): Promise<SetupBrandingResponse> {
+    const formData = new FormData();
+    
+    // Add all text fields
+    formData.append('companyName', settings.companyName);
+    formData.append('brandColor', settings.brandColor);
+    formData.append('font', settings.font);
+    formData.append('welcomeMessage', settings.welcomeMessage);
+    formData.append('quickReplies', JSON.stringify(settings.quickReplies));
+    
+    // Add logo if it's a File object
+    if (settings.logo instanceof File) {
+      formData.append('logo', settings.logo);
+    } else if (typeof settings.logo === 'string' && settings.logo.startsWith('data:image')) {
+      // If it's a base64 string, send it as JSON
+      // But better to convert to File or send as base64 in the body
+      formData.append('logo', settings.logo);
+    }
+
+    const response = await this.api.post<SetupBrandingResponse>('/setup/branding', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   }
 
-  async setupTeam(members: Array<{ name: string; email: string; role: 'admin' | 'agent' }>) {
-    const response = await this.api.post('/setup/team', { members });
+
+  async setupTeam(members: Array<{ name: string; email: string; role: 'admin' | 'agent' }>): Promise<SetupTeamResponse> {
+    const response = await this.api.post<SetupTeamResponse>('/setup/team', { members });
     return response.data;
   }
 
-  async setupIntegrations(integrations: string[]) {
-    const response = await this.api.post('/setup/integrations', { integrations });
+  async setupIntegrations(integrations: string[]): Promise<SetupIntegrationsResponse> {
+    const response = await this.api.post<SetupIntegrationsResponse>('/setup/integrations', { integrations });
     return response.data;
   }
 
-  async completeSetup() {
-    const response = await this.api.post('/setup/complete');
+  async completeSetup(): Promise<CompleteSetupResponse> {
+    const response = await this.api.post<CompleteSetupResponse>('/setup/complete');
     return response.data;
   }
 }

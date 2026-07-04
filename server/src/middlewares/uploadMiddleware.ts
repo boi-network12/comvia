@@ -18,3 +18,4 @@ const multerMemory = multer({
 });
 
 export const uploadAvatar = multerMemory.single('avatar'); 
+export const uploadCompanyLogo = multerMemory.single('logo');

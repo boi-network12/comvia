@@ -68,7 +68,10 @@ export default function Hero() {
 
             {/* CTA Buttons */}
             <div className="flex flex-wrap items-center gap-4">
-              <button className="group px-7 py-3.5 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-105 font-medium flex items-center gap-2">
+              <button 
+                  className="group px-7 py-3.5 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-105 font-medium flex items-center gap-2"
+                  onClick={() => window.location.href = '/signup'}
+                >
                 Start Free Trial
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </button>

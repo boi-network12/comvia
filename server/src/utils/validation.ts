@@ -61,10 +61,10 @@ export const setupWidgetSchema = z.object({
 
 export const setupBrandingSchema = z.object({
   companyName: z.string().min(1, 'Company name is required'),
-  brandColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid color format'),
-  font: z.string().min(1, 'Please select a font'),
-  welcomeMessage: z.string().min(1, 'Welcome message is required'),
-  quickReplies: z.array(z.string()).max(6, 'Maximum 6 quick replies allowed'),
+  brandColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Invalid color format'),
+  font: z.string().optional(),
+  welcomeMessage: z.string().optional(),
+  quickReplies: z.array(z.string()).max(6, 'Maximum 6 quick replies allowed').optional(),
 });
 
 export const setupTeamSchema = z.object({
@@ -81,15 +81,23 @@ export const setupIntegrationsSchema = z.object({
 
 // Update profile validation
 export const updateProfileSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').optional(),
-  email: z.string().email('Invalid email address').optional(),
+  name: z.string().min(2).max(50).optional(),
+  email: z.string().email().optional(),
   companyName: z.string().optional(),
+  setupCompleted: z.boolean().optional(),
   widgetSettings: z.object({
     position: z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left']).optional(),
-    color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid color format').optional(),
+    color: z.string().optional(),
     icon: z.string().optional(),
     font: z.string().optional(),
     welcomeMessage: z.string().optional(),
-    quickReplies: z.array(z.string()).max(6).optional(),
+    quickReplies: z.array(z.string()).optional(),
   }).optional(),
+  products: z.array(z.string()).optional(),
+  teamMembers: z.array(z.object({
+    email: z.string().email(),
+    role: z.enum(['admin', 'agent']),
+    invitedAt: z.date().optional(),
+    acceptedAt: z.date().optional(),
+  })).optional(),
 });

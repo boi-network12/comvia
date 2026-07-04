@@ -7,7 +7,6 @@ import {
   ArrowRight, 
   Copy, 
   Check, 
-  Code, 
   Sparkles,
   MessageCircle,
   Mail,
@@ -21,6 +20,7 @@ import {
   Star,
   Heart
 } from "lucide-react";
+import { useAuth } from "@/contexts";
 
 interface IconOption {
   value: string;
@@ -29,69 +29,27 @@ interface IconOption {
 }
 
 const iconOptions: IconOption[] = [
-  { 
-    value: "chat", 
-    label: "Chat", 
-    icon: <MessageCircle className="w-5 h-5" /> 
-  },
-  { 
-    value: "message", 
-    label: "Message", 
-    icon: <Mail className="w-5 h-5" /> 
-  },
-  { 
-    value: "support", 
-    label: "Support", 
-    icon: <LifeBuoy className="w-5 h-5" /> 
-  },
-  { 
-    value: "help", 
-    label: "Help", 
-    icon: <HelpCircle className="w-5 h-5" /> 
-  },
-  { 
-    value: "bot", 
-    label: "Bot", 
-    icon: <Bot className="w-5 h-5" /> 
-  },
-  { 
-    value: "smile", 
-    label: "Smile", 
-    icon: <Smile className="w-5 h-5" /> 
-  },
-  { 
-    value: "user", 
-    label: "User", 
-    icon: <User className="w-5 h-5" /> 
-  },
-  { 
-    value: "shield", 
-    label: "Shield", 
-    icon: <Shield className="w-5 h-5" /> 
-  },
-  { 
-    value: "zap", 
-    label: "Zap", 
-    icon: <Zap className="w-5 h-5" /> 
-  },
-  { 
-    value: "star", 
-    label: "Star", 
-    icon: <Star className="w-5 h-5" /> 
-  },
-  { 
-    value: "heart", 
-    label: "Heart", 
-    icon: <Heart className="w-5 h-5" /> 
-  },
+  { value: "chat", label: "Chat", icon: <MessageCircle className="w-5 h-5" /> },
+  { value: "message", label: "Message", icon: <Mail className="w-5 h-5" /> },
+  { value: "support", label: "Support", icon: <LifeBuoy className="w-5 h-5" /> },
+  { value: "help", label: "Help", icon: <HelpCircle className="w-5 h-5" /> },
+  { value: "bot", label: "Bot", icon: <Bot className="w-5 h-5" /> },
+  { value: "smile", label: "Smile", icon: <Smile className="w-5 h-5" /> },
+  { value: "user", label: "User", icon: <User className="w-5 h-5" /> },
+  { value: "shield", label: "Shield", icon: <Shield className="w-5 h-5" /> },
+  { value: "zap", label: "Zap", icon: <Zap className="w-5 h-5" /> },
+  { value: "star", label: "Star", icon: <Star className="w-5 h-5" /> },
+  { value: "heart", label: "Heart", icon: <Heart className="w-5 h-5" /> },
 ];
 
 export default function SetupWidgetPage() {
   const router = useRouter();
+  const { setupWidget, isLoading: authLoading, user } = useAuth();
   const [copied, setCopied] = useState(false);
-  const [widgetPosition, setWidgetPosition] = useState("bottom-right");
-  const [widgetColor, setWidgetColor] = useState("#F97316");
-  const [widgetIcon, setWidgetIcon] = useState("chat");
+  const [widgetPosition, setWidgetPosition] = useState(user?.widgetSettings?.position || "bottom-right");
+  const [widgetColor, setWidgetColor] = useState(user?.widgetSettings?.color || "#F97316");
+  const [widgetIcon, setWidgetIcon] = useState(user?.widgetSettings?.icon || "chat");
+  const [isLoading, setIsLoading] = useState(false);
 
   const selectedIcon = iconOptions.find(icon => icon.value === widgetIcon);
 
@@ -110,8 +68,22 @@ export default function SetupWidgetPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleContinue = () => {
-    router.push("/setup/branding");
+  const handleContinue = async () => {
+    setIsLoading(true);
+    try {
+      // Use AuthContext's setupWidget method
+      await setupWidget({
+        position: widgetPosition,
+        color: widgetColor,
+        icon: widgetIcon,
+      });
+      
+      router.push("/setup/branding");
+    } catch (error) {
+      
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -136,7 +108,15 @@ export default function SetupWidgetPage() {
             </label>
             <select
               value={widgetPosition}
-              onChange={(e) => setWidgetPosition(e.target.value)}
+              onChange={(e) =>
+                setWidgetPosition(
+                  e.target.value as
+                    | "bottom-right"
+                    | "bottom-left"
+                    | "top-right"
+                    | "top-left"
+                )
+              }
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
               aria-label="Select widget position"
             >
@@ -259,10 +239,20 @@ export default function SetupWidgetPage() {
 
       <button
         onClick={handleContinue}
-        className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2"
+        disabled={isLoading || authLoading}
+        className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Continue to Branding
-        <ArrowRight className="w-4 h-4" />
+        {isLoading || authLoading ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+            Saving...
+          </>
+        ) : (
+          <>
+            Continue to Branding
+            <ArrowRight className="w-4 h-4" />
+          </>
+        )}
       </button>
     </div>
   );
