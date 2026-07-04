@@ -65,11 +65,11 @@ connectDB()
 // ✅ EXPORT the app for Vercel (DO NOT listen)
 export default app;
 
-// ✅ FOR LOCAL DEVELOPMENT ONLY - Conditional listening
-if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
-  const PORT = process.env.PORT || 8080;
-  app.listen(PORT, () => {
-    logger.info(`🚀 Server is running on port ${PORT}`);
-    logger.info(`🌐 API URL: http://localhost:${PORT}/api/auth`);
-  });
-}
+// // ✅ FOR LOCAL DEVELOPMENT ONLY - Conditional listening
+// if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
+//   const PORT = process.env.PORT || 8080;
+//   app.listen(PORT, () => {
+//     logger.info(`🚀 Server is running on port ${PORT}`);
+//     logger.info(`🌐 API URL: http://localhost:${PORT}/api/auth`);
+//   });
+// }

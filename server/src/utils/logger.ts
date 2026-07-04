@@ -1,3 +1,4 @@
+// server/src/utils/logger.ts
 import winston from 'winston';
 
 // Define log levels
@@ -7,11 +8,6 @@ const levels = {
     info: 2,
     http: 3,
     debug: 4,
-};
-// Define log level based on environment
-const level = () => {
-    const env = process.env.NODE_ENV || 'development';
-    return env === 'development' ? 'debug' : 'warn';
 };
 
 // Define colors for each level
@@ -25,7 +21,7 @@ const colors = {
 
 winston.addColors(colors);
 
-// Define format for logs
+// Simple console-only format
 const format = winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
     winston.format.colorize({ all: true }),
@@ -34,63 +30,36 @@ const format = winston.format.combine(
     )
 );
 
-// ✅ FIX: Use explicit typing for transports array
-// TypeScript will infer the correct union type
-const transports: winston.transport[] = [
-    new winston.transports.Console(),
-];
-
-// ✅ Only add file transports in development (and ensure logs directory exists)
-if (process.env.NODE_ENV === 'development') {
-    const fs = require('fs');
-    const path = require('path');
-    const logDir = path.join(process.cwd(), 'logs');
-    
-    if (!fs.existsSync(logDir)) {
-        fs.mkdirSync(logDir, { recursive: true });
-    }
-    
-    transports.push(
-        new winston.transports.File({
-            filename: path.join(logDir, 'error.log'),
-            level: 'error',
-        }),
-        new winston.transports.File({
-            filename: path.join(logDir, 'all.log'),
-        })
-    );
-}
-
-// Create logger
+// Create logger with only Console transport
 export const logger = winston.createLogger({
-    level: level(),
+    level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
     levels,
     format,
-    transports,
+    transports: [
+        new winston.transports.Console()
+    ],
 });
 
-// Create stream for Morgan HTTP logging
-export const stream = {
-    write: (message: string) => {
-        logger.http(message.trim());
-    },
-};
-
-// Export a function to log API requests
+// Helper functions
 export const logRequest = (req: any, res: any, next: any) => {
-    logger.info(`${req.method} ${req.url} - IP: ${req.ip}`);
+    logger.http(`${req.method} ${req.url} - IP: ${req.ip}`);
     next();
 };
 
-// Export a function to log database operations
 export const logDatabase = (operation: string, collection: string, data?: any) => {
     logger.debug(`Database ${operation} on ${collection}`, data);
 };
 
-// Export a function to log errors with context
 export const logError = (error: Error, context?: string) => {
     logger.error(`[${context || 'APP'}] ${error.message}`, {
         stack: error.stack,
         context,
     });
+};
+
+// Export stream for Morgan (optional)
+export const stream = {
+    write: (message: string) => {
+        logger.http(message.trim());
+    },
 };
