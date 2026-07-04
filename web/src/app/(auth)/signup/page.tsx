@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { Eye, EyeOff, ArrowRight, Mail, Lock, User } from "lucide-react";
+import { useAuth } from "@/contexts";
 
 // Type definitions for Cloudflare Turnstile
 interface TurnstileInstance {
@@ -33,11 +34,12 @@ declare global {
 }
 
 export default function SignupPage() {
+  const { register, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isCaptchaReady, setIsCaptchaReady] = useState(false);
   const [captchaError, setCaptchaError] = useState(false);
@@ -159,52 +161,35 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
     
     if (!captchaToken) {
       setCaptchaError(true);
       return;
     }
 
-    setIsLoading(true);
+
     setCaptchaError(false);
     
     try {
       // Add your signup logic here
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-          captchaToken,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Signup failed");
-      }
-
-      // Handle successful signup (redirect, show message, etc.)
-      console.log("Signup successful:", data);
+      await register(name, email, password, captchaToken);
       
-    } catch (error) {
-      console.error("Signup error:", error);
-    } finally {
-      setIsLoading(false);
-      // Reset captcha after submission
+    } catch (error: unknown) {
+      const err = error as Error & { response?: { data?: { message?: string } } };
+      setError(err.response?.data?.message || "Registration failed. Please try again.");
+      // Reset captcha after failed attempt
       if (turnstileInstanceRef.current && window.turnstile) {
         try {
           window.turnstile.reset(turnstileInstanceRef.current);
           setCaptchaToken(null);
-        } catch (error) {
+        } catch (resetErr) {
           // Ignore reset errors
         }
       }
     }
   };
+
 
   return (
     <>
@@ -214,6 +199,12 @@ export default function SignupPage() {
           Start your free 14-day trial today
         </p>
       </div>
+
+      {error && (
+        <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Full Name */}

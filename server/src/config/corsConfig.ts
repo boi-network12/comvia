@@ -28,7 +28,7 @@ export const getCorsOptions = (): CorsOptions => {
   // Add localhost for development
   if (process.env.NODE_ENV === 'development') {
     enhancedOrigins.push('http://localhost:3000');
-    enhancedOrigins.push('http://127.0.0.1:3000');
+    // enhancedOrigins.push('http://127.0.0.1:3000');
   }
 
   const uniqueOrigins = [...new Set(enhancedOrigins)];

@@ -10,16 +10,16 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+
+  // Only show branding on login and signup
   const isLogin = pathname === "/login";
   const isSignup = pathname === "/signup";
-  const isSetup = pathname === "/setup" || pathname.startsWith("/setup/");
 
-  // Hide the right sidebar on setup page
-  const showBranding = !isSetup;
+  const showBranding = isLogin || isSignup;
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side - Branding/Image (hidden on setup) */}
+      {/* Left Side - Branding (Only visible on login & signup) */}
       {showBranding && (
         <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary/20 via-primary/10 to-background dark:from-primary/10 dark:via-primary/5 relative overflow-hidden">
           <div className="absolute inset-0 flex items-center justify-center p-12">
@@ -27,7 +27,7 @@ export default function AuthLayout({
               {/* Decorative circles */}
               <div className="absolute top-20 right-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
               <div className="absolute bottom-20 left-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
-              
+
               {/* Main content */}
               <div className="relative">
                 <div className="w-24 h-24 gradient-primary rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-primary/30">
@@ -45,7 +45,7 @@ export default function AuthLayout({
                     />
                   </svg>
                 </div>
-                
+
                 <h2 className="text-3xl font-bold mt-6">
                   {isLogin ? "Welcome back!" : "Join the community"}
                 </h2>
@@ -114,15 +114,19 @@ export default function AuthLayout({
       )}
 
       {/* Right Side - Form/Content */}
-      <div className={`flex-1 flex flex-col justify-center px-4 sm:px-6 lg:px-8 py-12 bg-background ${!showBranding ? 'max-w-4xl mx-auto' : ''}`}>
+      <div className={`flex-1 flex flex-col justify-center px-4 sm:px-6 lg:px-8 py-12 bg-background 
+        ${!showBranding ? 'max-w-4xl mx-auto' : ''}`}
+      >
         <div className={`w-full ${!showBranding ? 'max-w-4xl' : 'max-w-md'} mx-auto`}>
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group mb-8">
-            <div className="w-9 h-9 gradient-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/25 transition-transform group-hover:scale-105">
-              <span className="text-white font-bold text-sm">C</span>
-            </div>
-            <span className="text-xl font-bold tracking-tight">Comvia</span>
-          </Link>
+          {showBranding && (
+            <Link href="/" className="flex items-center gap-2.5 group mb-8">
+              <div className="w-9 h-9 gradient-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/25 transition-transform group-hover:scale-105">
+                <span className="text-white font-bold text-sm">C</span>
+              </div>
+              <span className="text-xl font-bold tracking-tight">Comvia</span>
+            </Link>
+          )}
 
           {children}
         </div>

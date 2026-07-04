@@ -1,6 +1,8 @@
 import jwt, { JwtPayload, SignOptions, Secret } from "jsonwebtoken";
 
+
 const ACCESS_SECRET: Secret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET!;
+
 const REFRESH_SECRET: Secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET!;
 
 // Explicitly define token expirations
