@@ -33,59 +33,101 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Add refs to prevent duplicate calls
   const authCheckDone = useRef(false);
   const isVerifying = useRef(false);
+  const isRefreshing = useRef(false);
+  const fetchPromise = useRef<Promise<User | null> | null>(null);
 
   // Memoized function to fetch user
-  const fetchUser = useCallback(async (silent: boolean = false) => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
+  const fetchUser = useCallback(async (silent: boolean = false): Promise<User | null> => {
+    // If there's already a fetch in progress, return that promise
+    if (fetchPromise.current) {
+      console.log('Fetch already in progress, returning existing promise');
+      return fetchPromise.current;
+    }
+
+    // Create new fetch promise
+    const promise = (async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+          setUser(null);
+          return null;
+        }
+        
+        const response = await authAPI.getMe();
+        const userData = response.data;
+        setUser(userData);
+        return userData;
+      } catch (error) {
+        // Only show error if not silent
+        if (!silent) {
+          const isAuthError = error && typeof error === 'object' && 'response' in error && 
+            (error as { response?: { status?: number } }).response?.status === 401;
+          
+          if (!isAuthError) {
+            handleError(error, 'Failed to fetch user information.');
+          }
+        }
+        // Token is invalid or expired
+        localStorage.removeItem('accessToken');
         setUser(null);
         return null;
       }
-      
-      const response = await authAPI.getMe();
-      setUser(response.data);
-      return response.data;
-    } catch (error) {
-      // Only show error if not silent and not authentication error
-      if (!silent) {
-        // Check if it's an authentication error (401)
-        const isAuthError = error && typeof error === 'object' && 'response' in error && 
-          (error as { response?: { status?: number } }).response?.status === 401;
-        if (!isAuthError) {
-          handleError(error, 'Failed to fetch user information.');
-        }
-      }
-      // Token is invalid or expired
-      localStorage.removeItem('accessToken');
-      setUser(null);
-      return null;
+    })();
+
+    // Store the promise
+    fetchPromise.current = promise;
+
+    try {
+      const result = await promise;
+      return result;
+    } finally {
+      // Clear the promise after completion
+      fetchPromise.current = null;
     }
   }, [handleError]);
 
   // Memoized check authentication
   const checkAuth = useCallback(async () => {
     // Prevent multiple simultaneous calls
-    if (authCheckDone.current) return;
-    authCheckDone.current = true;
+    if (authCheckDone.current) {
+      console.log('Auth check already done, skipping...');
+      return;
+    }
+    
+    // Check if token exists before making request
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      console.log('No token found, skipping auth check');
+      setUser(null);
+      setIsLoading(false);
+      authCheckDone.current = true;
+      return;
+    }
     
     setIsLoading(true);
     try {
       await fetchUser(true); // Silent fetch
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      setUser(null);
     } finally {
       setIsLoading(false);
+      authCheckDone.current = true;
     }
   }, [fetchUser]);
 
-  // Check if user is authenticated on mount
+  // Check if user is authenticated on mount - ONLY ONCE
   useEffect(() => {
+    console.log('AuthProvider mounted - checking auth once');
+    // eslint-disable-next-line 
     checkAuth();
     
     // Reset the flag when component unmounts
     return () => {
       authCheckDone.current = false;
     };
-  }, [checkAuth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - ONLY RUN ONCE
 
   // Memoized login
   const login = useCallback(async (email: string, password: string) => {
@@ -95,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { user, accessToken } = response.data;
       localStorage.setItem('accessToken', accessToken);
       setUser(user);
+      authCheckDone.current = false; // Reset so next check works
       showSuccess(`Welcome back, ${user.name}!`, 'Login successful.');
       router.push('/dashboard');
     } catch (error) {
@@ -112,6 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { user, accessToken } = response.data;
       localStorage.setItem('accessToken', accessToken);
       setUser(user);
+      authCheckDone.current = false; // Reset so next check works
       showSuccess('Registration successful!', 'Please verify your email address.');
       router.push('/verify-email-pending');
     } catch (error) {
@@ -137,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       localStorage.removeItem('accessToken');
       setUser(null);
+      authCheckDone.current = false; 
       router.push('/login');
     }
   }, [router, showSuccess, handleError]);
@@ -164,6 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData = await fetchUser(true); // Silent fetch
         if (userData) {
           setUser(userData);
+          authCheckDone.current = false;
           router.push('/dashboard');
         } else {
           // If fetch fails, user might need to login again
@@ -187,6 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userData = await fetchUser(true);
           if (userData) {
             setUser(userData);
+            authCheckDone.current = false;
             router.push('/dashboard');
           } else {
             router.push('/login');
