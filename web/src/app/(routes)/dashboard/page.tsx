@@ -12,63 +12,16 @@ import {
   ArrowUp,
   ArrowDown,
   Settings,
-  Search,
-  Filter,
-  Plus,
-  MoreVertical,
-  Star,
-  StarHalf,
-  UserCheck,
-  UserPlus,
-  Zap,
-  Shield,
-  Award,
-  Calendar,
-  Mail,
-  Phone,
-  Video,
-  FileText,
-  CheckCircle,
-  XCircle,
-  Clock as ClockIcon,
-  Activity,
-  BarChart,
-  PieChart,
-  Download,
   RefreshCw,
-  AlertCircle,
-  ChevronRight,
-  Eye,
-  ThumbsUp,
-  ThumbsDown,
-  MessageCircle,
-  LifeBuoy,
-  Bell,
-  Circle,
-  GitBranch,
-  Globe,
-  Server,
-  Database,
-  Cpu,
-  Cloud,
-  Lock,
-  ShieldCheck,
-  Sparkles,
-  Bot,
-  Headphones,
-  Briefcase,
-  CalendarDays,
+  Star,
+  Award,
+  UserPlus,
   BarChart3,
-  LineChart,
-  PieChart as PieChartIcon,
-  TrendingUp as TrendingUpIcon,
-  Users as UsersIcon,
-  UserCircle,
-  Check,
-  X,
-  Menu,
-  PlusCircle,
-  Search as SearchIcon,
+  Bot,
+  ThumbsUp,
+  CheckCircle,
+  Clock as ClockIcon,
+  MoreVertical,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -205,33 +158,33 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+    <div className="w-full max-w-full overflow-x-hidden px-3 sm:px-4 md:px-6 space-y-4 sm:space-y-6">
+      {/* Header - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold tracking-tight truncate">
             Welcome back, {user.name.split(" ")[0]}! 👋
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 truncate">
             Here&apos;s what&apos;s happening with your support today.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all disabled:opacity-50"
+            className="p-2 sm:p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all disabled:opacity-50 flex-shrink-0"
             aria-label="Refresh dashboard"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
-          <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+          <div className="flex gap-0.5 sm:gap-1 p-0.5 sm:p-1 bg-gray-100 dark:bg-gray-800 rounded-xl flex-shrink-0">
             {["today", "week", "month"].map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range as typeof timeRange)}
                 className={`
-                  px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize
+                  px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all capitalize whitespace-nowrap
                   ${timeRange === range 
                     ? "bg-white dark:bg-gray-700 shadow-sm text-foreground" 
                     : "text-gray-500 dark:text-gray-400 hover:text-foreground"
@@ -244,16 +197,17 @@ export default function DashboardPage() {
           </div>
           <Link
             href="/dashboard/widget/customize"
-            className="inline-flex items-center gap-2 px-4 py-2.5 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-105 font-medium text-sm"
+            className="hidden sm:inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-105 font-medium text-xs sm:text-sm flex-shrink-0"
           >
-            <Settings className="w-4 h-4" />
-            Customize Widget
+            <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden xs:inline">Customize</span>
+            <span className="xs:hidden">Widget</span>
           </Link>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Grid - Responsive */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           const TrendIcon = stat.changeType === "up" ? ArrowUp : ArrowDown;
@@ -262,78 +216,79 @@ export default function DashboardPage() {
           return (
             <div
               key={stat.id}
-              className="group bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all hover:border-primary/20"
+              className="group bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 shadow-sm hover:shadow-md transition-all hover:border-primary/20"
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center transition-transform group-hover:scale-110`}>
-                  <Icon className={`w-5 h-5 ${stat.color}`} />
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 ${stat.bg} rounded-lg sm:rounded-xl flex items-center justify-center transition-transform group-hover:scale-110`}>
+                  <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 ${stat.color}`} />
                 </div>
-                <div className="flex items-center gap-1 text-xs">
-                  <TrendIcon className={`w-3 h-3 ${trendColor}`} />
+                <div className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs">
+                  <TrendIcon className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${trendColor}`} />
                   <span className={trendColor}>{stat.change}</span>
                 </div>
               </div>
-              <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{stat.detail}</p>
+              <p className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight">{stat.value}</p>
+              <p className="text-[10px] sm:text-xs md:text-sm text-gray-500 dark:text-gray-400 truncate">{stat.label}</p>
+              <p className="text-[8px] sm:text-[10px] md:text-xs text-gray-400 dark:text-gray-500 mt-0.5 sm:mt-1 truncate">{stat.detail}</p>
             </div>
           );
         })}
       </div>
 
-      {/* Quick Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Quick Stats Row - Responsive */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {conversationStatus.map((status) => (
           <div
             key={status.label}
-            className={`${status.bg} rounded-xl p-3 border border-gray-200/50 dark:border-gray-800/50`}
+            className={`${status.bg} rounded-lg sm:rounded-xl p-2 sm:p-3 border border-gray-200/50 dark:border-gray-800/50`}
           >
-            <p className={`text-xs font-medium ${status.color}`}>{status.label}</p>
-            <p className="text-xl font-bold">{status.count}</p>
+            <p className={`text-[10px] sm:text-xs font-medium ${status.color} truncate`}>{status.label}</p>
+            <p className="text-base sm:text-lg md:text-xl font-bold">{status.count}</p>
           </div>
         ))}
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Content Grid - Responsive */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Left Column - Recent Activity */}
-        <div className="lg:col-span-2 bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Recent Activity</h3>
-            <div className="flex items-center gap-2">
-              <button className="text-xs text-primary hover:underline">View All</button>
-              <button className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors" aria-label="view Alll">
-                <MoreVertical className="w-4 h-4 text-gray-400" />
+        <div className="lg:col-span-2 bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 min-w-0">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 className="text-sm sm:text-base font-semibold">Recent Activity</h3>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button className="text-[10px] sm:text-xs text-primary hover:underline whitespace-nowrap">View All</button>
+              <button className="p-1 sm:p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors" aria-label="View All">
+                <MoreVertical className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
               </button>
             </div>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {recentActivity.map((activity) => (
               <div
                 key={activity.id}
-                className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-800/20 px-2 rounded-lg transition-colors"
+                className="flex items-center justify-between py-1.5 sm:py-2 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-800/20 px-1 sm:px-2 rounded-lg transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full ${activity.user.color} flex items-center justify-center text-white font-medium text-xs`}>
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                  <div className={`w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full ${activity.user.color} flex items-center justify-center text-white font-medium text-[10px] sm:text-xs flex-shrink-0`}>
                     {activity.user.avatar}
                   </div>
-                  <div>
-                    <p className="text-sm">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm truncate">
                       <span className="font-medium">{activity.user.name}</span>{" "}
-                      {activity.action}
+                      <span className="hidden xs:inline">{activity.action}</span>
+                      <span className="xs:hidden">{activity.action.substring(0, 10)}...</span>
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">
                       {activity.details}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-1 sm:ml-2">
                   {activity.type === "success" ? (
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                    <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-500 flex-shrink-0" />
                   ) : (
-                    <ClockIcon className="w-3.5 h-3.5 text-amber-500" />
+                    <ClockIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500 flex-shrink-0" />
                   )}
-                  <span className="text-xs text-gray-400">{activity.time}</span>
+                  <span className="text-[8px] sm:text-[10px] md:text-xs text-gray-400 whitespace-nowrap">{activity.time}</span>
                 </div>
               </div>
             ))}
@@ -341,68 +296,68 @@ export default function DashboardPage() {
         </div>
 
         {/* Right Column */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Top Performers */}
-          <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Top Performers</h3>
-              <Award className="w-4 h-4 text-amber-500" />
+          <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-sm sm:text-base font-semibold">Top Performers</h3>
+              <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 flex-shrink-0" />
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {topPerformers.map((performer, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full ${performer.color} flex items-center justify-center text-white font-medium text-xs`}>
+                <div key={index} className="flex items-center gap-2 sm:gap-3">
+                  <div className={`w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full ${performer.color} flex items-center justify-center text-white font-medium text-[10px] sm:text-xs flex-shrink-0`}>
                     {performer.avatar}
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{performer.name}</p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm font-medium truncate">{performer.name}</p>
+                    <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                      <span className="text-[8px] sm:text-[10px] md:text-xs text-gray-500 dark:text-gray-400">
                         {performer.chats} chats
                       </span>
                       <div className="flex items-center">
-                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                        <span className="text-xs font-medium ml-0.5">{performer.rating}</span>
+                        <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-400 flex-shrink-0" />
+                        <span className="text-[8px] sm:text-[10px] md:text-xs font-medium ml-0.5">{performer.rating}</span>
                       </div>
                     </div>
                   </div>
-                  {index === 0 && <Crown className="w-4 h-4 text-amber-500" />}
+                  {index === 0 && <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 flex-shrink-0" />}
                 </div>
               ))}
             </div>
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-6">
-            <h3 className="font-semibold mb-3">Quick Actions</h3>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6">
+            <h3 className="text-sm sm:text-base font-semibold mb-2 sm:mb-3">Quick Actions</h3>
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
               <Link
                 href="/dashboard/conversations/new"
-                className="flex flex-col items-center gap-1.5 p-3 rounded-xl hover:bg-primary/5 border border-gray-200/50 dark:border-gray-800/50 hover:border-primary/30 transition-all group"
+                className="flex flex-col items-center gap-1 p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-primary/5 border border-gray-200/50 dark:border-gray-800/50 hover:border-primary/30 transition-all group"
               >
-                <MessageSquare className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-medium">New Chat</span>
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-primary group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] sm:text-xs font-medium text-center">New Chat</span>
               </Link>
               <Link
                 href="/dashboard/team/invite"
-                className="flex flex-col items-center gap-1.5 p-3 rounded-xl hover:bg-purple-500/5 border border-gray-200/50 dark:border-gray-800/50 hover:border-purple-500/30 transition-all group"
+                className="flex flex-col items-center gap-1 p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-purple-500/5 border border-gray-200/50 dark:border-gray-800/50 hover:border-purple-500/30 transition-all group"
               >
-                <UserPlus className="w-5 h-5 text-purple-500 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-medium">Invite Team</span>
+                <UserPlus className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500 group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] sm:text-xs font-medium text-center">Invite Team</span>
               </Link>
               <Link
                 href="/dashboard/analytics"
-                className="flex flex-col items-center gap-1.5 p-3 rounded-xl hover:bg-emerald-500/5 border border-gray-200/50 dark:border-gray-800/50 hover:border-emerald-500/30 transition-all group"
+                className="flex flex-col items-center gap-1 p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-emerald-500/5 border border-gray-200/50 dark:border-gray-800/50 hover:border-emerald-500/30 transition-all group"
               >
-                <BarChart3 className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-medium">Analytics</span>
+                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] sm:text-xs font-medium text-center">Analytics</span>
               </Link>
               <Link
                 href="/dashboard/widget/customize"
-                className="flex flex-col items-center gap-1.5 p-3 rounded-xl hover:bg-orange-500/5 border border-gray-200/50 dark:border-gray-800/50 hover:border-orange-500/30 transition-all group"
+                className="flex flex-col items-center gap-1 p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-orange-500/5 border border-gray-200/50 dark:border-gray-800/50 hover:border-orange-500/30 transition-all group"
               >
-                <Settings className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-medium">Customize</span>
+                <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] sm:text-xs font-medium text-center">Customize</span>
               </Link>
             </div>
           </div>
@@ -410,70 +365,70 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom Section - Additional Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-medium">AI Response Rate</h4>
-            <Bot className="w-4 h-4 text-primary" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <h4 className="text-xs sm:text-sm font-medium">AI Response Rate</h4>
+            <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
           </div>
-          <p className="text-2xl font-bold">67%</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">+12% from last month</p>
-          <div className="mt-3 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+          <p className="text-xl sm:text-2xl font-bold">67%</p>
+          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">+12% from last month</p>
+          <div className="mt-2 sm:mt-3 h-1.5 sm:h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
             <div className="h-full gradient-primary rounded-full" style={{ width: "67%" }} />
           </div>
         </div>
 
-        <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-medium">Customer Satisfaction</h4>
-            <ThumbsUp className="w-4 h-4 text-emerald-500" />
+        <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <h4 className="text-xs sm:text-sm font-medium">Customer Satisfaction</h4>
+            <ThumbsUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 flex-shrink-0" />
           </div>
-          <p className="text-2xl font-bold">94%</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Based on 156 responses</p>
-          <div className="mt-3 flex items-center gap-1">
+          <p className="text-xl sm:text-2xl font-bold">94%</p>
+          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Based on 156 responses</p>
+          <div className="mt-2 sm:mt-3 flex items-center gap-0.5 sm:gap-1">
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
-                className={`w-4 h-4 ${i < 4.7 ? "fill-amber-400 text-amber-400" : "text-gray-300 dark:text-gray-700"}`}
+                className={`w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 ${i < 4.7 ? "fill-amber-400 text-amber-400" : "text-gray-300 dark:text-gray-700"}`}
               />
             ))}
           </div>
         </div>
 
-        <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-medium">Team Availability</h4>
-            <UsersIcon className="w-4 h-4 text-purple-500" />
+        <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <h4 className="text-xs sm:text-sm font-medium">Team Availability</h4>
+            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500 flex-shrink-0" />
           </div>
-          <p className="text-2xl font-bold">3/6</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Online now</p>
-          <div className="mt-3 flex -space-x-2">
+          <p className="text-xl sm:text-2xl font-bold">3/6</p>
+          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Online now</p>
+          <div className="mt-2 sm:mt-3 flex -space-x-1.5 sm:-space-x-2">
             {["SJ", "MC", "ER"].map((initials, i) => (
               <div
                 key={i}
-                className={`w-8 h-8 rounded-full border-2 border-background flex items-center justify-center text-white font-medium text-xs ${
+                className={`w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full border-2 border-background flex items-center justify-center text-white font-medium text-[8px] sm:text-[10px] md:text-xs ${
                   i === 0 ? "bg-blue-500" : i === 1 ? "bg-purple-500" : "bg-emerald-500"
                 }`}
               >
                 {initials}
               </div>
             ))}
-            <div className="w-8 h-8 rounded-full border-2 border-background flex items-center justify-center text-gray-500 bg-gray-100 dark:bg-gray-800 text-xs font-medium">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full border-2 border-background flex items-center justify-center text-gray-500 bg-gray-100 dark:bg-gray-800 text-[8px] sm:text-[10px] md:text-xs font-medium">
               +3
             </div>
           </div>
         </div>
       </div>
 
-      {/* Recent Messages Preview */}
-      <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">Recent Messages</h3>
-          <Link href="/dashboard/conversations" className="text-xs text-primary hover:underline">
-            View All Conversations →
+      {/* Recent Messages Preview - Responsive */}
+      <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h3 className="text-sm sm:text-base font-semibold">Recent Messages</h3>
+          <Link href="/dashboard/conversations" className="text-[10px] sm:text-xs text-primary hover:underline whitespace-nowrap">
+            View All →
           </Link>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5 sm:space-y-2">
           {[
             { name: "John Doe", message: "I'm having trouble with my payment...", time: "5 min ago", unread: true },
             { name: "Jane Smith", message: "Thanks for your help! Everything works now.", time: "15 min ago", unread: false },
@@ -481,23 +436,23 @@ export default function DashboardPage() {
           ].map((msg, index) => (
             <div
               key={index}
-              className={`flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors ${
+              className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors ${
                 msg.unread ? "bg-primary/5 border border-primary/10" : ""
               }`}
             >
-              <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full gradient-primary flex items-center justify-center text-white font-medium text-xs sm:text-sm flex-shrink-0">
                 {msg.name.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium">{msg.name}</p>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <p className="text-xs sm:text-sm font-medium truncate">{msg.name}</p>
                   {msg.unread && (
-                    <span className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full flex-shrink-0" />
                   )}
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{msg.message}</p>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">{msg.message}</p>
               </div>
-              <span className="text-xs text-gray-400 flex-shrink-0">{msg.time}</span>
+              <span className="text-[8px] sm:text-[10px] md:text-xs text-gray-400 flex-shrink-0">{msg.time}</span>
             </div>
           ))}
         </div>
