@@ -1,3 +1,4 @@
+// server/index.js or server.js
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -11,7 +12,6 @@ import { getCorsOptions } from './src/config/corsConfig';
 import routes from './src/routes';
 import { logger, logRequest } from './src/utils/logger';
 import { corsDebug } from './src/middlewares/corsDebug';
-
 
 const app = express();
 
@@ -33,6 +33,8 @@ app.get('/health', (req, res) => {
     status: 'ok',
     message: 'Server is running',
     timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    vercel: process.env.VERCEL === '1' ? 'yes' : 'no'
   });
 });
 
@@ -48,20 +50,26 @@ app.get('/', (req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
-// connect to Db and start the server
+// ✅ Connect to DB WITHOUT blocking the export
+// Don't await here - let it connect in background
 connectDB()
-  .then(async () => {
-    logger.info('✅ Connected to the database');
-
-    const PORT = process.env.PORT || 8080;
-    app.listen(PORT, () => {
-      logger.info(`🚀 Server is running on port ${PORT}`);
-      logger.info(`🌐 API URL: http://localhost:${PORT}/api/auth`);
-    });
+  .then(() => {
+    logger.info('✅ Database connected successfully');
   })
   .catch((err) => {
-    logger.error('❌ Failed to connect to the database', err);
-    process.exit(1);
+    // ✅ Log but don't crash in serverless
+    logger.error('⚠️ Database connection failed:', err.message);
+    logger.error('⚠️ API will continue to run but DB operations will fail');
   });
 
+// ✅ EXPORT the app for Vercel (DO NOT listen)
 export default app;
+
+// ✅ FOR LOCAL DEVELOPMENT ONLY - Conditional listening
+if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
+  const PORT = process.env.PORT || 8080;
+  app.listen(PORT, () => {
+    logger.info(`🚀 Server is running on port ${PORT}`);
+    logger.info(`🌐 API URL: http://localhost:${PORT}/api/auth`);
+  });
+}
