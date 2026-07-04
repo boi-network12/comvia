@@ -1,7 +1,7 @@
 // web/contexts/AuthContext.tsx
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { authAPI, User, AuthResponse } from '@/services/auth';
 import { useToast } from './ToastContext';
@@ -29,30 +29,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  
+  // Add refs to prevent duplicate calls
+  const authCheckDone = useRef(false);
+  const isVerifying = useRef(false);
+
+  // Memoized function to fetch user
+  const fetchUser = useCallback(async (silent: boolean = false) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setUser(null);
+        return null;
+      }
+      
+      const response = await authAPI.getMe();
+      setUser(response.data);
+      return response.data;
+    } catch (error) {
+      // Only show error if not silent and not authentication error
+      if (!silent) {
+        // Check if it's an authentication error (401)
+        const isAuthError = error && typeof error === 'object' && 'response' in error && 
+          (error as { response?: { status?: number } }).response?.status === 401;
+        if (!isAuthError) {
+          handleError(error, 'Failed to fetch user information.');
+        }
+      }
+      // Token is invalid or expired
+      localStorage.removeItem('accessToken');
+      setUser(null);
+      return null;
+    }
+  }, [handleError]);
+
+  // Memoized check authentication
+  const checkAuth = useCallback(async () => {
+    // Prevent multiple simultaneous calls
+    if (authCheckDone.current) return;
+    authCheckDone.current = true;
+    
+    setIsLoading(true);
+    try {
+      await fetchUser(true); // Silent fetch
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchUser]);
 
   // Check if user is authenticated on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-          const response = await authAPI.getMe();
-          setUser(response.data);
-        }
-      } catch (error) {
-        handleError(error, 'Failed to fetch user information.');
-        // Token is invalid or expired
-        localStorage.removeItem('accessToken');
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     checkAuth();
-  }, []);
+    
+    // Reset the flag when component unmounts
+    return () => {
+      authCheckDone.current = false;
+    };
+  }, [checkAuth]);
 
-  const login = async (email: string, password: string) => {
+  // Memoized login
+  const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     try {
       const response = await authAPI.login(email, password);
@@ -66,9 +102,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router, showSuccess, handleError]);
 
-  const register = async (name: string, email: string, password: string, captchaToken?: string) => {
+  // Memoized register
+  const register = useCallback(async (name: string, email: string, password: string, captchaToken?: string) => {
     setIsLoading(true);
     try {
       const response = await authAPI.register(name, email, password, captchaToken);
@@ -82,38 +119,96 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router, showSuccess, handleError]);
 
-  const logout = async () => {
+  // Memoized logout
+  const logout = useCallback(async () => {
     try {
       await authAPI.logout();
       showSuccess('Logged out successfully!', 'You have been logged out.');
     } catch (error) {
-      handleError(error, 'Failed to logout.');
+      // Don't show error for logout if it's just a network error
+      const isNetworkError = error && typeof error === 'object' && 'code' in error &&
+        (error as { code?: string }).code === 'ERR_NETWORK';
+      
+      if (!isNetworkError) {
+        handleError(error, 'Failed to logout.');
+      }
     } finally {
       localStorage.removeItem('accessToken');
       setUser(null);
       router.push('/login');
     }
-  };
+  }, [router, showSuccess, handleError]);
 
-  const verifyEmail = async (token: string) => {
+  // Memoized verify email - FIXED to prevent multiple error messages
+  const verifyEmail = useCallback(async (token: string) => {
+    // Prevent multiple verification attempts
+    if (isVerifying.current) {
+      console.log('Verification already in progress, skipping...');
+      return;
+    }
+    
+    isVerifying.current = true;
     setIsLoading(true);
+    
     try {
+      // First, verify the email
       await authAPI.verifyEmail(token);
-      // Refresh user data
-      const response = await authAPI.getMe();
-      setUser(response.data);
+      
+      // Show success immediately
       showSuccess('Email verified successfully!', 'Your email address has been verified.');
-      router.push('/dashboard');
+      
+      // Then fetch updated user data
+      try {
+        const userData = await fetchUser(true); // Silent fetch
+        if (userData) {
+          setUser(userData);
+          router.push('/dashboard');
+        } else {
+          // If fetch fails, user might need to login again
+          router.push('/login?verified=true');
+        }
+      } catch (fetchError) {
+        // If fetching user fails, redirect to login with verification flag
+        console.warn('Failed to fetch user after verification:', fetchError);
+        router.push('/login?verified=true');
+      }
+      
     } catch (error) {
-      handleError(error, 'Failed to verify email.');
+      // Check if it's an email already verified error
+      const isAlreadyVerified = error && typeof error === 'object' && 'response' in error && 
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message?.includes('already verified');
+      
+      if (isAlreadyVerified) {
+        showInfo('Email already verified', 'You can continue to your dashboard.');
+        // Try to fetch user anyway
+        try {
+          const userData = await fetchUser(true);
+          if (userData) {
+            setUser(userData);
+            router.push('/dashboard');
+          } else {
+            router.push('/login');
+          }
+        } catch {
+          router.push('/login');
+        }
+      } else {
+        // Only show error if it's not a silent error
+        handleError(error, 'Failed to verify email.');
+      }
     } finally {
       setIsLoading(false);
+      // Reset verification flag after a delay
+      setTimeout(() => {
+        isVerifying.current = false;
+      }, 1000);
     }
-  };
+  }, [fetchUser, router, showSuccess, showInfo, handleError]);
 
-  const resendVerification = async (email: string) => {
+  // Memoized resend verification
+  const resendVerification = useCallback(async (email: string) => {
     setIsLoading(true);
     try {
       await authAPI.resendVerification(email);
@@ -123,9 +218,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [showInfo, handleError]);
 
-  const forgotPassword = async (email: string) => {
+  // Memoized forgot password
+  const forgotPassword = useCallback(async (email: string) => {
     setIsLoading(true);
     try {
       await authAPI.forgotPassword(email);
@@ -135,9 +231,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [showInfo, handleError]);
 
-  const resetPassword = async (token: string, password: string) => {
+  // Memoized reset password
+  const resetPassword = useCallback(async (token: string, password: string) => {
     setIsLoading(true);
     try {
       await authAPI.resetPassword(token, password);
@@ -148,9 +245,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router, showSuccess, handleError]);
 
-  const updateProfile = async (data: Partial<User>) => {
+  // Memoized update profile
+  const updateProfile = useCallback(async (data: Partial<User>) => {
     setIsLoading(true);
     try {
       const response = await authAPI.updateProfile(data);
@@ -161,24 +259,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [showSuccess, handleError]);
+
+  // Memoized context value
+  const contextValue = useMemo(() => ({
+    user,
+    isLoading,
+    isAuthenticated: !!user,
+    login,
+    register,
+    logout,
+    verifyEmail,
+    resendVerification,
+    forgotPassword,
+    resetPassword,
+    updateProfile,
+  }), [
+    user,
+    isLoading,
+    login,
+    register,
+    logout,
+    verifyEmail,
+    resendVerification,
+    forgotPassword,
+    resetPassword,
+    updateProfile,
+  ]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        login,
-        register,
-        logout,
-        verifyEmail,
-        resendVerification,
-        forgotPassword,
-        resetPassword,
-        updateProfile,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

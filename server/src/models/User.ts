@@ -39,13 +39,56 @@ export interface IUser extends Document {
     slack?: {
       webhookUrl: string;
       channel: string;
+      enabled: boolean;
+    };
+    email?: {
+      enabled: boolean;
+      notifications: {
+        newMessage: boolean;
+        newTicket: boolean;
+        teamInvite: boolean;
+      };
+    };
+    facebook?: {
+      pageId: string;
+      accessToken: string;
+      enabled: boolean;
+      pageName?: string;
+    };
+    instagram?: {
+      businessId: string;
+      accessToken: string;
+      enabled: boolean;
+      username?: string;
+    };
+    twitter?: {
+      userId: string;
+      accessToken: string;
+      accessTokenSecret: string;
+      enabled: boolean;
+      username?: string;
     };
     github?: {
       accessToken: string;
       repo: string;
+      owner: string;
+      enabled: boolean;
+      syncIssues: boolean;
     };
-    // Add more integrations as needed
+    zoom?: {
+      accountId: string;
+      clientId: string;
+      clientSecret: string;
+      enabled: boolean;
+      userId?: string;
+    };
+    zapier?: {
+      webhookUrl: string;
+      enabled: boolean;
+      triggers: string[];
+    };
   };
+  setupCompleted: boolean;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -107,6 +150,10 @@ const UserSchema = new Schema<IUser>(
     },
     companyLogo: String,
     companyLogoPublicId: String,
+    setupCompleted: {
+      type: Boolean,
+      default: false,
+    },
     widgetSettings: {
       position: {
         type: String,
@@ -158,12 +205,161 @@ const UserSchema = new Schema<IUser>(
     ],
     integrations: {
       slack: {
-        webhookUrl: String,
-        channel: String,
+        webhookUrl: {
+          type: String,
+          trim: true,
+        },
+        channel: {
+          type: String,
+          trim: true,
+        },
+        enabled: {
+          type: Boolean,
+          default: false,
+        },
+      },
+      email: {
+        enabled: {
+          type: Boolean,
+          default: true,
+        },
+        notifications: {
+          newMessage: {
+            type: Boolean,
+            default: true,
+          },
+          newTicket: {
+            type: Boolean,
+            default: true,
+          },
+          teamInvite: {
+            type: Boolean,
+            default: true,
+          },
+        },
+      },
+      facebook: {
+        pageId: {
+          type: String,
+          trim: true,
+        },
+        accessToken: {
+          type: String,
+          trim: true,
+          select: false,
+        },
+        enabled: {
+          type: Boolean,
+          default: false,
+        },
+        pageName: {
+          type: String,
+          trim: true,
+        },
+      },
+      instagram: {
+        businessId: {
+          type: String,
+          trim: true,
+        },
+        accessToken: {
+          type: String,
+          trim: true,
+          select: false,
+        },
+        enabled: {
+          type: Boolean,
+          default: false,
+        },
+        username: {
+          type: String,
+          trim: true,
+        },
+      },
+      twitter: {
+        userId: {
+          type: String,
+          trim: true,
+        },
+        accessToken: {
+          type: String,
+          trim: true,
+          select: false,
+        },
+        accessTokenSecret: {
+          type: String,
+          trim: true,
+          select: false,
+        },
+        enabled: {
+          type: Boolean,
+          default: false,
+        },
+        username: {
+          type: String,
+          trim: true,
+        },
       },
       github: {
-        accessToken: String,
-        repo: String,
+        accessToken: {
+          type: String,
+          trim: true,
+          select: false,
+        },
+        repo: {
+          type: String,
+          trim: true,
+        },
+        owner: {
+          type: String,
+          trim: true,
+        },
+        enabled: {
+          type: Boolean,
+          default: false,
+        },
+        syncIssues: {
+          type: Boolean,
+          default: true,
+        },
+      },
+      zoom: {
+        accountId: {
+          type: String,
+          trim: true,
+        },
+        clientId: {
+          type: String,
+          trim: true,
+        },
+        clientSecret: {
+          type: String,
+          trim: true,
+          select: false,
+        },
+        enabled: {
+          type: Boolean,
+          default: false,
+        },
+        userId: {
+          type: String,
+          trim: true,
+        },
+      },
+      zapier: {
+        webhookUrl: {
+          type: String,
+          trim: true,
+        },
+        enabled: {
+          type: Boolean,
+          default: false,
+        },
+        triggers: {
+          type: [String],
+          enum: ['newMessage', 'newTicket', 'newLead', 'ticketClosed'],
+          default: ['newMessage'],
+        },
       },
     },
   },
