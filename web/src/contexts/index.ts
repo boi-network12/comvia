@@ -6,3 +6,4 @@ export { LoadingProvider, useLoading, useLoadingWithApi, LoadingComponent } from
 export { ConversationProvider, useConversation } from "./ConversationContext";
 export { TeamProvider, useTeam } from "./TeamContext";
 export { WidgetProvider, useWidget } from "./WidgetContext";
+export { AnalyticsProvider, useAnalytics } from "./AnalyticsContext";

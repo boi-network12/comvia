@@ -57,7 +57,7 @@ export default function RoutesLayout({
         <DashboardSidebar />
         <div className="flex-1 flex flex-col min-h-screen lg:ml-0">
           <SetupWarning />
-          <main className="flex-1 py-6 lg:p-8">
+          <main className="flex-1 px-4 lg:p-0 py-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
               {children}
             </div>

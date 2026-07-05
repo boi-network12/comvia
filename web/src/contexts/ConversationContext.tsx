@@ -67,11 +67,9 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const response = await conversationAPI.getConversations(params || {});
-      const { conversations: convs, pagination: pag, unreadCount: unread } = response.data;
-      
-      setConversations(convs);
-      setPagination(pag);
-      setUnreadCount(unread);
+      setConversations(response.data.conversations);
+      setPagination(response.data.pagination);
+      setUnreadCount(response.data.unreadCount);
       if (params) setFilters(params);
     } catch (error) {
       handleError(error, 'Failed to load conversations');
@@ -280,20 +278,29 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
 
   // Load initial data
   useEffect(() => {
-    if (user) {
-        // eslint-disable-next-line
-      loadConversations();
-      loadStats();
-      setHasInitialized(true);
-    }
-  }, [user, loadConversations, loadStats]);
+    if (!user || hasInitialized) return;
 
-  useEffect(() => {
-    if (user && hasInitialized) {
-      // eslint-disable-next-line
-      refreshConversations();
-    }
-  }, [user]);
+    const init = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([loadConversations(), loadStats()]);
+        setHasInitialized(true);
+      } catch (err) {
+        console.error('Initial load failed', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    init();
+  }, [user, loadConversations, loadStats, hasInitialized]);
+
+  // useEffect(() => {
+  //   if (user && hasInitialized) {
+  //     // eslint-disable-next-line
+  //     refreshConversations();
+  //   }
+  // }, [user]);
 
   const contextValue = useMemo(() => ({
     conversations,

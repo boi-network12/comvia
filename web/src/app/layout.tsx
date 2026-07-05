@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider, ConversationProvider, IntegrationProvider, LoadingProvider, TeamProvider, ToastProvider, WidgetProvider } from "@/contexts";
+import { AnalyticsProvider, AuthProvider, ConversationProvider, IntegrationProvider, LoadingProvider, TeamProvider, ToastProvider, WidgetProvider } from "@/contexts";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -71,9 +71,11 @@ export default function RootLayout({
               <ConversationProvider>
                 <TeamProvider>
                   <WidgetProvider>
-                    <IntegrationProvider>
-                      <div className="flex-1 flex flex-col">{children}</div>
-                    </IntegrationProvider>
+                    <AnalyticsProvider>
+                      <IntegrationProvider>
+                        <div className="flex-1 flex flex-col">{children}</div>
+                      </IntegrationProvider>
+                    </AnalyticsProvider>
                   </WidgetProvider>
                 </TeamProvider>
               </ConversationProvider>

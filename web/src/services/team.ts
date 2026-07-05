@@ -15,6 +15,7 @@ export interface TeamMember {
 }
 
 export interface TeamMemberDetail extends TeamMember {
+  _id: string;
   name: string;
   avatar?: string;
   isEmailVerified: boolean;

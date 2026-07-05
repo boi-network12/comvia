@@ -138,11 +138,12 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
 
   // Optional: Refresh when user changes (rare case)
   useEffect(() => {
-    if (user && hasInitialized) {
-      // eslint-disable-next-line
-      loadSettings();
-    }
-  }, [user, hasInitialized]); // Only when user actually changes
+  if (!user || hasInitialized) return;
+  // eslint-disable-next-line
+    loadSettings();
+    getEmbedScript();
+    setHasInitialized(true);
+  }, [user, loadSettings, getEmbedScript, hasInitialized]);
 
   const contextValue = useMemo(() => ({
     settings,
