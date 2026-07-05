@@ -21,7 +21,7 @@ export default function Home() {
       <main className="flex-1">
         <Hero />
         <TrustedBy />
-        <FeaturesDetailed /> {/* Replaces the old Features component */}
+        <FeaturesDetailed /> 
         <HowItWorks />
         <WhyComvia />
         <Stats />
@@ -33,3 +33,5 @@ export default function Home() {
     </>
   );
 }
+
+// landing page
