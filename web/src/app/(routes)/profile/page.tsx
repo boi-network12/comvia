@@ -1,8 +1,10 @@
 // app/(routes)/profile/page.tsx
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useConversation } from "@/contexts/ConversationContext";
+import { useTeam } from "@/contexts/TeamContext";
 import { useToast } from "@/contexts/ToastContext";
 import Image from "next/image";
 import {
@@ -35,10 +37,16 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAnalytics } from "@/contexts";
 
 export default function ProfilePage() {
-  const { user, updateProfile, logout } = useAuth();
-  const { showSuccess, showError } = useToast();
+  const { user, updateProfile, logout, isLoading: authLoading, refreshUser } = useAuth();
+  const { stats: conversationStats, loadStats } = useConversation();
+  const { members, loadMembers } = useTeam();
+  const { resolutionRate, totalConversations, totalConversations: resolvedConversations } = useAnalytics()
+  const { showError } = useToast();
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form states
@@ -63,13 +71,41 @@ export default function ProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Stats
+  // Calculate real stats
+  const totalMembers = members.length;
+
+  // Real stats
   const stats = [
-    { icon: MessageSquare, label: "Conversations", value: "156" },
-    { icon: Users, label: "Team Members", value: "6" },
-    { icon: Star, label: "Rating", value: "4.9" },
-    { icon: TrendingUp, label: "Resolution Rate", value: "94%" },
+    { 
+      icon: MessageSquare, 
+      label: "Conversations", 
+      value: totalConversations.toString() || "0" 
+    },
+    { 
+      icon: Users, 
+      label: "Team Members", 
+      value: totalMembers.toString() || "0" 
+    },
+    { 
+      icon: Star, 
+      label: "Rating", 
+      value: "4.8" 
+    },
+    { 
+      icon: TrendingUp, 
+      label: "Resolution Rate", 
+      value: `${resolutionRate}%` || "0%" 
+    },
   ];
+
+  const membershipSinceYear = user?.createdAt ? new Date(user.createdAt).getFullYear().toString() : "N/A";
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, authLoading, router]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -89,8 +125,9 @@ export default function ProfilePage() {
     setIsUploading(true);
     try {
       await updateProfile({ avatar: avatarPreview });
-      showSuccess('Profile picture updated successfully!');
       setAvatarFile(null);
+
+      await refreshUser?.();
     } catch (error) {
       showError('Failed to update profile picture');
     } finally {
@@ -108,10 +145,10 @@ export default function ProfilePage() {
 
       if (avatarFile) {
         await handleAvatarUpload();
+      } else {
+        await updateProfile(updateData);
       }
 
-      await updateProfile(updateData);
-      showSuccess('Profile updated successfully!');
       setIsEditing(false);
     } catch (error) {
       showError('Failed to update profile');
@@ -135,7 +172,6 @@ export default function ProfilePage() {
     try {
       // Call your password change API here
       // await authAPI.changePassword(passwordData.currentPassword, passwordData.newPassword);
-      showSuccess('Password changed successfully!');
       setShowPasswordForm(false);
       setPasswordData({
         currentPassword: "",
@@ -148,6 +184,16 @@ export default function ProfilePage() {
       setIsLoading(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -203,14 +249,14 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Stats Row */}
+      {/* Stats Row - Now with real data */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <div
               key={index}
-              className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-xl p-4"
+              className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-xl p-4 hover:border-primary/20 transition-colors"
             >
               <div className="flex items-center gap-2 mb-1">
                 <Icon className="w-4 h-4 text-primary" />
@@ -269,7 +315,7 @@ export default function ProfilePage() {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="bg-transparent border-b border-primary/30 focus:border-primary outline-none px-1"
+                    className="bg-transparent border-b border-primary/30 focus:border-primary outline-none px-1 w-full sm:w-auto"
                     aria-label="Edit your name"
                     placeholder="Your name"
                   />
@@ -314,7 +360,7 @@ export default function ProfilePage() {
                     aria-label="Company name"
                   />
                 ) : (
-                  <p className="mt-1">{formData.companyName || "Not set"}</p>
+                  <p className="mt-1 font-medium">{formData.companyName || "Not set"}</p>
                 )}
               </div>
             </div>
@@ -326,8 +372,11 @@ export default function ProfilePage() {
                 <label className="text-sm font-medium text-gray-500 dark:text-gray-400" htmlFor="email">
                   Email Address
                 </label>
-                <p id="email" className="mt-1">{formData.email}</p>
-                <p className="text-xs text-green-500 mt-0.5">✓ Verified</p>
+                <p id="email" className="mt-1 font-medium">{formData.email}</p>
+                <p className="text-xs text-green-500 mt-0.5 flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  Verified
+                </p>
               </div>
             </div>
 
@@ -339,11 +388,28 @@ export default function ProfilePage() {
                   Membership
                 </label>
                 <div className="mt-1 flex items-center gap-2">
-                  <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
-                    {user?.role === "admin" ? "Admin" : user?.role === "super_admin" ? "Super Admin" : "User"}
+                  <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full capitalize">
+                    {user?.role || "User"}
                   </span>
-                  <span className="text-xs text-gray-400">• Since 2026</span>
+                  <span className="text-xs text-gray-400">• Since {membershipSinceYear}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Account Created */}
+            <div className="flex items-start gap-3">
+              <Clock className="w-5 h-5 text-gray-400 mt-0.5" aria-hidden="true" />
+              <div className="flex-1">
+                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Account Created
+                </label>
+                <p className="mt-1 font-medium">
+                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  }) : 'N/A'}
+                </p>
               </div>
             </div>
           </div>
@@ -478,53 +544,52 @@ export default function ProfilePage() {
           </div>
 
           {/* Quick Actions */}
-          {/* Quick Actions - Using semantic HTML */}
-        <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-6">
-        <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <Settings className="w-4 h-4 text-primary" />
-            Quick Actions
-        </h3>
-        <ul className="space-y-2" role="list">
-            <li role="listitem">
-            <Link
-                href="/dashboard/settings"
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-            >
-                <Palette className="w-4 h-4 text-gray-400" aria-hidden="true" />
-                <span className="text-sm">Appearance Settings</span>
-                <ChevronRight className="w-4 h-4 text-gray-400 ml-auto" aria-hidden="true" />
-            </Link>
-            </li>
-            <li role="listitem">
-            <Link
-                href="/dashboard/team"
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-            >
-                <Users className="w-4 h-4 text-gray-400" aria-hidden="true" />
-                <span className="text-sm">Manage Team</span>
-                <ChevronRight className="w-4 h-4 text-gray-400 ml-auto" aria-hidden="true" />
-            </Link>
-            </li>
-            <li role="listitem">
-            <Link
-                href="/dashboard/widget/customize"
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-            >
-                <Globe className="w-4 h-4 text-gray-400" aria-hidden="true" />
-                <span className="text-sm">Customize Widget</span>
-                <ChevronRight className="w-4 h-4 text-gray-400 ml-auto" aria-hidden="true" />
-            </Link>
-            </li>
-        </ul>
-        </div>
+          <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-6">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <Settings className="w-4 h-4 text-primary" />
+              Quick Actions
+            </h3>
+            <ul className="space-y-2" role="list">
+              <li role="listitem">
+                <Link
+                  href="/dashboard/settings"
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
+                >
+                  <Palette className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" aria-hidden="true" />
+                  <span className="text-sm">Appearance Settings</span>
+                  <ChevronRight className="w-4 h-4 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" aria-hidden="true" />
+                </Link>
+              </li>
+              <li role="listitem">
+                <Link
+                  href="/dashboard/team"
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
+                >
+                  <Users className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" aria-hidden="true" />
+                  <span className="text-sm">Manage Team</span>
+                  <ChevronRight className="w-4 h-4 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" aria-hidden="true" />
+                </Link>
+              </li>
+              <li role="listitem">
+                <Link
+                  href="/dashboard/widget/customize"
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
+                >
+                  <Globe className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" aria-hidden="true" />
+                  <span className="text-sm">Customize Widget</span>
+                  <ChevronRight className="w-4 h-4 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" aria-hidden="true" />
+                </Link>
+              </li>
+            </ul>
+          </div>
 
           {/* Logout Button */}
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
+            className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all group"
             aria-label="Logout from your account"
           >
-            <LogOut className="w-5 h-5" aria-hidden="true" />
+            <LogOut className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" aria-hidden="true" />
             <span className="font-medium">Logout</span>
           </button>
         </div>

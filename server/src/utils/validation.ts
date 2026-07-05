@@ -85,6 +85,13 @@ export const updateProfileSchema = z.object({
   email: z.string().email().optional(),
   companyName: z.string().optional(),
   setupCompleted: z.boolean().optional(),
+  avatar: z.union([
+    z.string()
+      .regex(/^data:image\/(jpeg|png|webp|jpg);base64,/, 'Invalid image data URL')
+      .optional(),
+    z.string().url().optional(),   
+    z.literal('').optional(),    
+  ]).optional(),
   widgetSettings: z.object({
     position: z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left']).optional(),
     color: z.string().optional(),

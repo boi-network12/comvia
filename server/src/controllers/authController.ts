@@ -508,6 +508,16 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
       const result = await uploadToCloudinary(req.file.buffer, 'avatars');
       user.avatar = result.secure_url;
       user.avatarPublicId = result.public_id;
+    } else if (validatedData.avatar && validatedData.avatar.startsWith('data:image')) {
+      // Fallback for base64
+      const base64Data = validatedData.avatar.split(',')[1];
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      if (user.avatarPublicId) await deleteFromCloudinary(user.avatarPublicId);
+      
+      const result = await uploadToCloudinary(buffer, 'avatars');
+      user.avatar = result.secure_url;
+      user.avatarPublicId = result.public_id;
     }
 
     await user.save();

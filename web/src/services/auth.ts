@@ -302,23 +302,26 @@ class AuthService {
     return response.data;
   }
 
-  async updateProfile(data: Partial<User>) {
-    const formData = new FormData();
+  async updateProfile(data: Partial<User> & { avatar?: File | string }) {
+  const formData = new FormData();
+
     Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        if (typeof value === 'object') {
-          formData.append(key, JSON.stringify(value));
-        } else {
-          formData.append(key, value.toString());
-        }
+      if (value === undefined || value === null) return;
+
+      if (key === 'avatar' && value instanceof File) {
+        formData.append('avatar', value);           // ← Real file
+      } else if (typeof value === 'object') {
+        formData.append(key, JSON.stringify(value));
+      } else {
+        formData.append(key, value.toString());
       }
     });
 
-    const response = await this.api.put<{ success: boolean; data: User }>('/profile', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await this.api.put<{ success: boolean; data: User }>(
+      '/profile', 
+      formData, 
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
     return response.data;
   }
 
