@@ -20,17 +20,20 @@ import {
 } from '../controllers/authController';
 import { protect, restrictTo, isEmailVerified } from '../middlewares/auth';
 import { uploadAvatar, uploadCompanyLogo } from '../middlewares/uploadMiddleware';
+import { isSetupComplete } from '../middlewares/setupMiddleware';
+import { authLimiter } from '../middlewares/rateLimiter';
 
 const router = Router();
 
 // Public routes
-router.post('/register', register);
-router.post('/login', login);
+router.post('/register', authLimiter, register);
+router.post('/login', authLimiter, login);
 router.post('/verify-email', verifyEmail);
 router.post('/resend-verification', resendVerification);
-router.post('/forgot-password', forgotPassword);
+router.post('/forgot-password', authLimiter, forgotPassword);
 router.post('/reset-password', resetPassword);
 router.post('/refresh', refreshToken);
+
 
 // Private routes (require authentication)
 router.use(protect);
@@ -56,5 +59,11 @@ router.get('/protected', isEmailVerified, (req, res) => {
     user: req.user,
   });
 });
+
+// Protected routes that require complete setup
+router.get('/dashboard', isSetupComplete, (req, res) => {
+  res.json({ success: true, message: 'Welcome to dashboard' });
+});
+
 
 export default router;

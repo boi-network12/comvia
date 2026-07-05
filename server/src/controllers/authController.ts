@@ -900,6 +900,23 @@ export const completeSetup = async (req: Request, res: Response, next: NextFunct
       throw new NotFoundError('User not found');
     }
 
+    // Check if all required steps are done
+    if (!user.products || user.products.length === 0) {
+      throw new BadRequestError('Please select a product first');
+    }
+    
+    if (!user.widgetSettings?.position) {
+      throw new BadRequestError('Please configure widget settings first');
+    }
+    
+    if (!user.companyName) {
+      throw new BadRequestError('Please set up branding first');
+    }
+    
+    if (!user.teamMembers || user.teamMembers.length === 0) {
+      throw new BadRequestError('Please add at least one team member');
+    }
+
     // Mark setup as complete - you can add a field for this
     user.setupCompleted = true;
     await user.save();

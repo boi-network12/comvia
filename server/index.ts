@@ -28,13 +28,35 @@ app.use(corsDebug);
 app.use('/api', routes);
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
+  let dbStatus = 'disconnected';
+  let dbHost = 'N/A';
+  
+  try {
+    const conn = await import('mongoose');
+    if (conn.default.connection.readyState === 1) {
+      dbStatus = 'connected';
+      dbHost = conn.default.connection.host;
+    }
+  } catch (error) {
+    // DB not connected
+  }
+
   res.status(200).json({
     status: 'ok',
     message: 'Server is running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    vercel: process.env.VERCEL === '1' ? 'yes' : 'no'
+    vercel: process.env.VERCEL === '1' ? 'yes' : 'no',
+    database: {
+      status: dbStatus,
+      host: dbHost,
+    },
+    uptime: Math.floor(process.uptime()),
+    memory: {
+      used: Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 100) / 100,
+      total: Math.round((process.memoryUsage().heapTotal / 1024 / 1024) * 100) / 100,
+    }
   });
 });
 
@@ -64,12 +86,3 @@ connectDB()
 
 // ✅ EXPORT the app for Vercel (DO NOT listen)
 export default app;
-
-// // ✅ FOR LOCAL DEVELOPMENT ONLY - Conditional listening
-// if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
-//   const PORT = process.env.PORT || 8080;
-//   app.listen(PORT, () => {
-//     logger.info(`🚀 Server is running on port ${PORT}`);
-//     logger.info(`🌐 API URL: http://localhost:${PORT}/api/auth`);
-//   });
-// }
