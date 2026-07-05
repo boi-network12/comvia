@@ -3,11 +3,11 @@
 
 export default function TrustedBy() {
   const companies = [
-    { name: "TechFlow", gradient: "from-blue-500 to-cyan-500" },
-    { name: "CloudSync", gradient: "from-purple-500 to-pink-500" },
-    { name: "DataHub", gradient: "from-emerald-500 to-teal-500" },
-    { name: "GrowthStack", gradient: "from-orange-500 to-red-500" },
-    { name: "SecureNet", gradient: "from-indigo-500 to-blue-500" },
+    { name: "PXXL", gradient: "from-blue-500 to-cyan-500" },
+    { name: "Chavica", gradient: "from-purple-500 to-pink-500" },
+    { name: "Sociepex", gradient: "from-emerald-500 to-teal-500" },
+    { name: "FixPilot", gradient: "from-orange-500 to-red-500" },
+    { name: "IgboScript", gradient: "from-indigo-500 to-blue-500" },
   ];
 
   return (

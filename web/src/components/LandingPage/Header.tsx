@@ -79,7 +79,7 @@ export default function Header() {
 
         {/* Mobile Navigation */}
         <div
-          className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out z-999 backdrop-blur-md ${
+          className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out z-999  ${
             isMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
           }`}
         >

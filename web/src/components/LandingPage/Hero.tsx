@@ -113,8 +113,8 @@ export default function Hero() {
           </div>
 
           {/* Right Visual */}
-          <div className="relative animate-fade-in-up delay-300">
-            <div className="relative bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/5 dark:to-primary/10 rounded-3xl p-6 border border-gray-200/50 dark:border-gray-800/50 shadow-2xl">
+          <div className="relative animate-fade-in-up delay-300 p-5">
+            <div className="relative bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/5 dark:to-primary/10 rounded-3xl p-3 border border-gray-200/50 dark:border-gray-800/50 shadow-2xl">
               <div className="aspect-[4/3] bg-gray-50 dark:bg-gray-900/50 rounded-2xl overflow-hidden relative">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center space-y-4">
@@ -144,7 +144,7 @@ export default function Hero() {
                 </div>
               </div>
             </div>
-            <div className="absolute -bottom-4 -left-4 bg-background border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-xl backdrop-blur-sm">
+            <div className="absolute -bottom-3 -left-3 bg-background border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-xl backdrop-blur-sm">
               <div className="flex items-center gap-2.5">
                 <span className="text-2xl">🤖</span>
                 <div>
