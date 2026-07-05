@@ -21,6 +21,7 @@ import {
   Heart
 } from "lucide-react";
 import { useAuth } from "@/contexts";
+import { ICON_OPTIONS, POSITIONS, WIDGET_CONSTANTS } from "@/constants/widget";
 
 interface IconOption {
   value: string;
@@ -28,30 +29,17 @@ interface IconOption {
   icon: React.ReactNode;
 }
 
-const iconOptions: IconOption[] = [
-  { value: "chat", label: "Chat", icon: <MessageCircle className="w-5 h-5" /> },
-  { value: "message", label: "Message", icon: <Mail className="w-5 h-5" /> },
-  { value: "support", label: "Support", icon: <LifeBuoy className="w-5 h-5" /> },
-  { value: "help", label: "Help", icon: <HelpCircle className="w-5 h-5" /> },
-  { value: "bot", label: "Bot", icon: <Bot className="w-5 h-5" /> },
-  { value: "smile", label: "Smile", icon: <Smile className="w-5 h-5" /> },
-  { value: "user", label: "User", icon: <User className="w-5 h-5" /> },
-  { value: "shield", label: "Shield", icon: <Shield className="w-5 h-5" /> },
-  { value: "zap", label: "Zap", icon: <Zap className="w-5 h-5" /> },
-  { value: "star", label: "Star", icon: <Star className="w-5 h-5" /> },
-  { value: "heart", label: "Heart", icon: <Heart className="w-5 h-5" /> },
-];
 
 export default function SetupWidgetPage() {
   const router = useRouter();
   const { setupWidget, isLoading: authLoading, user } = useAuth();
   const [copied, setCopied] = useState(false);
-  const [widgetPosition, setWidgetPosition] = useState(user?.widgetSettings?.position || "bottom-right");
-  const [widgetColor, setWidgetColor] = useState(user?.widgetSettings?.color || "#F97316");
-  const [widgetIcon, setWidgetIcon] = useState(user?.widgetSettings?.icon || "chat");
+  const [widgetPosition, setWidgetPosition] = useState(user?.widgetSettings?.position || WIDGET_CONSTANTS.DEFAULT_POSITION);
+  const [widgetColor, setWidgetColor] = useState(user?.widgetSettings?.color || WIDGET_CONSTANTS.DEFAULT_COLOR);
+  const [widgetIcon, setWidgetIcon] = useState(user?.widgetSettings?.icon || WIDGET_CONSTANTS.DEFAULT_ICON);
   const [isLoading, setIsLoading] = useState(false);
 
-  const selectedIcon = iconOptions.find(icon => icon.value === widgetIcon);
+  const selectedIcon = ICON_OPTIONS.find(icon => icon.value === widgetIcon);
 
   const embedCode = `<script>
   window.comviaSettings = {
@@ -120,10 +108,11 @@ export default function SetupWidgetPage() {
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
               aria-label="Select widget position"
             >
-              <option value="bottom-right">Bottom Right</option>
-              <option value="bottom-left">Bottom Left</option>
-              <option value="top-right">Top Right</option>
-              <option value="top-left">Top Left</option>
+              {POSITIONS.map((pos) => (
+                <option key={pos.value} value={pos.value}>
+                  {pos.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -156,7 +145,7 @@ export default function SetupWidgetPage() {
               Widget Icon
             </label>
             <div className="grid grid-cols-4 gap-2">
-              {iconOptions.map((icon) => (
+              {ICON_OPTIONS.map((icon) => (
                 <button
                   key={icon.value}
                   onClick={() => setWidgetIcon(icon.value)}
