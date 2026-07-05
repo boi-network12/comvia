@@ -282,6 +282,7 @@ export default function ProfilePage() {
                     width={96}
                     height={96}
                     className="w-full h-full object-cover"
+                    loading="eager"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-primary">

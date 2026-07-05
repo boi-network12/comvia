@@ -43,15 +43,7 @@ export default function RoutesLayout({
   }, [motivationalMessages.length]);
 
   // Log authentication state for debugging
-  useEffect(() => {
-    console.log('RoutesLayout - Auth State:', { 
-      isAuthenticated, 
-      hasUser: !!user, 
-      hasToken: !!localStorage.getItem('accessToken'),
-      pathname,
-      isLoading 
-    });
-  }, [isAuthenticated, user, pathname, isLoading]);
+  
 
   // Get current message
   const currentMessage = motivationalMessages[motivationIndex];
