@@ -14,6 +14,7 @@ import { logger, logRequest } from './src/utils/logger';
 import { corsDebug } from './src/middlewares/corsDebug';
 
 const app = express();
+const PORT = process.env.PORT || 8080;
 
 // Middleware
 app.use(helmet());
@@ -83,6 +84,15 @@ connectDB()
     logger.error('⚠️ Database connection failed:', err.message);
     logger.error('⚠️ API will continue to run but DB operations will fail');
   });
+
+
+// =============== LOCAL SERVER ===============
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    logger.info(`🚀 Server running on http://localhost:${PORT}`);
+    logger.info(`📍 Health check: http://localhost:${PORT}/health`);
+  });
+}
 
 // ✅ EXPORT the app for Vercel (DO NOT listen)
 export default app;
