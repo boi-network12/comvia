@@ -57,7 +57,8 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
     total: 0,
     pages: 0,
   });
-  const [filters, setFilters] = useState<GetConversationsParams>({});
+   const [filters, setFilters] = useState<GetConversationsParams>({});
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Load conversations
   const loadConversations = useCallback(async (params?: GetConversationsParams) => {
@@ -66,14 +67,13 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const response = await conversationAPI.getConversations(params || {});
-      const { conversations, pagination: pag, unreadCount: unread } = response.data;
+      const { conversations: convs, pagination: pag, unreadCount: unread } = response.data;
       
-      setConversations(conversations);
+      setConversations(convs);
       setPagination(pag);
       setUnreadCount(unread);
       if (params) setFilters(params);
     } catch (error) {
-      console.error('Failed to load conversations:', error);
       handleError(error, 'Failed to load conversations');
     } finally {
       setIsLoading(false);
@@ -284,8 +284,16 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
         // eslint-disable-next-line
       loadConversations();
       loadStats();
+      setHasInitialized(true);
     }
   }, [user, loadConversations, loadStats]);
+
+  useEffect(() => {
+    if (user && hasInitialized) {
+      // eslint-disable-next-line
+      refreshConversations();
+    }
+  }, [user]);
 
   const contextValue = useMemo(() => ({
     conversations,

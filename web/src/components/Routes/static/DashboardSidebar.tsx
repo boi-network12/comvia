@@ -1,10 +1,11 @@
 // components/DashboardSidebar.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useConversation } from "@/contexts/ConversationContext";
 import {
   Menu,
   X,
@@ -13,15 +14,14 @@ import {
   Settings,
   Users,
   BarChart3,
-  HelpCircle,
   LogOut,
   ChevronDown,
   ChevronRight,
-  Sparkles,
   Bell,
   User,
   Globe,
   Zap,
+  Sparkles,
 } from "lucide-react";
 
 interface NavItem {
@@ -32,49 +32,58 @@ interface NavItem {
   children?: NavItem[];
 }
 
-const navItems: NavItem[] = [
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Conversations",
-    href: "/dashboard/conversations",
-    icon: MessageSquare,
-    badge: 12,
-  },
-  {
-    label: "Analytics",
-    href: "/dashboard/analytics",
-    icon: BarChart3,
-  },
-  {
-    label: "Team",
-    href: "/dashboard/team",
-    icon: Users,
-  },
-  {
-    label: "Widget",
-    href: "/dashboard/widget",
-    icon: Globe,
-    children: [
-      { label: "Customize", href: "/dashboard/widget/customize", icon: Settings },
-      { label: "Settings", href: "/dashboard/widget/settings", icon: Zap },
-    ],
-  },
-  {
-    label: "Settings",
-    href: "/dashboard/settings",
-    icon: Settings,
-  },
-];
-
 export function DashboardSidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { unreadCount } = useConversation();
+
+  // Auto-expand Widget section if we're in a widget subpage
+  useEffect(() => {
+    if (pathname?.startsWith('/dashboard/widget')) {
+      // eslint-disable-next-line
+      setExpandedItems(prev => new Set([...prev, 'Widget']));
+    }
+  }, [pathname]);
+
+  const navItems: NavItem[] = [
+    {
+      label: "Dashboard",
+      href: "/dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      label: "Conversations",
+      href: "/dashboard/conversations",
+      icon: MessageSquare,
+      badge: unreadCount || 0,
+    },
+    {
+      label: "Analytics",
+      href: "/dashboard/analytics",
+      icon: BarChart3,
+    },
+    {
+      label: "Team",
+      href: "/dashboard/team",
+      icon: Users,
+    },
+    {
+      label: "Widget",
+      href: "/dashboard/widget",
+      icon: Globe,
+      children: [
+        { label: "Customize", href: "/dashboard/widget/customize", icon: Settings },
+        { label: "Settings", href: "/dashboard/widget/settings", icon: Zap },
+      ],
+    },
+    {
+      label: "Settings",
+      href: "/dashboard/settings",
+      icon: Settings,
+    },
+  ];
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   const closeSidebar = () => setIsOpen(false);
@@ -95,7 +104,7 @@ export function DashboardSidebar() {
     if (href === "/dashboard") {
       return pathname === href;
     }
-    return pathname.startsWith(href);
+    return pathname?.startsWith(href) || false;
   };
 
   const isChildActive = (children?: NavItem[]) => {
@@ -169,7 +178,7 @@ export function DashboardSidebar() {
                     >
                       <Icon className="w-5 h-5 flex-shrink-0" />
                       <span className="flex-1 text-left text-sm">{item.label}</span>
-                      {item.badge && (
+                      {item.badge && item.badge > 0 && (
                         <span className="px-2 py-0.5 text-xs font-medium bg-primary/20 text-primary rounded-full">
                           {item.badge}
                         </span>
@@ -224,7 +233,7 @@ export function DashboardSidebar() {
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
                     <span className="flex-1">{item.label}</span>
-                    {item.badge && (
+                    {item.badge && item.badge > 0 && (
                       <span className="px-2 py-0.5 text-xs font-medium bg-primary/20 text-primary rounded-full">
                         {item.badge}
                       </span>

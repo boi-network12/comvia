@@ -12,13 +12,14 @@ interface WidgetContextType {
   companyLogo?: string;
   embedScript: string;
   isLoading: boolean;
+  isDirty: boolean;
+  
   loadSettings: () => Promise<void>;
   updateAppearance: (data: WidgetAppearanceData) => Promise<void>;
   updateContent: (data: WidgetContentData) => Promise<void>;
   getEmbedScript: () => Promise<string>;
   previewWidget: () => Promise<{ settings: WidgetSettings; companyName: string; companyLogo?: string }>;
   resetToDefaults: () => Promise<void>;
-  isDirty: boolean;
 }
 
 const WidgetContext = createContext<WidgetContextType | undefined>(undefined);
@@ -26,14 +27,17 @@ const WidgetContext = createContext<WidgetContextType | undefined>(undefined);
 export function WidgetProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { showSuccess } = useToast();
-  const { handleError } = useErrorHandler()
-  
+  const { handleError } = useErrorHandler();
+
   const [settings, setSettings] = useState<WidgetSettings | null>(null);
   const [companyName, setCompanyName] = useState('');
   const [companyLogo, setCompanyLogo] = useState<string | undefined>();
   const [embedScript, setEmbedScript] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // ==================== STABLE CALLBACKS ====================
 
   const loadSettings = useCallback(async () => {
     if (!user) return;
@@ -48,12 +52,23 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
       setCompanyLogo(logo);
       setIsDirty(false);
     } catch (error) {
-      console.error('Failed to load widget settings:', error);
       handleError(error, 'Failed to load widget settings');
     } finally {
       setIsLoading(false);
     }
   }, [user, handleError]);
+
+  const getEmbedScript = useCallback(async () => {
+    try {
+      const response = await widgetAPI.getEmbedScript();
+      const script = response.data.script;
+      setEmbedScript(script);
+      return script;
+    } catch (error) {
+      handleError(error, 'Failed to generate embed script');
+      throw error;
+    }
+  }, [handleError]);
 
   const updateAppearance = useCallback(async (data: WidgetAppearanceData) => {
     setIsLoading(true);
@@ -63,7 +78,6 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
       setIsDirty(true);
       showSuccess('Widget appearance updated!');
     } catch (error) {
-      console.error('Failed to update appearance:', error);
       handleError(error, 'Failed to update widget appearance');
       throw error;
     } finally {
@@ -79,7 +93,6 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
       setIsDirty(true);
       showSuccess('Widget content updated!');
     } catch (error) {
-      console.error('Failed to update content:', error);
       handleError(error, 'Failed to update widget content');
       throw error;
     } finally {
@@ -87,25 +100,11 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     }
   }, [showSuccess, handleError]);
 
-  const getEmbedScript = useCallback(async () => {
-    try {
-      const response = await widgetAPI.getEmbedScript();
-      const script = response.data.script;
-      setEmbedScript(script);
-      return script;
-    } catch (error) {
-      console.error('Failed to get embed script:', error);
-      handleError(error, 'Failed to generate embed script');
-      throw error;
-    }
-  }, [handleError]);
-
   const previewWidget = useCallback(async () => {
     try {
       const response = await widgetAPI.getPreview();
       return response.data;
     } catch (error) {
-      console.error('Failed to preview widget:', error);
       handleError(error, 'Failed to preview widget');
       throw error;
     }
@@ -119,7 +118,6 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
       setIsDirty(false);
       showSuccess('Widget reset to defaults');
     } catch (error) {
-      console.error('Failed to reset widget:', error);
       handleError(error, 'Failed to reset widget');
       throw error;
     } finally {
@@ -127,14 +125,24 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     }
   }, [showSuccess, handleError]);
 
-  // Load settings on mount
+  // ==================== INITIAL LOAD (ONCE) ====================
   useEffect(() => {
-    if (user) {
-        // eslint-disable-next-line
+    if (!user || hasInitialized) return;
+
+    // eslint-disable-next-line
+    loadSettings();
+    getEmbedScript();           // Only call once on mount
+    setHasInitialized(true);
+
+  }, [user, loadSettings, getEmbedScript, hasInitialized]);
+
+  // Optional: Refresh when user changes (rare case)
+  useEffect(() => {
+    if (user && hasInitialized) {
+      // eslint-disable-next-line
       loadSettings();
-      getEmbedScript();
     }
-  }, [user, loadSettings, getEmbedScript]);
+  }, [user, hasInitialized]); // Only when user actually changes
 
   const contextValue = useMemo(() => ({
     settings,
@@ -142,26 +150,26 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     companyLogo,
     embedScript,
     isLoading,
+    isDirty,
     loadSettings,
     updateAppearance,
     updateContent,
     getEmbedScript,
     previewWidget,
     resetToDefaults,
-    isDirty,
   }), [
     settings,
     companyName,
     companyLogo,
     embedScript,
     isLoading,
+    isDirty,
     loadSettings,
     updateAppearance,
     updateContent,
     getEmbedScript,
     previewWidget,
     resetToDefaults,
-    isDirty,
   ]);
 
   return (

@@ -28,16 +28,16 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const [members, setMembers] = useState<TeamMemberDetail[]>([]);
   const [onlineMembers, setOnlineMembers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
+  // Stable callbacks
   const loadMembers = useCallback(async () => {
     if (!user) return;
-    
     setIsLoading(true);
     try {
       const response = await teamAPI.getTeamMembers();
       setMembers(response.data);
     } catch (error) {
-      console.error('Failed to load team members:', error);
       handleError(error, 'Failed to load team members');
     } finally {
       setIsLoading(false);
@@ -106,34 +106,43 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   }, [showSuccess, handleError]);
 
   const getOnlineStatus = useCallback(async () => {
+    if (!user) return;
     try {
       const response = await teamAPI.getOnlineMembers();
-      setOnlineMembers(response.data.online);
+      setOnlineMembers(response.data.online || []);
       
-      // Update members with online status
       setMembers(prev =>
         prev.map(m => ({
           ...m,
-          isOnline: response.data.online.includes(m.email),
+          isOnline: response.data.online?.includes(m.email) || false,
         }))
       );
     } catch (error) {
-      console.error('Failed to get online status:', error);
+      // Silent fail for online status - don't spam errors
+      console.debug('Failed to get online status:', error);
     }
-  }, []);
+  }, [user]);
 
   // Load members on mount and when user changes
   useEffect(() => {
-    if (user) {
-    //    eslint-disable-next-line
+    if (!user) {
+      // eslint-disable-next-line
+      setHasInitialized(false);
+      return;
+    }
+
+    // Initial load only once
+    if (!hasInitialized) {
       loadMembers();
       getOnlineStatus();
-      
-      // Poll for online status every 30 seconds
-      const interval = setInterval(getOnlineStatus, 30000);
-      return () => clearInterval(interval);
+      setHasInitialized(true);
     }
-  }, [user, loadMembers, getOnlineStatus]);
+
+    // Polling only for online status
+    const interval = setInterval(getOnlineStatus, 30000);
+
+    return () => clearInterval(interval);
+  }, [user, loadMembers, getOnlineStatus, hasInitialized]);
 
   const contextValue = useMemo(() => ({
     members,
