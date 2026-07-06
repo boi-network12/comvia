@@ -22,12 +22,9 @@ export default defineConfig({
       formats: ['iife'], // ✅ Use IIFE only - it's the most compatible
     },
     rollupOptions: {
-      external: ['react', 'react-dom'],
+      external: [],
       output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
-        },
+        
         // ✅ This ensures window.ComviaWidget is available
         name: 'ComviaWidget',
         exports: 'named',
