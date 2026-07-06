@@ -15,7 +15,6 @@ export function useWidget() {
     unreadCount,
     settings,
     user,
-    isConnected,
     toggleWidget,
     openWidget,
     closeWidget,
@@ -32,7 +31,7 @@ export function useWidget() {
 
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
 
   // Socket connection
@@ -164,7 +163,7 @@ export function useWidget() {
 
   // Send message
   const sendMessage = useCallback((content: string, sender: 'user' | 'agent' = 'user') => {
-    const newMessage = addMessage({ content, sender });
+    // const newMessage = addMessage({ content, sender });
     
     if (socketConnected) {
       sendSocketMessage(content, sender);

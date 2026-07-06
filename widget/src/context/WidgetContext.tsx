@@ -1,5 +1,5 @@
 // widget/src/context/WidgetContext.tsx
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { useWidgetStore } from '../store/widgetStore';
 import { useSocket } from '../hooks/useSocket';
 import { widgetAPI } from '../utils/api';
@@ -45,7 +45,6 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     unreadCount,
     settings,
     user,
-    isConnected,
     toggleWidget,
     openWidget,
     closeWidget,
@@ -62,7 +61,7 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
 
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null); // ✅ Added companyId state
 
   // Socket connection

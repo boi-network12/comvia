@@ -17,7 +17,6 @@ export const Widget: React.FC = () => {
     messages,
     isTyping,
     settings,
-    config,
     isConnected,
     isLoading,
     error,
@@ -28,7 +27,7 @@ export const Widget: React.FC = () => {
     connectSocket,
     companyId, // ✅ Added companyId
   } = useWidgetContext();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount] = useState(0);
 
   const widgetRef = useRef<HTMLDivElement>(null);
 

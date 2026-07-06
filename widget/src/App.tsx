@@ -1,6 +1,6 @@
 // widget/src/App.tsx
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import './App.css';
 import {Widget} from './components/widget/Widget';
 import { WidgetProvider } from './context/WidgetContext';
