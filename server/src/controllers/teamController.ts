@@ -201,3 +201,114 @@ export const getOnlineTeamMembers = async (req: Request, res: Response, next: Ne
     next(error);
   }
 };
+
+// @desc    Validate invitation
+// @route   POST /api/team/validate-invite
+// @access  Public
+export const validateInvitation = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { token, email } = req.body;
+
+    if (!token || !email) {
+      throw new BadRequestError('Token and email are required');
+    }
+
+    // Find the user who sent the invitation (the inviter)
+    const user = await User.findOne({
+      'teamMembers.email': email,
+      'teamMembers.invitedAt': { $exists: true },
+    });
+
+    if (!user) {
+      throw new NotFoundError('Invalid or expired invitation');
+    }
+
+    // Find the specific team member
+    const teamMember = user.teamMembers.find(m => m.email === email);
+    
+    if (!teamMember) {
+      throw new NotFoundError('Invitation not found');
+    }
+
+    // Check if already accepted
+    if (teamMember.acceptedAt) {
+      throw new BadRequestError('Invitation already accepted');
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        inviterName: user.name,
+        companyName: user.companyName || 'Comvia',
+        role: teamMember.role,
+        email: email,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Accept invitation
+// @route   POST /api/team/accept-invite
+// @access  Private
+export const acceptInvitation = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { token, email } = req.body;
+    const userId = req.user?.id;
+
+    if (!token || !email) {
+      throw new BadRequestError('Token and email are required');
+    }
+
+    // Find the inviter's user document
+    const inviter = await User.findOne({
+      'teamMembers.email': email,
+      'teamMembers.invitedAt': { $exists: true },
+    });
+
+    if (!inviter) {
+      throw new NotFoundError('Invalid or expired invitation');
+    }
+
+    // Find the team member
+    const teamMemberIndex = inviter.teamMembers.findIndex(m => m.email === email);
+    
+    if (teamMemberIndex === -1) {
+      throw new NotFoundError('Invitation not found');
+    }
+
+    // Check if already accepted
+    if (inviter.teamMembers[teamMemberIndex].acceptedAt) {
+      throw new BadRequestError('Invitation already accepted');
+    }
+
+    // Mark as accepted
+    inviter.teamMembers[teamMemberIndex].acceptedAt = new Date();
+    await inviter.save();
+
+    // If the user is already registered, add them to the team
+    if (userId) {
+      // Find the user who accepted
+      const user = await User.findById(userId);
+      if (user) {
+        // Update user's company info
+        if (!user.companyName) {
+          user.companyName = inviter.companyName || 'Comvia';
+        }
+        await user.save();
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Invitation accepted successfully',
+      data: {
+        teamMember: inviter.teamMembers[teamMemberIndex],
+        companyName: inviter.companyName || 'Comvia',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

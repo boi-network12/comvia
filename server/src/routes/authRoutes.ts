@@ -17,6 +17,7 @@ import {
   setupTeam,
   setupIntegrations,
   completeSetup,
+  checkUser,
 } from '../controllers/authController';
 import { protect, restrictTo, isEmailVerified } from '../middlewares/auth';
 import { uploadAvatar, uploadCompanyLogo } from '../middlewares/uploadMiddleware';
@@ -28,6 +29,7 @@ const router = Router();
 // Public routes
 router.post('/register', authLimiter, register);
 router.post('/login', authLimiter, login);
+router.post('/check-user', checkUser); 
 router.post('/verify-email', verifyEmail);
 router.post('/resend-verification', resendVerification);
 router.post('/forgot-password', authLimiter, forgotPassword);

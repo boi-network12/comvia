@@ -142,6 +142,28 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
   }
 };
 
+// @desc    Check if user exists
+// @route   POST /api/auth/check-user
+// @access  Public
+export const checkUser = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      throw new BadRequestError('Email is required');
+    }
+
+    const user = await User.findOne({ email });
+    
+    res.status(200).json({
+      success: true,
+      exists: !!user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Login user
 // @route   POST /api/auth/login
 // @access  Public
@@ -456,7 +478,6 @@ export const getMe = async (req: Request, res: Response, next: NextFunction) => 
   }
 };
 
-// server/src/controllers/authController.ts - Update the updateProfile function
 
 // @desc    Update profile
 // @route   PUT /api/auth/profile
