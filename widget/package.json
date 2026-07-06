@@ -40,6 +40,7 @@
     "postcss": "^8.5.16",
     "prettier": "^3.9.4",
     "tailwind": "^4.0.0",
+    "terse": "^0.1.0",
     "typescript": "~6.0.2",
     "vite": "^8.1.1"
   },
