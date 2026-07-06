@@ -221,9 +221,9 @@ export default function ConversationDetailPage() {
     statusColors.open;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-180px)]">
+    <div className="flex flex-col min-h-screen md:h-[calc(100vh-180px)]">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-t-2xl">
+      <div className="flex items-center justify-between p-4 bg-background border border-gray-200/50 dark:border-gray-800/50 ">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/dashboard/conversations"

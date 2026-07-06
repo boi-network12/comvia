@@ -33,7 +33,11 @@ interface NavItem {
   children?: NavItem[];
 }
 
-export function DashboardSidebar() {
+interface DashboardSidebarProps {
+  shouldHideContent: boolean;
+}
+
+export function DashboardSidebar({ shouldHideContent }: DashboardSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const pathname = usePathname();
@@ -121,13 +125,18 @@ export function DashboardSidebar() {
   return (
     <>
       {/* Mobile Toggle Button */}
-      <button
-        onClick={toggleSidebar}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-xl bg-background border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-all"
-        aria-label="Toggle sidebar"
-      >
-        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-      </button>
+      
+
+      {!shouldHideContent && (
+        <button
+          onClick={toggleSidebar}
+          className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-xl bg-background border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-all"
+          aria-label="Toggle sidebar"
+        >
+          {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      )}
+
 
       {/* Overlay */}
       {isOpen && (

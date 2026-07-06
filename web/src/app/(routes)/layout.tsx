@@ -33,6 +33,15 @@ export default function RoutesLayout({
     { text: "Have a productive day! ☕", icon: Coffee },
   ];
 
+  // Check if current route should hide the motivational bar
+  const shouldHideContent = (() => {
+    if (!pathname) return false;
+    
+    // Hide ONLY on conversation detail pages: /dashboard/conversations/[id]
+    // This matches /dashboard/conversations/anything except the exact /dashboard/conversations
+    return pathname.startsWith("/dashboard/conversations/") && pathname !== "/dashboard/conversations";
+  })();
+
   // Rotate messages every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
@@ -41,9 +50,6 @@ export default function RoutesLayout({
 
     return () => clearInterval(interval);
   }, [motivationalMessages.length]);
-
-  // Log authentication state for debugging
-  
 
   // Get current message
   const currentMessage = motivationalMessages[motivationIndex];
@@ -73,24 +79,26 @@ export default function RoutesLayout({
   return (
     <ProtectedRoute>
       <div className="min-h-screen flex bg-gray-50/50 dark:bg-gray-900/20">
-        <DashboardSidebar />
+        <DashboardSidebar shouldHideContent={shouldHideContent}/>
         <div className="flex-1 flex flex-col min-h-screen lg:ml-0">
           <SetupWarning />
           <main className="flex-1">
-            {/* Mobile Motivational Bar */}
-            <div className=" w-full py-2.5 px-4 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-b border-primary/10 flex items-center justify-center gap-2.5 overflow-hidden">
-              <div className="flex items-center gap-2.5 animate-fade-in">
-                <div className="p-1 rounded-full bg-primary/10 text-primary flex-shrink-0">
-                  <IconComponent className="w-3.5 h-3.5" />
+            {/* Motivational Bar - Only show if not hidden */}
+            {!shouldHideContent && (
+              <div className="w-full py-2.5 px-4 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-b border-primary/10 flex items-center justify-center gap-2.5 overflow-hidden">
+                <div className="flex items-center gap-2.5 animate-fade-in">
+                  <div className="p-1 rounded-full bg-primary/10 text-primary flex-shrink-0">
+                    <IconComponent className="w-3.5 h-3.5" />
+                  </div>
+                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate max-w-[200px] sm:max-w-[300px]">
+                    {currentMessage.text}
+                  </p>
                 </div>
-                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate max-w-[200px] sm:max-w-[300px]">
-                  {currentMessage.text}
-                </p>
               </div>
-            </div>
+            )}
 
-            {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 lg:px-8 py-4 lg:py-8">
+            {/* Main Content - Adjust padding when bar is hidden */}
+            <div className={`max-w-7xl mx-auto ${!shouldHideContent && `px-4 lg:px-8`}  ${shouldHideContent ? 'lg:py-4' : 'py-4 lg:py-8'}`}>
               {children}
             </div>
           </main>

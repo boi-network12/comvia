@@ -101,7 +101,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     await user.save();
 
     // Send verification email
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontendUrl = process.env.FRONTEND_URL;
     const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
     
     await sendMail(
@@ -268,7 +268,7 @@ export const resendVerification = async (req: Request, res: Response, next: Next
     await user.save();
 
     // Send verification email
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontendUrl = process.env.FRONTEND_URL;
     const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
     
     await sendMail(
@@ -310,7 +310,7 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
     await user.save();
 
     // Send reset email
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontendUrl = process.env.FRONTEND_URL;
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
     
     await sendMail(
@@ -767,7 +767,7 @@ export const setupTeam = async (req: Request, res: Response, next: NextFunction)
         });
 
         // Send invitation email
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const frontendUrl = process.env.FRONTEND_URL;
         const inviteToken = crypto.randomBytes(32).toString('hex');
         const inviteUrl = `${frontendUrl}/accept-invite?token=${inviteToken}&email=${encodeURIComponent(member.email)}`;
         

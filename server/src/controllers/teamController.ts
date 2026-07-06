@@ -80,7 +80,7 @@ export const inviteTeamMember = async (req: Request, res: Response, next: NextFu
 
     // Send invitation email
     try {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const frontendUrl = process.env.FRONTEND_URL;
       const inviteToken = crypto.randomBytes(32).toString('hex'); 
       const inviteUrl = `${frontendUrl}/accept-invite?token=${inviteToken}&email=${encodeURIComponent(email)}`;
 
