@@ -96,11 +96,11 @@ export const getConversationMetrics = async (req: Request, res: Response, next: 
       else if (c.status === 'escalated') acc[date].escalated++;
       else acc[date].open++;
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, { open: number; resolved: number; escalated: number }>);
 
-    const dailyData = Object.entries(daily).map(([date, values]) => ({
+    const dailyData = Object.keys(daily).map((date) => ({
       date,
-      ...values,
+      ...daily[date],
     }));
 
     res.status(200).json({

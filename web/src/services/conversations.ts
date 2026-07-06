@@ -11,6 +11,7 @@ export interface Message {
   type: 'text' | 'image' | 'file' | 'system';
   readBy: string[];
   createdAt: string;
+  status: 'sending' | "sent" | "delivered" | "read" | "failed" | null; 
   updatedAt: string;
 }
 

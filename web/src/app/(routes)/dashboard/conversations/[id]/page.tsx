@@ -1,8 +1,10 @@
+// app/(routes)/dashboard/conversations/[id]/page.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConversation } from "@/contexts/ConversationContext";
+import { useRealtimeContext } from "@/contexts/RealtimeContext";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -28,6 +30,8 @@ import {
   X,
   Paperclip,
   Smile,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { UpdateConversationData } from "@/services/conversations";
@@ -50,15 +54,21 @@ export default function ConversationDetailPage() {
     currentConversation,
     messages,
     isLoading,
-    loadConversation,
-    sendMessage,
+    sendMessage: sendMessageRest,
     updateConversation,
     addInternalNote,
-    assignConversation,
     resolveConversation,
     escalateConversation,
-    clearCurrentConversation,
+    loadConversation,
   } = useConversation();
+
+  const { 
+    isConnected: isRealtimeConnected,
+    sendMessage: sendRealtimeMessage,
+    joinConversation,
+    leaveConversation,
+    messages: realtimeMessages,
+  } = useRealtimeContext();
 
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -68,19 +78,54 @@ export default function ConversationDetailPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // useEffect(() => {
-  //   if (!user) {
-  //     router.push("/login");
-  //     return;
-  //   }
-  //   if (conversationId) {
-  //     loadConversation(conversationId);
-  //   }
+  // Refs to prevent infinite loops
+  const hasLoadedRef = useRef(false);
+  const hasJoinedRef = useRef(false);
+  const isRealtimeMessageRef = useRef(false);
 
-  //   return () => {
-  //     clearCurrentConversation();
-  //   };
-  // }, [user, router, conversationId, loadConversation, clearCurrentConversation]);
+  // Join conversation room when connected
+  // Load conversation on mount - ONLY ONCE
+  useEffect(() => {
+    if (conversationId && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      loadConversation(conversationId);
+    }
+  }, [conversationId, loadConversation]);
+
+  // Join conversation room when connected - ONLY ONCE
+  useEffect(() => {
+    if (conversationId && isRealtimeConnected && !hasJoinedRef.current) {
+      hasJoinedRef.current = true;
+      joinConversation(conversationId);
+      console.log(`📌 Joined conversation room: ${conversationId}`);
+    }
+    
+    return () => {
+      if (conversationId && hasJoinedRef.current) {
+        hasJoinedRef.current = false;
+        leaveConversation(conversationId);
+        console.log(`📌 Left conversation room: ${conversationId}`);
+      }
+    };
+  }, [conversationId, isRealtimeConnected, joinConversation, leaveConversation]);
+
+  // Refresh messages when realtime messages arrive
+  useEffect(() => {
+    if (realtimeMessages.length > 0 && conversationId && !isLoading) {
+      const lastMessage = realtimeMessages[realtimeMessages.length - 1];
+      if (lastMessage?.conversationId === conversationId) {
+        // Only reload if we didn't just receive a realtime message
+        if (!isRealtimeMessageRef.current) {
+          isRealtimeMessageRef.current = true;
+          loadConversation(conversationId);
+          setTimeout(() => {
+            isRealtimeMessageRef.current = false;
+          }, 500);
+        }
+      }
+    }
+  }, [realtimeMessages, conversationId, loadConversation, isLoading]);
+
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -92,11 +137,27 @@ export default function ConversationDetailPage() {
     if (!newMessage.trim() || isSending) return;
 
     setIsSending(true);
+    const messageContent = newMessage.trim();
+    setNewMessage("");
+
     try {
-      await sendMessage(conversationId, newMessage.trim());
-      setNewMessage("");
+      // Try sending via WebSocket first
+      let sent = false;
+      if (isRealtimeConnected) {
+        sent = sendRealtimeMessage(conversationId, messageContent);
+      }
+      
+      // Fallback to REST API if WebSocket fails
+      if (!sent) {
+        await sendMessageRest(conversationId, messageContent);
+      }
+      
+      // Refresh messages after sending
+      await loadConversation(conversationId);
+      
     } catch (error) {
       console.error("Failed to send message:", error);
+      // Show error in UI (you can add a toast notification here)
     } finally {
       setIsSending(false);
       inputRef.current?.focus();
@@ -109,15 +170,40 @@ export default function ConversationDetailPage() {
       await addInternalNote(conversationId, noteContent);
       setNoteContent("");
       setShowNoteInput(false);
+      // Refresh to show the new note
+      await loadConversation(conversationId);
     } catch (error) {
       console.error("Failed to add note:", error);
     }
   };
 
   const handleStatusChange = async (status: "open" | "in-progress" | "resolved" | "escalated" | "closed") => {
-    await updateConversation(conversationId, { status });
-    setShowActions(false);
+    try {
+      await updateConversation(conversationId, { status });
+      setShowActions(false);
+      // Refresh to show updated status
+      await loadConversation(conversationId);
+    } catch (error) {
+      console.error("Failed to update status:", error);
+    }
   };
+
+  const handleAssignToMe = async () => {
+    if (!user?._id) return;
+    try {
+      await updateConversation(conversationId, { 
+        assignedTo: user._id,
+        assignedToName: user.name 
+      });
+      setShowActions(false);
+      await loadConversation(conversationId);
+    } catch (error) {
+      console.error("Failed to assign conversation:", error);
+    }
+  };
+
+  // Check if current user is assigned
+  const isAssignedToMe = currentConversation?.assignedTo === user?._id;
 
   if (isLoading || !currentConversation) {
     return (
@@ -160,20 +246,47 @@ export default function ConversationDetailPage() {
                   {currentConversation.metadata.visitorName}
                 </span>
               )}
+              {currentConversation.assignedToName && (
+                <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1 text-xs">
+                  <Users className="w-3 h-3" />
+                  Assigned to {currentConversation.assignedToName}
+                </span>
+              )}
               <span className="text-gray-400 text-xs">
                 {formatDistanceToNow(new Date(currentConversation.lastMessageAt), {
                   addSuffix: true,
                 })}
+              </span>
+              {/* Realtime connection status */}
+              <span className={`flex items-center gap-1 text-xs ${
+                isRealtimeConnected ? "text-emerald-500" : "text-amber-500"
+              }`}>
+                {isRealtimeConnected ? (
+                  <Wifi className="w-3 h-3" />
+                ) : (
+                  <WifiOff className="w-3 h-3" />
+                )}
+                {isRealtimeConnected ? "Live" : "Offline"}
               </span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Assign to me button */}
+          {!isAssignedToMe && currentConversation.status !== "closed" && currentConversation.status !== "resolved" && (
+            <button
+              onClick={handleAssignToMe}
+              className="px-3 py-1.5 text-xs font-medium text-primary border border-primary/20 rounded-lg hover:bg-primary/5 transition-colors"
+            >
+              Assign to me
+            </button>
+          )}
           <button
+            title="button"
             onClick={() => setShowActions(!showActions)}
             className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors relative"
-            aria-label="show action"
+            aria-label="assign btn"
           >
             <MoreVertical className="w-5 h-5" />
           </button>
@@ -256,6 +369,16 @@ export default function ConversationDetailPage() {
                     </div>
                   )}
                   <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                  {/* Message status indicator */}
+                  {isUser && message.status && (
+                    <span className="text-[10px] mt-1 block text-white/60">
+                      {message.status === "sending" && "Sending..."}
+                      {message.status === "sent" && "Sent"}
+                      {message.status === "delivered" && "Delivered"}
+                      {message.status === "read" && "Read ✓✓"}
+                      {message.status === "failed" && "Failed to send"}
+                    </span>
+                  )}
                 </div>
               </div>
             );
@@ -285,9 +408,10 @@ export default function ConversationDetailPage() {
               Add Note
             </button>
             <button
+              type="button"
               onClick={() => setShowNoteInput(false)}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              aria-label="show input"
+              aria-label="Add notes"
             >
               <X className="w-4 h-4" />
             </button>
@@ -303,7 +427,8 @@ export default function ConversationDetailPage() {
         <button
           type="button"
           className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors text-gray-400"
-          aria-label="sending message"
+          disabled={!isRealtimeConnected}
+          aria-label="send message"
         >
           <Paperclip className="w-5 h-5" />
         </button>
@@ -312,20 +437,22 @@ export default function ConversationDetailPage() {
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
-          disabled={isSending}
+          placeholder={isRealtimeConnected ? "Type a message..." : "Connecting..."}
+          className={`flex-1 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+            !isRealtimeConnected ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          disabled={isSending || !isRealtimeConnected}
         />
         <button
           type="button"
           className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors text-gray-400"
-          aria-label="btn"
+          aria-label="file btn"
         >
           <Smile className="w-5 h-5" />
         </button>
         <button
           type="submit"
-          disabled={!newMessage.trim() || isSending}
+          disabled={!newMessage.trim() || isSending || !isRealtimeConnected}
           className="p-2 px-4 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all disabled:opacity-50 flex items-center gap-2"
         >
           {isSending ? (
@@ -335,6 +462,22 @@ export default function ConversationDetailPage() {
           )}
         </button>
       </form>
+
+      {/* Offline warning */}
+      {!isRealtimeConnected && (
+        <div className="p-2 bg-amber-50 dark:bg-amber-950/20 border-t border-amber-200 dark:border-amber-800/50 text-center">
+          <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center justify-center gap-2">
+            <AlertCircle className="w-3 h-3" />
+            You&apos;re offline. Messages will be sent when you reconnect.
+            <button
+              onClick={() => window.location.reload()}
+              className="underline font-medium hover:text-amber-700"
+            >
+              Reconnect
+            </button>
+          </p>
+        </div>
+      )}
     </div>
   );
 }

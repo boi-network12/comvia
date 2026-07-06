@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { Conversation, Message } from '../models/Conversation';
+import { Conversation } from '../models/Conversation';
 import User from '../models/User';
 import { NotFoundError, BadRequestError } from '../utils/errors';
 import { logger } from '../utils/logger';
+import Message from '../models/Message';
 
 // @desc    Get all conversations
 // @route   GET /api/conversations
@@ -235,6 +236,38 @@ export const getConversationStats = async (req: Request, res: Response, next: Ne
         unassigned,
         highPriority,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Mark conversation as read
+// @route   POST /api/conversations/:id/read
+// @access  Private
+export const markConversationAsRead = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    const conversation = await Conversation.findOne({ _id: id, userId });
+    if (!conversation) {
+      throw new NotFoundError('Conversation not found');
+    }
+
+    // Mark all messages as read
+    await Message.updateMany(
+      { conversationId: id, readBy: { $ne: userId } },
+      { $push: { readBy: userId } }
+    );
+
+    // Reset unread count
+    await Conversation.findByIdAndUpdate(id, { unreadCount: 0 });
+
+    res.status(200).json({
+      success: true,
+      message: 'Conversation marked as read',
+      data: { unreadCount: 0 },
     });
   } catch (error) {
     next(error);

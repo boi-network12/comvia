@@ -1,8 +1,8 @@
-// src/components/Widget/Widget.tsx
+// widget/src/components/widget/Widget.tsx
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useWidget } from '../../hooks/useWidget';
+import { useWidgetContext } from '../../context/WidgetContext';
 import { WidgetButton } from './WidgetButton';
 import { WidgetHeader } from './WidgetHeader';
 import { WidgetBody } from './WidgetBody';
@@ -27,10 +27,10 @@ export const Widget: React.FC = () => {
     sendMessage,
     sendTyping,
     connectSocket,
-  } = useWidget();
+  } = useWidgetContext();
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const widgetRef = useRef<HTMLDivElement>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
 
   // Try to connect on mount
   useEffect(() => {

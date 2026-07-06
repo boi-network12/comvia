@@ -7,3 +7,4 @@ export { ConversationProvider, useConversation } from "./ConversationContext";
 export { TeamProvider, useTeam } from "./TeamContext";
 export { WidgetProvider, useWidget } from "./WidgetContext";
 export { AnalyticsProvider, useAnalytics } from "./AnalyticsContext";
+export { RealtimeProvider, useRealtimeContext} from "./RealtimeContext";

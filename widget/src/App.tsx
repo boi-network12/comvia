@@ -1,8 +1,9 @@
-// src/App.tsx
+// widget/src/App.tsx
 
 import React, { useEffect } from 'react';
 import './App.css';
-import { Widget } from './components/widget/Widget';
+import {Widget} from './components/widget/Widget';
+import { WidgetProvider } from './context/WidgetContext';
 
 function App() {
   // Load widget settings from URL or localStorage
@@ -24,9 +25,11 @@ function App() {
   }, []);
 
   return (
-    <div className="App">
-      <Widget />
-    </div>
+    <WidgetProvider>
+      <div className="App">
+        <Widget />
+      </div>
+    </WidgetProvider>
   );
 }
 

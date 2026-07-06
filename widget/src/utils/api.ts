@@ -1,17 +1,18 @@
-// src/utils/api.ts
+// widget/src/utils/api.ts
 
 import axios from 'axios';
 import type { ApiResponse, Message } from '../types';
+import { WIDGET_CONFIG } from '../config';
 
 const getApiUrl = () => {
   return (window as any).comviaSettings?.apiUrl || 
          import.meta.env.VITE_API_URL || 
-         'http://localhost:8080/api';
+         WIDGET_CONFIG.API_URL;
 };
 
 const api = axios.create({
   baseURL: getApiUrl(),
-  timeout: 10000,
+  timeout: WIDGET_CONFIG.TIMEOUTS.api,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -19,7 +20,7 @@ const api = axios.create({
 
 // Add token interceptor
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('comvia_token');
+  const token = localStorage.getItem(WIDGET_CONFIG.STORAGE_KEYS.TOKEN);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -31,8 +32,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized
-      localStorage.removeItem('comvia_token');
+      localStorage.removeItem(WIDGET_CONFIG.STORAGE_KEYS.TOKEN);
     }
     return Promise.reject(error);
   }
@@ -89,19 +89,48 @@ export const widgetAPI = {
   },
 
   // Track visitor
+  // trackVisitor: async (data: {
+  //   widgetId: string;
+  //   visitorId: string;
+  //   page: string;
+  //   referrer?: string;
+  // }): Promise<ApiResponse> => {
+  //   try {
+  //     const response = await api.post('/widget/track', data);
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error('Failed to track visitor:', error);
+  //     return { success: false, message: 'Failed to track visitor' };
+  //   }
+  // },
+
   trackVisitor: async (data: {
-    widgetId: string;
-    visitorId: string;
-    page: string;
-    referrer?: string;
-  }): Promise<ApiResponse> => {
-    try {
+      visitorId: string;
+      name?: string;
+      email?: string;
+      page?: string;
+      referrer?: string;
+    }) => {
       const response = await api.post('/widget/track', data);
       return response.data;
-    } catch (error) {
-      console.error('Failed to track visitor:', error);
-      return { success: false, message: 'Failed to track visitor' };
-    }
+    },
+
+    // Get conversation history - NEW
+  getConversationHistory: async (conversationId: string, limit?: number) => {
+    const response = await api.get(`/messages/${conversationId}`, {
+      params: { limit: limit || 50 }
+    });
+    return response.data;
+  },
+  
+  // Send message via REST fallback - NEW
+  sendMessageRest: async (data: {
+    conversationId: string;
+    content: string;
+    type?: string;
+  }) => {
+    const response = await api.post('/messages', data);
+    return response.data;
   },
 };
 

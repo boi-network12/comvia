@@ -7,6 +7,7 @@ import {
   updateConversation,
   addInternalNote,
   getConversationStats,
+  markConversationAsRead,
 } from '../controllers/conversationController';
 
 const router = Router();
@@ -20,5 +21,6 @@ router.post('/', createConversation);
 router.get('/:id', getConversation);
 router.put('/:id', updateConversation);
 router.post('/:id/notes', addInternalNote);
+router.post('/:id/read', markConversationAsRead);
 
 export default router;

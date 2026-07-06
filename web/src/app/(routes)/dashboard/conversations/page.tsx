@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useConversation } from "@/contexts/ConversationContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
@@ -26,6 +26,7 @@ import {
   Bot,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useRealtimeContext } from "@/contexts";
 
 type ConversationStatus = "open" | "in-progress" | "resolved" | "escalated" | "closed";
 
@@ -47,6 +48,7 @@ const priorityColors = {
 export default function ConversationsPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { messages: realtimeMessages } = useRealtimeContext();
   const {
     conversations,
     isLoading,
@@ -67,30 +69,36 @@ export default function ConversationsPage() {
       router.push("/login");
       return;
     }
-
-    // Let the provider handle initial load
-    // Only call here if you have specific filters on mount
-    // loadConversations();   ← Remove this if possible
   }, [user, router]);
+
+   // Auto-refresh when new realtime messages arrive
+  useEffect(() => {
+    if (realtimeMessages.length > 0) {
+      loadConversations({ 
+        search: search.trim() || undefined, 
+        status: (statusFilter || undefined) as ConversationStatus | undefined
+      });
+    }
+  }, [realtimeMessages.length]);
+
 
   const handleSearch = (e: React.FormEvent) => {
   e.preventDefault();
   
   loadConversations({ 
     search: search.trim() || undefined, 
-    status: (statusFilter || undefined) as "open" | "in-progress" | "resolved" | "escalated" | "closed" | undefined
+    status: (statusFilter || undefined) as ConversationStatus | undefined
   });
 };
 
-const handleStatusFilter = (status: string) => {
-  const newStatus = status === statusFilter ? "" : status;
-  setStatusFilter(newStatus);
-  
-  loadConversations({ 
-    search: search.trim() || undefined, 
-    status: (newStatus || undefined) as "open" | "in-progress" | "resolved" | "escalated" | "closed" | undefined
-  });
-};
+const handleStatusFilter = useCallback((status: string) => {
+    const newStatus = status === statusFilter ? "" : status;
+    setStatusFilter(newStatus);
+    loadConversations({ 
+      search: search.trim() || undefined, 
+      status: (newStatus || undefined) as ConversationStatus | undefined
+    });
+  }, [search, statusFilter, loadConversations]);
   // Filter buttons
   const statusOptions: (ConversationStatus | "")[] = ["", "open", "in-progress", "resolved", "escalated", "closed"];
 

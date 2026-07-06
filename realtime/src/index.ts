@@ -6,12 +6,10 @@ import express from 'express';
 import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
-import path from 'path';
-
-// Import your routers and handlers
-// import healthRouter from './routes/health.js';
-// import { setupChatHandlers } from './handlers/chat.js';
-// etc.
+import { setupSocketHandlers } from './handlers/socketHandlers';
+import { authenticateSocket } from './middleware/auth';
+import { setupPresence } from './handlers/presence';
+import { setupMessageHandlers } from './handlers/messageHandlers';
 
 const app = express();
 const server = http.createServer(app);
@@ -29,21 +27,25 @@ app.use(express.json());
 // ======================
 // Routes
 // ======================
-app.use('/health', (req, res) => {
-  res.status(200).json({ message: 'Health check passed' });
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
 });
 
-// Root
 app.get('/', (req, res) => {
   res.status(200).json({
     message: 'Socket.IO server is running',
     service: 'comvia-socket',
-    version: '1.0.0',           // good to add
+    version: '1.0.0',
     uptime: process.uptime(),
+    connections: io?.engine?.clientsCount || 0
   });
 });
 
-// 404
+// 404 handler
 app.use((req, res) => {
   res.status(404).json({ 
     error: 'Route not found',
@@ -69,21 +71,38 @@ const io = new Server(server, {
     }
 });
 
-// Socket auth + handlers
-io.use((socket, next) => {
-    // your auth logic
-    next();
-});
+// ======================
+// Socket Middleware
+// ======================
+io.use(authenticateSocket);
+
+// ======================
+// Socket Handlers
+// ======================
+const activeUsers = new Map(); // userId -> socketId
+const userSockets = new Map(); // socketId -> userId
 
 io.on('connection', (socket) => {
-    console.log(`User connected: ${socket.id}`);
+    console.log(`🔌 User connected: ${socket.id}`);
     
-    // handleConnection(socket, activeUsers);
-    // setupChatHandlers(socket, io);
-    // setupPresenceHandlers(socket, activeUsers);
-
+    // Setup all handlers
+    setupSocketHandlers(socket, io, activeUsers, userSockets);
+    setupPresence(socket, io, activeUsers);
+    setupMessageHandlers(socket, io);
+    
+    // Handle disconnection
     socket.on('disconnect', () => {
-        console.log(`User disconnected: ${socket.id}`);
+        console.log(`🔌 User disconnected: ${socket.id}`);
+        
+        // Remove user from active users
+        const userId = userSockets.get(socket.id);
+        if (userId) {
+            activeUsers.delete(userId);
+            userSockets.delete(socket.id);
+            
+            // Broadcast user offline
+            io.emit('user_offline', { userId });
+        }
     });
 });
 
@@ -95,6 +114,7 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`🚀 Socket.IO server running on port ${PORT}`);
   console.log(`🌐 WebSocket: ws://localhost:${PORT}`);
+  console.log(`📊 Allowed origins: ${process.env.ALLOWED_ORIGINS || '*'}`);
 });
 
 // Graceful shutdown
@@ -106,6 +126,12 @@ process.on('SIGTERM', () => {
   });
 });
 
-// Export for testing / deployment platforms
-export { app, server, io };   // Named exports are cleaner
-// export default { app, server, io }; // if you really need default
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully...');
+  io.close(() => {
+    console.log('Socket.IO server closed');
+    process.exit(0);
+  });
+});
+
+export { app, server, io };

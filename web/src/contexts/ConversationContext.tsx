@@ -114,7 +114,7 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
       setMessages(msgs);
       
       // Mark as read
-      await conversationAPI.markAsRead(id);
+      // await conversationAPI.markAsRead(id);
       
       // Update unread count in list
       setConversations(prev =>

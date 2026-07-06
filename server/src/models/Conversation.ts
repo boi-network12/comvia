@@ -1,14 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { IMessage } from './Message'; 
 
-export interface IMessage extends Document {
-  conversationId: string;
-  senderId: string;
-  senderType: 'user' | 'agent' | 'system' | 'visitor';
-  content: string;
-  type: 'text' | 'image' | 'file' | 'system';
-  readBy: string[];
-  createdAt: Date;
-}
 
 export interface IConversation extends Document {
   userId: string;
@@ -40,38 +32,26 @@ export interface IConversation extends Document {
     createdBy: string;
     createdAt: Date;
   }>;
+  participants: Array<{
+    userId: string;
+    userType: 'user' | 'agent' | 'admin' | 'visitor';
+    name?: string;
+    email?: string;
+    joinedAt: Date;
+    lastReadAt?: Date;
+  }>;
+  isActive: boolean;
+  assignedAt?: Date;
+  lastMessage?: {
+    content: string;
+    senderId: string;
+    senderType: string;
+    sentAt: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
 
-const MessageSchema = new Schema<IMessage>({
-  conversationId: {
-    type: String,
-    required: true,
-    index: true,
-  },
-  senderId: {
-    type: String,
-    required: true,
-  },
-  senderType: {
-    type: String,
-    enum: ['user', 'agent', 'system', 'visitor'],
-    required: true,
-  },
-  content: {
-    type: String,
-    required: true,
-  },
-  type: {
-    type: String,
-    enum: ['text', 'image', 'file', 'system'],
-    default: 'text',
-  },
-  readBy: [String],
-}, {
-  timestamps: true,
-});
 
 const ConversationSchema = new Schema<IConversation>({
   userId: {
@@ -94,7 +74,6 @@ const ConversationSchema = new Schema<IConversation>({
     enum: ['low', 'medium', 'high', 'urgent'],
     default: 'medium',
   },
-  assignedTo: String,
   assignedToName: String,
   channel: {
     type: String,
@@ -130,6 +109,41 @@ const ConversationSchema = new Schema<IConversation>({
       type: Date,
       default: Date.now,
     },
+    participants: [
+      {
+        userId: {
+          type: String,
+          required: true,
+        },
+        userType: {
+          type: String,
+          enum: ['user', 'agent', 'admin', 'visitor'],
+          required: true,
+        },
+        name: String,
+        email: String,
+        joinedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        lastReadAt: Date,
+      },
+    ],
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    assignedTo: {
+      type: String,
+      ref: 'User',
+    },
+    assignedAt: Date,
+    lastMessage: {
+      content: String,
+      senderId: String,
+      senderType: String,
+      sentAt: Date,
+    },
   }],
 }, {
   timestamps: true,
@@ -140,5 +154,9 @@ ConversationSchema.index({ userId: 1, status: 1 });
 ConversationSchema.index({ userId: 1, assignedTo: 1 });
 ConversationSchema.index({ userId: 1, lastMessageAt: -1 });
 
-export const Conversation = mongoose.model<IConversation>('Conversation', ConversationSchema);
-export const Message = mongoose.model<IMessage>('Message', MessageSchema);
+// ✅ Prevent model overwrite error during development
+const ConversationModel =
+  mongoose.models.Conversation || mongoose.model<IConversation>('Conversation', ConversationSchema);
+
+export const Conversation = ConversationModel;
+export default Conversation;
