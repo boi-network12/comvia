@@ -101,7 +101,7 @@ export function useWidget() {
               icon: settingsData.widgetSettings?.icon || config.icon || 'chat',
               font: settingsData.widgetSettings?.font || 'inter',
               welcomeMessage: settingsData.widgetSettings?.welcomeMessage || 'Hi there! 👋 How can I help you today?',
-              quickReplies: settingsData.widgetSettings?.quickReplies || ['Pricing', 'Features', 'Support', 'Demo'],
+              quickReplies: settingsData.widgetSettings?.quickReplies || [],
               companyName: settingsData.companyName || config.companyName || 'Comvia',
               companyLogo: settingsData.companyLogo || config.companyLogo,
             };
@@ -121,7 +121,7 @@ export function useWidget() {
         icon: config.icon!,
         font: 'inter',
         welcomeMessage: 'Hi there! 👋 How can I help you today?',
-        quickReplies: ['Pricing', 'Features', 'Support', 'Demo'],
+        quickReplies: [],
         companyName: config.companyName,
         companyLogo: config.companyLogo,
       };

@@ -2,8 +2,9 @@
 
 export const WIDGET_CONFIG = {
   // API Endpoints
-  API_URL: import.meta.env.VITE_API_URL || 'https://api.comvia.app/api',
-  SOCKET_URL: import.meta.env.VITE_SOCKET_URL || 'https://socket.comvia.app',
+  API_URL: import.meta.env.VITE_API_URL || 'https://comvia-backend-endpoint.vercel.app/api',
+  SOCKET_URL: import.meta.env.VITE_SOCKET_URL || 'https://comvia-realtime.fly.dev',
+  
   
   // Widget Defaults
   DEFAULTS: {
@@ -12,7 +13,7 @@ export const WIDGET_CONFIG = {
     icon: 'chat',
     font: 'inter',
     welcomeMessage: 'Hi there! 👋 How can I help you today?',
-    quickReplies: ['Pricing', 'Features', 'Support', 'Demo'],
+    quickReplies: [],
   },
   
   // Storage Keys

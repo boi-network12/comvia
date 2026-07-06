@@ -99,20 +99,6 @@ export const Widget: React.FC = () => {
                           'Inter, system-ui, sans-serif',
             }}
           >
-            {/* Connection Status */}
-            {!isConnected && !isLoading && (
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 text-center">
-                <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                  ⚠️ {error || 'Connecting to chat server...'}
-                  <button 
-                    onClick={connectSocket}
-                    className="ml-2 underline font-medium"
-                  >
-                    Retry
-                  </button>
-                </p>
-              </div>
-            )}
 
             {/* Header */}
             <WidgetHeader onToggleMinimize={() => {}} onClose={closeWidget} />
@@ -137,6 +123,20 @@ export const Widget: React.FC = () => {
                   isConnected={isConnected}
                 />
                 <WidgetFooter />
+                {/* Connection Status */}
+                {!isConnected && !isLoading && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 text-center">
+                    <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                      ⚠️ {error || 'Connecting to chat server...'}
+                      <button 
+                        onClick={connectSocket}
+                        className="ml-2 underline font-medium"
+                      >
+                        Retry
+                      </button>
+                    </p>
+                  </div>
+                )}
               </>
             )}
           </motion.div>
