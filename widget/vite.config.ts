@@ -33,7 +33,7 @@ export default defineConfig({
     },
     outDir: 'dist',
     sourcemap: true,
-    minify: 'terser',
+    minify: true,
     target: 'es2015',
     emptyOutDir: true,
   },
