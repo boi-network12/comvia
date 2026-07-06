@@ -85,13 +85,13 @@ export const Widget: React.FC = () => {
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              'mb-4 w-[380px] max-w-[calc(100vw-32px)]',
+              'mb-4 w-[380px] max-w-[calc(100vw-40px)]',
               'flex flex-col',
               'bg-white dark:bg-gray-900',
               'rounded-2xl shadow-2xl',
               'border border-gray-200/50 dark:border-gray-800/50',
               'overflow-hidden',
-              isMinimized ? 'h-16' : 'h-[520px] max-h-[80vh]'
+              isMinimized ? 'h-16' : 'h-[600px] max-h-[90vh]'
             )}
             style={{
               fontFamily: settings.font === 'inter' ? 'Inter, system-ui, sans-serif' :
