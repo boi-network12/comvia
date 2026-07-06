@@ -87,6 +87,13 @@ export default function WidgetCustomizePage() {
     }
   }, [user, authLoading, router]);
 
+  // ✅ ADD THIS - Load settings when user is available
+  useEffect(() => {
+    if (user && !isInitialized && !widgetLoading) {
+      loadSettings();
+    }
+  }, [user, isInitialized, widgetLoading, loadSettings]);
+
   // Initialize local settings from context
   useEffect(() => {
     if (contextSettings && !isInitialized) {
@@ -194,9 +201,43 @@ export default function WidgetCustomizePage() {
     }
   };
 
-  const handleCopyScript = () => {
-    setCopySuccess(true);
-    setTimeout(() => setCopySuccess(false), 3000);
+  const handleCopyScript = async () => {
+    // Get the current settings to generate the embed script
+    const settings = {
+      position: localSettings?.position || 'bottom-right',
+      color: localSettings?.color || '#F97316',
+      icon: localSettings?.icon || 'chat',
+      companyName: companyName || 'Comvia',
+      companyLogo: companyLogo || null,
+    };
+
+    // Generate the actual embed script
+    const embedScript = `<script>
+    (function() {
+      var settings = ${JSON.stringify(settings)};
+      var script = document.createElement('script');
+      script.src = '${process.env.NEXT_PUBLIC_WIDGET_URL || 'https://comvia-widget.vercel.app/comvia-widget.min.js'}';
+      script.setAttribute('data-settings', encodeURIComponent(JSON.stringify(settings)));
+      document.head.appendChild(script);
+    })();
+  </script>`;
+
+    try {
+      await navigator.clipboard.writeText(embedScript);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 3000);
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      // Fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = embedScript;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 3000);
+    }
   };
 
   const handleRefresh = async () => {
