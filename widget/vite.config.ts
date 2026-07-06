@@ -15,12 +15,11 @@ export default defineConfig({
     },
   },
   build: {
-    // ✅ Use widget.tsx as entry for production build
     lib: {
       entry: path.resolve(__dirname, 'src/widget.tsx'),
       name: 'ComviaWidget',
-      fileName: (format) => `comvia-widget.min.${format === 'umd' ? 'js' : format === 'iife' ? 'js' : 'js'}`,
-      formats: ['iife', 'umd'],
+      fileName: () => 'comvia-widget.min.js',
+      formats: ['iife'], // ✅ Use IIFE only - it's the most compatible
     },
     rollupOptions: {
       external: ['react', 'react-dom'],
@@ -29,15 +28,26 @@ export default defineConfig({
           react: 'React',
           'react-dom': 'ReactDOM',
         },
+        // ✅ This ensures window.ComviaWidget is available
         name: 'ComviaWidget',
         exports: 'named',
+        // ✅ Add footer to ensure global is set
+        footer: `
+          if (typeof window !== 'undefined') {
+            window.ComviaWidget = window.ComviaWidget || {};
+            window.ComviaWidget.init = window.initComviaWidget;
+            window.ComviaWidget.destroy = window.destroyWidget;
+          }
+        `,
       },
     },
     outDir: 'dist',
     sourcemap: true,
-    minify: true,
+    minify: 'terser',
     target: 'es2015',
     emptyOutDir: true,
+    // ✅ Ensure CSS is included
+    cssCodeSplit: false,
   },
   server: {
     port: 5173,

@@ -73,16 +73,18 @@ export function destroyWidget() {
   isInitialized = false;
 }
 
-// Auto-initialization - runs when script loads
+// ============================================================
+// ✅ IMPROVED: Better auto-initialization with multiple methods
+// ============================================================
+
 (function autoInit() {
-  // Check if window.comviaSettings exists
+  // Method 1: Check for window.comviaSettings
   const config = (window as any).comviaSettings || {};
 
-  // Check for data attributes on script tag
+  // Method 2: Check for data attributes on script tag
   const scripts = document.querySelectorAll('script');
   let currentScript: HTMLScriptElement | null = null;
   
-  // Find the script that loaded this widget
   for (const script of scripts) {
     if (script.src && script.src.includes('comvia-widget')) {
       currentScript = script;
@@ -92,7 +94,6 @@ export function destroyWidget() {
 
   if (currentScript) {
     const dataConfig = (currentScript as HTMLElement).dataset;
-    // Map data attributes to config
     const mappedConfig: Record<string, any> = {};
     Object.keys(dataConfig).forEach(key => {
       const value = dataConfig[key];
@@ -114,31 +115,65 @@ export function destroyWidget() {
         }
       }
     });
-    
     Object.assign(config, mappedConfig);
   }
 
-  // Auto-init if config has position or color
-  if (config.position || config.color || config.companyName) {
-    // Wait for DOM
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
+  // Method 3: Check for URL parameters (for testing)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const settingsParam = params.get('comvia_settings');
+    if (settingsParam) {
+      const urlConfig = JSON.parse(decodeURIComponent(settingsParam));
+      Object.assign(config, urlConfig);
+    }
+  } catch (e) {
+    // Ignore URL parsing errors
+  }
+
+  // ✅ Check if we should auto-init
+  const shouldAutoInit = config.position || config.color || config.companyName || config.companyId;
+  
+  if (shouldAutoInit) {
+    const initFn = () => {
+      // Wait a tiny bit to ensure DOM is ready
+      setTimeout(() => {
         initComviaWidget(config);
-      });
+      }, 10);
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initFn);
+    } else if (document.readyState === 'complete') {
+      initFn();
     } else {
-      initComviaWidget(config);
+      // DOM is interactive but not complete yet
+      if (document.body) {
+        initFn();
+      } else {
+        document.addEventListener('DOMContentLoaded', initFn);
+      }
     }
   }
 })();
 
-// Expose to window for manual initialization
+// ============================================================
+// ✅ IMPROVED: Multiple exposure methods for maximum compatibility
+// ============================================================
+
+// 1. Standard: ComviaWidget object
 (window as any).ComviaWidget = {
   init: initComviaWidget,
   destroy: destroyWidget,
+  version: '1.0.0',
 };
 
-// Also export for module imports
+// 2. Direct functions (backward compatibility)
+(window as any).initComviaWidget = initComviaWidget;
+(window as any).destroyWidget = destroyWidget;
+
+// 3. For module imports (if someone uses import)
 export default { 
   init: initComviaWidget, 
-  destroy: destroyWidget 
+  destroy: destroyWidget,
+  version: '1.0.0',
 };

@@ -13,46 +13,9 @@ import HowItWorks from "@/components/LandingPage/HowItWorks";
 import WhyComvia from "@/components/LandingPage/WhyComvia";
 import FAQ from "@/components/LandingPage/FAQ";
 import FeaturesDetailed from "@/components/LandingPage/FeaturesDetailed";
-import { useEffect } from "react";
+import WidgetLoader from "@/components/static/WidgetLoader";
 
 export default function Home() {
-  useEffect(() => {
-    // Load the widget script on the landing page
-    const loadWidget = () => {
-      // Don't load if already loaded
-      if (document.querySelector('script[src*="comvia-widget"]')) return;
-
-      const settings = {
-        position: "bottom-right",
-        color: "#F97316",
-        icon: "chat",
-        companyName: "Comvia support",
-        companyLogo: "https://res.cloudinary.com/dypgxulgp/image/upload/v1783365898/company-logos/rxpufzatykimmoka45wi.png"
-      };
-
-      const script = document.createElement('script');
-      script.src = 'https://comvia-widget.vercel.app/comvia-widget.min.js';
-      script.setAttribute('data-settings', encodeURIComponent(JSON.stringify(settings)));
-      document.head.appendChild(script);
-    };
-
-    // Load widget after component mounts
-    loadWidget();
-
-    // Cleanup when component unmounts
-    return () => {
-      const widgetScript = document.querySelector('script[src*="comvia-widget"]');
-      if (widgetScript) {
-        widgetScript.remove();
-      }
-      // Also remove widget container if exists
-      const widgetContainer = document.getElementById('comvia-widget-root');
-      if (widgetContainer) {
-        widgetContainer.remove();
-      }
-    };
-  }, []);
-
   return (
     <>
       <Header />
@@ -68,6 +31,16 @@ export default function Home() {
         <CTASection />
       </main>
       <Footer />
+
+      <WidgetLoader 
+        position="bottom-right"
+        color="#F97316"
+        icon="chat"
+        companyName="Comvia support"
+        companyLogo="https://res.cloudinary.com/dypgxulgp/image/upload/v1783365898/company-logos/rxpufzatykimmoka45wi.png"
+      />
     </>
   );
 }
+
+// landing page
