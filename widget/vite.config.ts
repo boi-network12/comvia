@@ -1,5 +1,4 @@
-// vite.config.ts
-
+// widget/vite.config.ts
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
@@ -16,10 +15,12 @@ export default defineConfig({
     },
   },
   build: {
+    // ✅ Use widget.tsx as entry for production build
     lib: {
-      entry: path.resolve(__dirname, 'src/main.tsx'),
+      entry: path.resolve(__dirname, 'src/widget.tsx'),
       name: 'ComviaWidget',
-      fileName: (format) => `widget.${format}.js`,
+      fileName: (format) => `comvia-widget.min.${format === 'umd' ? 'js' : format === 'iife' ? 'js' : 'js'}`,
+      formats: ['iife', 'umd'],
     },
     rollupOptions: {
       external: ['react', 'react-dom'],
@@ -32,5 +33,12 @@ export default defineConfig({
     },
     outDir: 'dist',
     sourcemap: true,
+    minify: 'terser',
+    target: 'es2015',
+    emptyOutDir: true,
+  },
+  server: {
+    port: 5173,
+    cors: true,
   },
 });

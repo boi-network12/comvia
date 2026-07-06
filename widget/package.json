@@ -1,13 +1,20 @@
 {
-  "name": "widget",
+  "name": "@comvia/widget",
   "private": true,
+  "description": "Comvia Live Chat Widget - Embeddable chat widget for any website",
   "version": "0.0.0",
+  "main": "dist/comvia-widget.min.js",
+  "module": "dist/comvia-widget.min.js",
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:watch": "vite build --watch"
   },
   "dependencies": {
     "axios": "^1.18.1",
@@ -33,5 +40,18 @@
     "tailwind": "^4.0.0",
     "typescript": "~6.0.2",
     "vite": "^8.1.1"
-  }
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "keywords": [
+    "chat",
+    "widget",
+    "live-chat",
+    "customer-support",
+    "comvia"
+  ],
+  "author": "Comvia",
+  "license": "MIT"
 }

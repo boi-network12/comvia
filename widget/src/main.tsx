@@ -1,29 +1,18 @@
-// widget/src/widget.tsx
+// widget/src/main.tsx
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App'
 
-import React, { StrictMode } from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import './index.css';
+// This is ONLY for development/testing
+// When you run `npm run dev`, this file is used
+// When you build for production, widget.tsx is used
 
-// Auto-initialize widget
-(function initWidget() {
-  // Wait for DOM to be ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', renderWidget);
-  } else {
-    renderWidget();
-  }
-
-  function renderWidget() {
-    const container = document.createElement('div');
-    container.id = 'comvia-widget-root';
-    document.body.appendChild(container);
-
-    const root = ReactDOM.createRoot(container);
-    root.render(
-      <StrictMode>
-        <App />
-      </StrictMode>
-    );
-  }
-})();
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <App />
+    </StrictMode>
+  );
+}
