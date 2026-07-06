@@ -52,6 +52,8 @@ export default function TeamPage() {
   };
 
   const getRoleBadge = (role: string) => {
+    const safeRole = role?.toLowerCase() || "agent"; 
+
     const colors = {
       admin: "text-purple-500 bg-purple-500/10",
       agent: "text-blue-500 bg-blue-500/10",
@@ -62,10 +64,17 @@ export default function TeamPage() {
           colors[role as keyof typeof colors] || colors.agent
         }`}
       >
-        {role.charAt(0).toUpperCase() + role.slice(1)}
+         {safeRole.toUpperCase()} 
       </span>
     );
   };
+
+  // Safe way to get first letter
+  const getInitial = (name?: string, email?: string): string => {
+    const str = name?.trim() || email?.trim() || "U";
+    return str.charAt(0).toUpperCase();
+  };
+
 
   if (isLoading) {
     return (
@@ -143,7 +152,7 @@ export default function TeamPage() {
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-white font-semibold text-sm">
-                      {member.name?.charAt(0) || member.email.charAt(0)}
+                      {getInitial(member.name, member.email)}
                     </div>
                     <div
                       className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${
