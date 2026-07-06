@@ -9,6 +9,7 @@ import { WidgetInput } from './WidgetInput';
 import { WidgetFooter } from './WidgetFooter';
 import { WidgetQuickReplies } from './WidgetQuickReplies';
 import { cn } from '../../utils/helpers';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 export const Widget: React.FC = () => {
   const {
@@ -25,9 +26,10 @@ export const Widget: React.FC = () => {
     sendMessage,
     sendTyping,
     connectSocket,
-    companyId, // ✅ Added companyId
+    companyId, 
   } = useWidgetContext();
   const [unreadCount] = useState(0);
+  const isMobile = useIsMobile();
 
   const widgetRef = useRef<HTMLDivElement>(null);
 
@@ -85,13 +87,15 @@ export const Widget: React.FC = () => {
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              'mb-4 w-[380px] max-w-[calc(100vw-40px)]',
+              isMobile && 'min-w-screen min-h-screen',
+              isMobile && 'fixed right-0 top-0',
+              'mb-4 w-[380px] max-w-[calc(100vw-32px)]',
               'flex flex-col',
               'bg-white dark:bg-gray-900',
-              'rounded-2xl shadow-2xl',
+              'shadow-2xl',
               'border border-gray-200/50 dark:border-gray-800/50',
               'overflow-hidden',
-              isMinimized ? 'h-16' : 'h-[600px] max-h-[90vh]'
+              isMinimized ? 'h-16' : 'h-[550px] max-h-[80vh]'
             )}
             style={{
               fontFamily: settings.font === 'inter' ? 'Inter, system-ui, sans-serif' :
@@ -143,8 +147,12 @@ export const Widget: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Toggle Button */}
-      <WidgetButton onClick={toggleWidget} unreadCount={unreadCount} />
+      {!(isMobile && isOpen) && (
+        <WidgetButton
+          onClick={toggleWidget}
+          unreadCount={unreadCount}
+        />
+      )}
     </div>
   );
 };

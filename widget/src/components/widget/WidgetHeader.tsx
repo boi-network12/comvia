@@ -51,7 +51,7 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({ onClose }) => {
         <div className="flex items-center gap-1">
           <button
             onClick={isMinimized ? maximizeWidget : minimizeWidget}
-            className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
+            className="hidden md:block p-1.5 rounded-lg hover:bg-white/20 transition-colors"
             aria-label={isMinimized ? 'Expand chat' : 'Minimize chat'}
           >
             {isMinimized ? (
