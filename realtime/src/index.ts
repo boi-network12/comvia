@@ -109,12 +109,16 @@ io.on('connection', (socket) => {
 // ======================
 // Start Server
 // ======================
-const PORT = process.env.PORT || 3001;
+// Ensure PORT is a number so the overload for server.listen(number, hostname, callback) is used
+const PORT: number = Number(process.env.PORT) || 3001;
+const AllowEverywhere = '0.0.0.0';
 
-server.listen(PORT, () => {
+// ✅ CRITICAL: Listen on 0.0.0.0 to accept connections from outside
+server.listen(PORT, AllowEverywhere, () => {
   console.log(`🚀 Socket.IO server running on port ${PORT}`);
-  console.log(`🌐 WebSocket: ws://localhost:${PORT}`);
+  console.log(`🌐 WebSocket: ws://0.0.0.0:${PORT}`);
   console.log(`📊 Allowed origins: ${process.env.ALLOWED_ORIGINS || '*'}`);
+  console.log(`🔒 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 // Graceful shutdown
