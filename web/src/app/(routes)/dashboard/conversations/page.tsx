@@ -255,25 +255,31 @@ const handleStatusFilter = useCallback((status: string) => {
           <>
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
               {conversations.map((conversation) => (
+              
                 <Link
                   key={conversation._id}
                   href={`/dashboard/conversations/${conversation._id}`}
                   className="block hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors"
                 >
-                  <div className="p-4 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                      {/* Avatar / Icon */}
-                      <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                        {conversation.metadata?.visitorName?.charAt(0) || "V"}
-                      </div>
+                  <div className="p-4 sm:p-6 flex gap-4">
+                    {/* Avatar */}
+                    <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 mt-0.5">
+                      {conversation.metadata?.visitorName?.charAt(0) || "V"}
+                    </div>
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                          <h3 className="font-semibold truncate">
-                            {conversation.title || "New Conversation"}
-                          </h3>
-                          <div className="flex flex-wrap items-center gap-2">
+                    {/* Main Content */}
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <div className="flex items-start justify-between gap-3">
+                        {/* Left side content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-base truncate">
+                              {conversation.title || "New Conversation"}
+                            </h3>
+                          </div>
+
+                          {/* Status + Priority + Unread */}
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
                             {getStatusBadge(conversation.status)}
                             {conversation.priority && getPriorityBadge(conversation.priority)}
                             {conversation.unreadCount > 0 && (
@@ -282,41 +288,43 @@ const handleStatusFilter = useCallback((status: string) => {
                               </span>
                             )}
                           </div>
-                        </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">
-                          {conversation.lastMessagePreview || "No messages yet"}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-400">
-                          {conversation.metadata?.visitorName && (
-                            <span className="flex items-center gap-1">
-                              <User className="w-3 h-3" />
-                              {conversation.metadata.visitorName}
-                            </span>
-                          )}
-                          {conversation.assignedToName && (
-                            <span className="flex items-center gap-1">
-                              <Users className="w-3 h-3" />
-                              {conversation.assignedToName}
-                            </span>
-                          )}
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatDistanceToNow(new Date(conversation.lastMessageAt), { addSuffix: true })}
-                          </span>
-                          {conversation.channel && (
-                            <span className="flex items-center gap-1 capitalize">
-                              <MessageSquare className="w-3 h-3" />
-                              {conversation.channel}
-                            </span>
-                          )}
-                        </div>
-                      </div>
 
-                      {/* Channel Icon */}
-                      <div className="flex items-center gap-2">
-                        {conversation.channel === "email" && <Mail className="w-4 h-4 text-gray-400" />}
-                        {conversation.channel === "widget" && <MessageSquare className="w-4 h-4 text-gray-400" />}
-                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                          {/* Preview */}
+                          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1 mb-2">
+                            {conversation.lastMessagePreview || "No messages yet"}
+                          </p>
+
+                          {/* Metadata */}
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
+                            {conversation.metadata?.visitorName && (
+                              <span className="flex items-center gap-1">
+                                <User className="w-3 h-3" />
+                                {conversation.metadata.visitorName}
+                              </span>
+                            )}
+                            {conversation.assignedToName && (
+                              <span className="flex items-center gap-1">
+                                <Users className="w-3 h-3" />
+                                {conversation.assignedToName}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {formatDistanceToNow(new Date(conversation.lastMessageAt), { addSuffix: true })}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Right side - Channel + Chevron */}
+                        <div className="flex flex-row items-end justify-between h-full py-0.5 flex-shrink-0 gap-2">
+                          {conversation.channel && (
+                            <div className="text-gray-400">
+                              {conversation.channel === "email" && <Mail className="w-4 h-4" />}
+                              {conversation.channel === "widget" && <MessageSquare className="w-4 h-4" />}
+                            </div>
+                          )}
+                          <ChevronRight className="w-4 h-4 text-gray-400 mt-auto" />
+                        </div>
                       </div>
                     </div>
                   </div>
