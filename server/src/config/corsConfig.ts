@@ -1,3 +1,4 @@
+// server/src/config/corsConfig.ts
 import { CorsOptions } from 'cors';
 import { ServerOptions } from 'socket.io';
 
@@ -5,32 +6,25 @@ import { ServerOptions } from 'socket.io';
  * Dynamic CORS configuration that handles multiple origins and subdomains
  */
 export const getCorsOptions = (): CorsOptions => {
+  // Get allowed origins from environment
   const allowedOrigins = process.env.FRONTEND_ORIGIN?.split(',') || [];
+  const isProduction = process.env.NODE_ENV === 'production';
   
-  // Add www subdomain automatically for each origin
-  const enhancedOrigins = allowedOrigins.reduce((acc, origin) => {
-    acc.push(origin);
-    
-    // If it's an https://domain without www, add www version
-    if (origin.startsWith('https://') && !origin.includes('www.')) {
-      const domain = origin.replace('https://', '');
-      acc.push(`https://www.${domain}`);
-    }
-    
-    // If it's an https://www.domain, add non-www version
-    if (origin.startsWith('https://www.')) {
-      acc.push(origin.replace('https://www.', 'https://'));
-    }
-    
-    return acc;
-  }, [] as string[]);
+  // For Vercel, always add the production URL
+  const defaultOrigins = [
+    'https://comvia-web.vercel.app',
+    'https://comvia-widget.vercel.app',
+    'https://comvia-backend-endpoint.vercel.app',
+    'https://comvia-realtime.fly.dev',
+    'http://localhost:3000',
+    'http://localhost:5173',
+  ];
 
-  // Add localhost for development
-  if (process.env.NODE_ENV === 'development') {
-    enhancedOrigins.push('http://localhost:3000');
-  }
-
-  const uniqueOrigins = [...new Set(enhancedOrigins)];
+  // Merge all allowed origins
+  const allOrigins = [...defaultOrigins, ...allowedOrigins];
+  
+  // Remove duplicates
+  const uniqueOrigins = [...new Set(allOrigins)];
   
   console.log('🌐 Configured CORS origins:', uniqueOrigins);
 
@@ -41,18 +35,21 @@ export const getCorsOptions = (): CorsOptions => {
         return callback(null, true);
       }
       
+      // In development, allow all origins
+      if (!isProduction) {
+        return callback(null, true);
+      }
+      
       // Check if origin is allowed
       if (uniqueOrigins.includes(origin)) {
         return callback(null, true);
       }
       
-      // Allow subdomains of main domains
+      // Check for subdomain matches
       const isSubdomainAllowed = uniqueOrigins.some(allowedOrigin => {
         try {
           const allowedUrl = new URL(allowedOrigin);
           const requestUrl = new URL(origin);
-          
-          // Check if same protocol and root domain
           const allowedDomain = allowedUrl.hostname.replace('www.', '');
           const requestDomain = requestUrl.hostname.replace('www.', '');
           
@@ -72,7 +69,7 @@ export const getCorsOptions = (): CorsOptions => {
     },
     credentials: true,
     optionsSuccessStatus: 200,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
     allowedHeaders: [
       'Content-Type',
       'Authorization',
@@ -80,16 +77,21 @@ export const getCorsOptions = (): CorsOptions => {
       'Accept',
       'Origin',
       'X-CSRF-Token',
-      'X-API-Key'
+      'X-API-Key',
+      'Cookie',
+      'Set-Cookie',
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Credentials'
     ],
     exposedHeaders: [
       'Content-Range',
       'X-Content-Range',
-      'Access-Control-Allow-Origin'
-    ]
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Credentials'
+    ],
+    maxAge: 86400, // 24 hours for preflight cache
   };
 };
-
 
 export const getSocketCorsConfig = (): Partial<ServerOptions> => ({
   cors: {
