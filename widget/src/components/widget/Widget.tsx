@@ -89,13 +89,14 @@ export const Widget: React.FC = () => {
             className={cn(
               isMobile && 'min-w-screen min-h-screen',
               isMobile && 'fixed right-0 top-0',
+              !isMobile && 'rounded-2xl',
               'mb-4 w-[380px] max-w-[calc(100vw-32px)]',
               'flex flex-col',
               'bg-white dark:bg-gray-900',
               'shadow-2xl',
               'border border-gray-200/50 dark:border-gray-800/50',
               'overflow-hidden',
-              isMinimized ? 'h-16' : 'h-[550px] max-h-[80vh]'
+              isMinimized ? 'h-16' : 'h-[600px] max-h-[85vh]'
             )}
             style={{
               fontFamily: settings.font === 'inter' ? 'Inter, system-ui, sans-serif' :
