@@ -220,13 +220,64 @@ export default function AnalyticsPage() {
 
       {/* Team Performance */}
       {teamPerformance && teamPerformance.length > 0 && (
-        <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-xl p-6">
+        <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-xl p-4 sm:p-6 overflow-hidden">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <Users className="w-4 h-4 text-primary" />
             Team Performance
           </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          
+          {/* Mobile Card View - Visible on small screens */}
+          <div className="sm:hidden space-y-3">
+            {teamPerformance.map((member, index) => {
+              const resolutionRate = member.conversations > 0 
+                ? Math.round((member.resolved / member.conversations) * 100) 
+                : 0;
+                
+              return (
+                <div 
+                  key={index} 
+                  className="bg-gray-50 dark:bg-gray-800/30 rounded-xl p-4 border border-gray-200/50 dark:border-gray-800/50"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
+                        {member.name?.charAt(0) || "?"}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm truncate max-w-[120px] sm:max-w-xs">{member.name}</p>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                          {member.role}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      <span className="text-sm font-medium">{member.rating || 0}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Conversations</p>
+                      <p className="text-sm font-semibold">{member.conversations || 0}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Resolved</p>
+                      <p className="text-sm font-semibold text-emerald-500">{member.resolved || 0}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Resolution</p>
+                      <p className="text-sm font-semibold text-blue-500">{resolutionRate}%</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table View - Hidden on mobile */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full min-w-[500px]">
               <thead>
                 <tr className="text-left text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
                   <th className="pb-2 font-medium">Member</th>
@@ -237,24 +288,30 @@ export default function AnalyticsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {teamPerformance.map((member, index) => (
-                  <tr key={index} className="text-sm">
-                    <td className="py-3 font-medium">{member.name}</td>
-                    <td className="py-3 text-gray-500 dark:text-gray-400 capitalize">
-                      {member.role}
-                    </td>
-                    <td className="py-3 text-right">{member.conversations}</td>
-                    <td className="py-3 text-right">
-                      {member.resolved} ({Math.round((member.resolved / member.conversations) * 100)}%)
-                    </td>
-                    <td className="py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                        {member.rating}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {teamPerformance.map((member, index) => {
+                  const resolutionRate = member.conversations > 0 
+                    ? Math.round((member.resolved / member.conversations) * 100) 
+                    : 0;
+                    
+                  return (
+                    <tr key={index} className="text-sm">
+                      <td className="py-3 font-medium">{member.name || "Unknown"}</td>
+                      <td className="py-3 text-gray-500 dark:text-gray-400 capitalize">
+                        {member.role || "N/A"}
+                      </td>
+                      <td className="py-3 text-right">{member.conversations || 0}</td>
+                      <td className="py-3 text-right">
+                        {member.resolved || 0} ({resolutionRate}%)
+                      </td>
+                      <td className="py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                          {member.rating || 0}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

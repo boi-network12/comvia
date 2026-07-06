@@ -91,20 +91,8 @@ export interface FacebookStatusResponse {
   facebook: FacebookIntegration | { enabled: false };
 }
 
-export interface InstagramStatusResponse {
-  instagram: InstagramIntegration | { enabled: false };
-}
-
-export interface TwitterStatusResponse {
-  twitter: TwitterIntegration | { enabled: false };
-}
-
 export interface GitHubStatusResponse {
   github: GitHubIntegration | { enabled: false };
-}
-
-export interface ZoomStatusResponse {
-  zoom: ZoomIntegration | { enabled: false };
 }
 
 export interface ZapierStatusResponse {
@@ -113,10 +101,6 @@ export interface ZapierStatusResponse {
 
 export interface EmailSettingsResponse {
   email: EmailIntegration;
-}
-
-export interface WebhookResponse {
-  webhookUrl: string;
 }
 
 // ============================================
@@ -152,10 +136,12 @@ class IntegrationService {
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
           try {
-            const { authAPI } = await import('./auth');
-            await authAPI.refreshToken();
-            const token = localStorage.getItem('accessToken');
-            originalRequest.headers.Authorization = `Bearer ${token}`;
+            const response = await axios.post(`${API_ENDPOINT}/auth/refresh`, {}, {
+              withCredentials: true,
+            });
+            const { accessToken } = response.data.data;
+            localStorage.setItem('accessToken', accessToken);
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             return this.api(originalRequest);
           } catch (refreshError) {
             localStorage.removeItem('accessToken');
@@ -207,49 +193,6 @@ class IntegrationService {
   }
 
   // ============================================
-  // Instagram Integration
-  // ============================================
-
-  async connectInstagram(businessId: string, accessToken: string, username?: string): Promise<ApiResponse<{ instagram: InstagramIntegration }>> {
-    const response = await this.api.post<ApiResponse<{ instagram: InstagramIntegration }>>('/instagram/connect', { businessId, accessToken, username });
-    return response.data;
-  }
-
-  async disconnectInstagram(): Promise<ApiResponse> {
-    const response = await this.api.delete<ApiResponse>('/instagram/disconnect');
-    return response.data;
-  }
-
-  async getInstagramStatus(): Promise<ApiResponse<InstagramStatusResponse>> {
-    const response = await this.api.get<ApiResponse<InstagramStatusResponse>>('/instagram/status');
-    return response.data;
-  }
-
-  // ============================================
-  // Twitter Integration
-  // ============================================
-
-  async connectTwitter(
-    userId: string,
-    accessToken: string,
-    accessTokenSecret: string,
-    username?: string
-  ): Promise<ApiResponse<{ twitter: TwitterIntegration }>> {
-    const response = await this.api.post<ApiResponse<{ twitter: TwitterIntegration }>>('/twitter/connect', { userId, accessToken, accessTokenSecret, username });
-    return response.data;
-  }
-
-  async disconnectTwitter(): Promise<ApiResponse> {
-    const response = await this.api.delete<ApiResponse>('/twitter/disconnect');
-    return response.data;
-  }
-
-  async getTwitterStatus(): Promise<ApiResponse<TwitterStatusResponse>> {
-    const response = await this.api.get<ApiResponse<TwitterStatusResponse>>('/twitter/status');
-    return response.data;
-  }
-
-  // ============================================
   // GitHub Integration
   // ============================================
 
@@ -265,25 +208,6 @@ class IntegrationService {
 
   async getGitHubStatus(): Promise<ApiResponse<GitHubStatusResponse>> {
     const response = await this.api.get<ApiResponse<GitHubStatusResponse>>('/github/status');
-    return response.data;
-  }
-
-  // ============================================
-  // Zoom Integration
-  // ============================================
-
-  async connectZoom(accountId: string, clientId: string, clientSecret: string): Promise<ApiResponse<{ zoom: ZoomIntegration }>> {
-    const response = await this.api.post<ApiResponse<{ zoom: ZoomIntegration }>>('/zoom/connect', { accountId, clientId, clientSecret });
-    return response.data;
-  }
-
-  async disconnectZoom(): Promise<ApiResponse> {
-    const response = await this.api.delete<ApiResponse>('/zoom/disconnect');
-    return response.data;
-  }
-
-  async getZoomStatus(): Promise<ApiResponse<ZoomStatusResponse>> {
-    const response = await this.api.get<ApiResponse<ZoomStatusResponse>>('/zoom/status');
     return response.data;
   }
 
@@ -329,14 +253,11 @@ class IntegrationService {
   // ============================================
 
   async getAllIntegrationStatus(): Promise<IntegrationStatus> {
-    const [slack, facebook, instagram, twitter, github, zoom, zapier, email] =
+    const [slack, facebook, github, zapier, email] =
       await Promise.all([
         this.getSlackStatus(),
         this.getFacebookStatus(),
-        this.getInstagramStatus(),
-        this.getTwitterStatus(),
         this.getGitHubStatus(),
-        this.getZoomStatus(),
         this.getZapierStatus(),
         this.getEmailSettings(),
       ]);
@@ -344,27 +265,13 @@ class IntegrationService {
     return {
       slack: slack.data.slack,
       facebook: facebook.data.facebook,
-      instagram: instagram.data.instagram,
-      twitter: twitter.data.twitter,
+      instagram: { enabled: false },
+      twitter: { enabled: false },
       github: github.data.github,
-      zoom: zoom.data.zoom,
+      zoom: { enabled: false },
       zapier: zapier.data.zapier,
       email: email.data.email,
     };
-  }
-
-  // ============================================
-  // Webhook Helpers (for Zapier)
-  // ============================================
-
-  async getWebhookUrl(integration: 'slack' | 'zapier' | 'github'): Promise<ApiResponse<WebhookResponse>> {
-    const response = await this.api.get<ApiResponse<WebhookResponse>>(`/${integration}/webhook`);
-    return response.data;
-  }
-
-  async testWebhook(integration: 'slack' | 'zapier', webhookUrl: string): Promise<ApiResponse> {
-    const response = await this.api.post<ApiResponse>('/test-webhook', { integration, webhookUrl });
-    return response.data;
   }
 }
 

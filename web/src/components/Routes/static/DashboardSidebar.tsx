@@ -22,6 +22,7 @@ import {
   Globe,
   Zap,
   Sparkles,
+  Plug,
 } from "lucide-react";
 
 interface NavItem {
@@ -68,6 +69,11 @@ export function DashboardSidebar() {
       label: "Team",
       href: "/dashboard/team",
       icon: Users,
+    },
+    {
+      label: "Integrations",  
+      href: "/integrations",
+      icon: Plug, 
     },
     {
       label: "Widget",
