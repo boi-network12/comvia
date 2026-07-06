@@ -88,7 +88,7 @@ export const Widget: React.FC = () => {
             transition={{ duration: 0.2 }}
             className={cn(
               isMobile && 'min-w-screen min-h-screen',
-              isMobile && 'fixed right-0 top-0',
+              isMobile && 'fixed right-0 top-0 left-0 bottom-0',
               !isMobile && 'rounded-2xl',
               'mb-4 w-[380px] max-w-[calc(100vw-32px)]',
               'flex flex-col',
