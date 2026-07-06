@@ -1,5 +1,5 @@
 // widget/src/widget.tsx
-import { StrictMode } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
@@ -16,6 +16,7 @@ export interface WidgetConfig {
   welcomeMessage?: string;
   quickReplies?: string[];
   font?: string;
+  companyId?: string;
 }
 
 // Global widget instance
@@ -49,9 +50,9 @@ export function initComviaWidget(config: WidgetConfig = {}) {
   // Render widget
   widgetInstance = ReactDOM.createRoot(widgetContainer);
   widgetInstance.render(
-    <StrictMode>
+    <React.StrictMode>
       <App />
-    </StrictMode>
+    </React.StrictMode>
   );
 
   isInitialized = true;
@@ -104,6 +105,7 @@ export function destroyWidget() {
       else if (key === 'socketUrl') mappedConfig.socketUrl = value;
       else if (key === 'welcomeMessage') mappedConfig.welcomeMessage = value;
       else if (key === 'font') mappedConfig.font = value;
+      else if (key === 'companyId') mappedConfig.companyId = value;
       else if (key === 'quickReplies' && value) {
         try {
           mappedConfig.quickReplies = JSON.parse(value);
