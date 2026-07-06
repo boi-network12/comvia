@@ -29,6 +29,8 @@ export default defineConfig({
           react: 'React',
           'react-dom': 'ReactDOM',
         },
+        name: 'ComviaWidget',
+        exports: 'named',
       },
     },
     outDir: 'dist',
