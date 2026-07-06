@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { ArrowRight, Upload, Sparkles, X, MessageCircle, Send } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/contexts";
+import { WidgetPreview } from "@/components/Routes/widget/WidgetPreview";
 
 export default function SetupBrandingPage() {
   const router = useRouter();
@@ -84,6 +85,10 @@ export default function SetupBrandingPage() {
       setIsLoading(false);
     }
   };
+
+  // Get current position from user settings or default
+  const widgetPosition = user?.widgetSettings?.position || "bottom-right";
+  const widgetIcon = user?.widgetSettings?.icon || "message-circle";
 
   return (
     <div className="space-y-6">
@@ -257,141 +262,19 @@ export default function SetupBrandingPage() {
         </div>
 
         {/* Right Column - Live Preview */}
-        <div>
-          <label className="block text-sm font-medium mb-1.5">
-            Live Preview
-          </label>
-          <div className="relative h-[600px] rounded-xl bg-gray-100 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 overflow-hidden">
-            {/* Mock Website Background */}
-            <div className="p-6 h-full bg-white dark:bg-gray-900">
-              <div className="flex items-center gap-3 mb-6">
-                {logo ? (
-                  <div className="w-8 h-8 rounded-lg overflow-hidden relative">
-                    <Image src={logo} alt="Logo" fill className="object-contain" />
-                  </div>
-                ) : (
-                  <div className="w-8 h-8 rounded-lg" style={{ backgroundColor: brandColor }} />
-                )}
-                <span className="font-semibold" style={{ 
-                  fontFamily: font === 'inter' ? 'Inter' : 
-                             font === 'system' ? 'system-ui' :
-                             font === 'geist' ? 'Geist' :
-                             font === 'roboto' ? 'Roboto' :
-                             font === 'open-sans' ? 'Open Sans' : 'Inter'
-                }}>
-                  {companyName || "Your Company"}
-                </span>
-              </div>
-              
-              {/* Mock Content */}
-              <div className="space-y-4">
-                <div className="h-8 w-3/4 rounded-lg bg-gray-200 dark:bg-gray-700" />
-                <div className="h-4 w-full rounded-lg bg-gray-200 dark:bg-gray-700" />
-                <div className="h-4 w-5/6 rounded-lg bg-gray-200 dark:bg-gray-700" />
-                <div className="h-4 w-4/6 rounded-lg bg-gray-200 dark:bg-gray-700" />
-              </div>
-            </div>
-
-            {/* Widget Button */}
-            <button
-              onClick={() => setIsChatOpen(!isChatOpen)}
-              className="absolute bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105"
-              style={{ backgroundColor: brandColor }}
-              aria-label="Open chat widget"
-            >
-              <MessageCircle className="w-6 h-6 text-white" />
-            </button>
-
-            {/* Chat Window */}
-            {isChatOpen && (
-              <div 
-                className="absolute bottom-24 right-6 w-80 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden"
-                style={{ fontFamily: font === 'inter' ? 'Inter' : 
-                         font === 'system' ? 'system-ui' :
-                         font === 'geist' ? 'Geist' :
-                         font === 'roboto' ? 'Roboto' :
-                         font === 'open-sans' ? 'Open Sans' : 'Inter' }}
-              >
-                {/* Chat Header */}
-                <div className="p-4 text-white" style={{ backgroundColor: brandColor }}>
-                  <div className="flex items-center gap-3">
-                    {logo ? (
-                      <div className="w-8 h-8 rounded-full overflow-hidden relative border-2 border-white/20">
-                        <Image src={logo} alt="Logo" fill className="object-contain" />
-                      </div>
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                        <span className="text-sm font-bold">
-                          {companyName?.charAt(0).toUpperCase() || "C"}
-                        </span>
-                      </div>
-                    )}
-                    <div>
-                      <p className="font-semibold text-sm">{companyName || "Your Company"}</p>
-                      <p className="text-xs opacity-80">Online</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Chat Messages */}
-                <div className="p-4 h-60 overflow-y-auto bg-gray-50 dark:bg-gray-900/50">
-                  <div className="flex items-start gap-2 mb-4">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: brandColor }}>
-                      <span className="text-white text-xs font-bold">
-                        {companyName?.charAt(0).toUpperCase() || "C"}
-                      </span>
-                    </div>
-                    <div className="max-w-[80%]">
-                      <div className="p-3 rounded-2xl rounded-tl-none bg-white dark:bg-gray-800 shadow-sm">
-                        <p className="text-sm">{welcomeMessage}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Quick Replies */}
-                  {quickReplies.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {quickReplies.map((reply, index) => (
-                        <button
-                          key={index}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium border transition-colors hover:bg-opacity-10"
-                          style={{ 
-                            borderColor: brandColor,
-                            color: brandColor,
-                            backgroundColor: `${brandColor}10`
-                          }}
-                        >
-                          {reply}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Chat Input */}
-                <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Type a message..."
-                      className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                      style={{ 
-                        '--tw-ring-color': brandColor,
-                      } as React.CSSProperties}
-                    />
-                    <button
-                      className="p-2 rounded-lg text-white"
-                      style={{ backgroundColor: brandColor }}
-                      aria-label="Send message"
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <WidgetPreview
+            settings={{
+              position: widgetPosition,
+              color: brandColor,
+              icon: widgetIcon,
+              font: font,
+              welcomeMessage: welcomeMessage,
+              quickReplies: quickReplies
+            }}
+            companyName={companyName || "Your Company"}
+            companyLogo={logo || undefined}
+            height="600px"
+          />
       </div>
 
       <button

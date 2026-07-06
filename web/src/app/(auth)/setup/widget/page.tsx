@@ -29,7 +29,6 @@ interface IconOption {
   icon: React.ReactNode;
 }
 
-
 export default function SetupWidgetPage() {
   const router = useRouter();
   const { setupWidget, isLoading: authLoading, user } = useAuth();
@@ -59,7 +58,6 @@ export default function SetupWidgetPage() {
   const handleContinue = async () => {
     setIsLoading(true);
     try {
-      // Use AuthContext's setupWidget method
       await setupWidget({
         position: widgetPosition,
         color: widgetColor,
@@ -68,7 +66,7 @@ export default function SetupWidgetPage() {
       
       router.push("/setup/branding");
     } catch (error) {
-      
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -81,14 +79,14 @@ export default function SetupWidgetPage() {
           <Sparkles className="w-3 h-3" />
           Step 2 of 6
         </div>
-        <h1 className="text-2xl font-bold">Install the widget</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Install the widget</h1>
         <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
           Add the widget to your website with a single line of code
         </p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="space-y-4">
+        <div className="space-y-4 order-2 md:order-1">
           {/* Widget Position */}
           <div>
             <label className="block text-sm font-medium mb-1.5">
@@ -105,7 +103,7 @@ export default function SetupWidgetPage() {
                     | "top-left"
                 )
               }
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
               aria-label="Select widget position"
             >
               {POSITIONS.map((pos) => (
@@ -126,14 +124,14 @@ export default function SetupWidgetPage() {
                 type="color"
                 value={widgetColor}
                 onChange={(e) => setWidgetColor(e.target.value)}
-                className="w-12 h-12 rounded-xl cursor-pointer border border-gray-200 dark:border-gray-800"
+                className="w-12 h-12 rounded-xl cursor-pointer border border-gray-200 dark:border-gray-800 flex-shrink-0"
                 aria-label="Select widget color"
               />
               <input
                 type="text"
                 value={widgetColor}
                 onChange={(e) => setWidgetColor(e.target.value)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="flex-1 min-w-0 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
                 aria-label="Enter widget color"
               />
             </div>
@@ -144,22 +142,22 @@ export default function SetupWidgetPage() {
             <label className="block text-sm font-medium mb-1.5">
               Widget Icon
             </label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {ICON_OPTIONS.map((icon) => (
                 <button
                   key={icon.value}
                   onClick={() => setWidgetIcon(icon.value)}
-                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
+                  className={`p-2 sm:p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
                     widgetIcon === icon.value
                       ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
                       : "border-gray-200 dark:border-gray-800 hover:border-primary/30 hover:bg-primary/5"
                   }`}
                   aria-label={`Select ${icon.label} icon`}
                 >
-                  <div className={widgetIcon === icon.value ? "text-primary" : "text-gray-500"}>
+                  <div className={`${widgetIcon === icon.value ? "text-primary" : "text-gray-500"} text-sm sm:text-base`}>
                     {icon.icon}
                   </div>
-                  <span className={`text-xs ${
+                  <span className={`text-[10px] sm:text-xs ${
                     widgetIcon === icon.value 
                       ? "text-primary font-medium" 
                       : "text-gray-500 dark:text-gray-400"
@@ -176,11 +174,13 @@ export default function SetupWidgetPage() {
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Live Preview</p>
             <div className="flex items-center justify-center p-4">
               <div 
-                className="relative w-16 h-16 rounded-full flex items-center justify-center shadow-lg"
+                className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center shadow-lg transition-all"
                 style={{ backgroundColor: widgetColor }}
               >
-                {selectedIcon?.icon}
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900" />
+                <div className="text-white text-xl sm:text-2xl">
+                  {selectedIcon?.icon}
+                </div>
+                <div className="absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900" />
               </div>
             </div>
             <div className="text-center text-xs text-gray-500 dark:text-gray-400">
@@ -190,35 +190,35 @@ export default function SetupWidgetPage() {
         </div>
 
         {/* Embed Code */}
-        <div>
+        <div className="order-1 md:order-2">
           <label className="block text-sm font-medium mb-1.5">
             Embed Code
           </label>
           <div className="relative">
-            <pre className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-xs overflow-x-auto">
+            <pre className="p-3 sm:p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-[10px] sm:text-xs overflow-x-auto whitespace-pre-wrap break-all">
               <code>{embedCode}</code>
             </pre>
             <button
               onClick={handleCopy}
-              className="absolute top-3 right-3 p-2 rounded-lg bg-background border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="absolute top-2 right-2 sm:top-3 sm:right-3 p-2 rounded-lg bg-background border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               aria-label="Copy embed code"
             >
               {copied ? (
-                <Check className="w-4 h-4 text-emerald-500" />
+                <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
               ) : (
-                <Copy className="w-4 h-4" />
+                <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               )}
             </button>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            Paste this code in the <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">&lt;head&gt;</code> of your website
+          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-2 break-words">
+            Paste this code in the <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-[10px] sm:text-xs">&lt;head&gt;</code> of your website
           </p>
 
           {/* Quick tips */}
-          <div className="mt-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/20">
+          <div className="mt-4 p-3 sm:p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/20">
             <h4 className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-2">💡 Quick Tips</h4>
-            <ul className="text-xs space-y-1 text-blue-600 dark:text-blue-300">
-              <li>• Place the code just before the closing <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/30 rounded">&lt;/head&gt;</code> tag</li>
+            <ul className="text-[10px] sm:text-xs space-y-1 text-blue-600 dark:text-blue-300">
+              <li className="break-words">• Place the code just before the closing <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/30 rounded text-[10px] sm:text-xs">&lt;/head&gt;</code> tag</li>
               <li>• The widget will automatically appear on all pages</li>
               <li>• You can customize these settings later in your dashboard</li>
             </ul>
@@ -229,7 +229,7 @@ export default function SetupWidgetPage() {
       <button
         onClick={handleContinue}
         disabled={isLoading || authLoading}
-        className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 gradient-primary text-white rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all hover:scale-[1.02] font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
       >
         {isLoading || authLoading ? (
           <>

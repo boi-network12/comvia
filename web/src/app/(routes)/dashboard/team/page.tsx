@@ -136,13 +136,19 @@ export default function TeamPage() {
 
   // Filter members
   const filteredMembers = members.filter((member) => {
-  const matchesSearch = member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       member.email.toLowerCase().includes(searchTerm.toLowerCase());
+  const searchLower = searchTerm.toLowerCase().trim();
+
+  const matchesSearch = 
+    (member.name?.toLowerCase().includes(searchLower) ?? false) ||
+    (member.email?.toLowerCase().includes(searchLower) ?? false);
+
   const matchesRole = roleFilter === "all" || member.role === roleFilter;
+
   const matchesStatus = statusFilter === "all" || 
-                       (statusFilter === "online" && (member.isOnline || member.email === user?.email)) ||
-                       (statusFilter === "pending" && member.invitedAt && !member.acceptedAt && member.email !== user?.email) ||
-                       (statusFilter === "active" && member.acceptedAt && !member.isOnline && member.email !== user?.email);
+    (statusFilter === "online" && (member.isOnline || member.email === user?.email)) ||
+    (statusFilter === "pending" && member.invitedAt && !member.acceptedAt && member.email !== user?.email) ||
+    (statusFilter === "active" && member.acceptedAt && !member.isOnline && member.email !== user?.email);
+
   return matchesSearch && matchesRole && matchesStatus;
 });
 

@@ -21,6 +21,11 @@ export const getTeamMembers = async (req: Request, res: Response, next: NextFunc
 
     // Get full details for each team member
     const memberEmails = user.teamMembers.map(m => m.email);
+     // ✅ Also include the current user if they're not in teamMembers
+    if (!memberEmails.includes(req.user?.email)) {
+      memberEmails.push(req.user?.email);
+    }
+
     const members = await User.find(
       { email: { $in: memberEmails } },
       'name email avatar role isEmailVerified lastLogin'
@@ -35,6 +40,22 @@ export const getTeamMembers = async (req: Request, res: Response, next: NextFunc
         isOnline: false, // Will be updated by realtime
       };
     });
+
+    // ✅ Add the current user if they're not in the teamMembers array
+    const currentUser = members.find(m => m.email === req.user?.email);
+    if (currentUser && !teamWithDetails.find(m => m.email === currentUser.email)) {
+      teamWithDetails.push({
+        email: currentUser.email,
+        name: currentUser.name,
+        role: currentUser.role as 'admin' | 'agent',
+        invitedAt: new Date(),
+        acceptedAt: new Date(),
+        avatar: currentUser.avatar,
+        isEmailVerified: currentUser.isEmailVerified,
+        lastLogin: currentUser.lastLogin,
+        isOnline: false,
+      } as any);
+    }
 
     res.status(200).json({
       success: true,
@@ -296,6 +317,27 @@ export const acceptInvitation = async (req: Request, res: Response, next: NextFu
         if (!user.companyName) {
           user.companyName = inviter.companyName || 'Comvia';
         }
+
+        // ✅ Copy widget settings from inviter
+        if (inviter.widgetSettings) {
+          user.widgetSettings = {
+            position: inviter.widgetSettings.position || 'bottom-right',
+            color: inviter.widgetSettings.color || '#F97316',
+            icon: inviter.widgetSettings.icon || 'chat',
+            font: inviter.widgetSettings.font || 'inter',
+            welcomeMessage: inviter.widgetSettings.welcomeMessage || 'Hi there! 👋 How can I help you today?',
+            quickReplies: inviter.widgetSettings.quickReplies || ['Pricing', 'Features', 'Support', 'Demo'],
+          };
+        }
+        
+        // ✅ Copy products from inviter
+        if (inviter.products && inviter.products.length > 0) {
+          user.products = inviter.products;
+        }
+        
+        // ✅ Mark setup as completed (so they don't go through setup wizard)
+        user.setupCompleted = true;
+
         await user.save();
       }
     }
