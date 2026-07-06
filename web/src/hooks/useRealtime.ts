@@ -1,6 +1,6 @@
 // web/hooks/useRealtime.ts
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { io, type Socket } from 'socket.io-client';
 import { Message } from '@/services/conversations'; // Adjust path if needed
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
