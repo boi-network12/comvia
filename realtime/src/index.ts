@@ -14,13 +14,23 @@ import { setupMessageHandlers } from './handlers/messageHandlers';
 const app = express();
 const server = http.createServer(app);
 
+const corsOptions = {
+    origin: [
+        'https://comvia-widget.vercel.app',
+        'https://comvia-backend-endpoint.vercel.app',
+        'https://comvia.vercel.app',
+        'http://localhost:5173', 
+        'http://localhost:3000',
+        'https://comvia-realtime.fly.dev'
+    ],
+    credentials: true,
+    methods: ["GET", "POST"]
+};
+
 // ======================
 // Middleware
 // ======================
-app.use(cors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
-    credentials: true
-}));
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
@@ -57,11 +67,7 @@ app.use((req, res) => {
 // Socket.IO Setup
 // ======================
 const io = new Server(server, {
-    cors: {
-        origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
-        credentials: true,
-        methods: ["GET", "POST"]
-    },
+    cors: corsOptions,
     transports: ['websocket', 'polling'],
     pingTimeout: 60000,
     pingInterval: 25000,
