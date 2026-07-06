@@ -91,9 +91,8 @@ export const getWidgetEmbedScript = async (req: Request, res: Response, next: Ne
       throw new NotFoundError('User not found');
     }
 
-    const script = `<script>
-  (function() {
-    var settings = ${JSON.stringify({
+    const settings = {
+      companyId: user.companyId || user._id, // ✅ Add companyId
       position: user.widgetSettings.position,
       color: user.widgetSettings.color,
       icon: user.widgetSettings.icon,
@@ -102,7 +101,11 @@ export const getWidgetEmbedScript = async (req: Request, res: Response, next: Ne
       quickReplies: user.widgetSettings.quickReplies,
       companyName: user.companyName,
       companyLogo: user.companyLogo,
-    })};
+    };
+
+    const script = `<script>
+  (function() {
+    var settings = ${JSON.stringify(settings)};
     var script = document.createElement('script');
     script.src = '${process.env.WIDGET_JS_URL || 'https://cdn.comvia.app/widget.js'}';
     script.setAttribute('data-settings', encodeURIComponent(JSON.stringify(settings)));

@@ -12,14 +12,27 @@ import {
   Globe,
   RefreshCw,
   AlertCircle,
+  Key,
 } from "lucide-react";
 
 export default function WidgetSettingsPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const { embedScript, getEmbedScript, isLoading, settings } = useWidget();
+  const { embedScript, getEmbedScript, isLoading, settings, companyName, companyLogo } = useWidget();
   const [copySuccess, setCopySuccess] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const generateScript = async () => {
+    setIsGenerating(true);
+    try {
+      await getEmbedScript();
+    } catch (error) {
+      console.error("Failed to generate script:", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
 
   useEffect(() => {
     if (!user) {
@@ -33,17 +46,7 @@ export default function WidgetSettingsPage() {
     }
   }, [user, router]);
 
-  const generateScript = async () => {
-    setIsGenerating(true);
-    try {
-      await getEmbedScript();
-    } catch (error) {
-      console.error("Failed to generate script:", error);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
+  
   const handleCopy = async () => {
     if (!embedScript) return;
     try {
@@ -79,10 +82,32 @@ export default function WidgetSettingsPage() {
         <button
           onClick={generateScript}
           disabled={isGenerating}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all text-sm font-medium disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all text-sm font-medium disabled:opacity-50 "
         >
           <RefreshCw className={`w-4 h-4 ${isGenerating ? "animate-spin" : ""}`} />
           Regenerate
+        </button>
+      </div>
+
+      {/* Company ID Card - ✅ NEW */}
+      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/50 rounded-xl p-4 flex items-center gap-3">
+        <Key className="w-5 h-5 text-blue-500 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+            Your Company ID
+          </p>
+          <p className="text-sm text-blue-600 dark:text-blue-400 font-mono truncate">
+            {user?._id || 'Loading...'}
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(user?._id || '');
+            // Show a quick feedback
+          }}
+          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+        >
+          Copy
         </button>
       </div>
 
