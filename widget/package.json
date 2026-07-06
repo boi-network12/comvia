@@ -29,6 +29,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@rollup/plugin-replace": "^6.0.3",
     "@tailwindcss/vite": "^4.3.2",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
@@ -39,6 +40,7 @@
     "oxlint": "^1.71.0",
     "postcss": "^8.5.16",
     "prettier": "^3.9.4",
+    "process": "^0.11.10",
     "tailwind": "^4.0.0",
     "terse": "^0.1.0",
     "typescript": "~6.0.2",

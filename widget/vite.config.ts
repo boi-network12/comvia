@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
+import replace from '@rollup/plugin-replace';
 
 export default defineConfig({
   plugins: [
@@ -14,21 +15,21 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  define: {
+    'global': 'window',
+  },
   build: {
     lib: {
       entry: path.resolve(__dirname, 'src/widget.tsx'),
       name: 'ComviaWidget',
       fileName: () => 'comvia-widget.min.js',
-      formats: ['iife'], // ✅ Use IIFE only - it's the most compatible
+      formats: ['iife'],
     },
     rollupOptions: {
       external: [],
       output: {
-        
-        // ✅ This ensures window.ComviaWidget is available
         name: 'ComviaWidget',
         exports: 'named',
-        // ✅ Add footer to ensure global is set
         footer: `
           if (typeof window !== 'undefined') {
             window.ComviaWidget = window.ComviaWidget || {};
@@ -37,14 +38,25 @@ export default defineConfig({
           }
         `,
       },
+      plugins: [
+        // @ts-ignore - Ignore TypeScript error
+        replace({
+          'process.env.NODE_ENV': JSON.stringify('production'),
+          'process.env': JSON.stringify({ NODE_ENV: 'production' }),
+          preventAssignment: true,
+        }),
+      ],
     },
     outDir: 'dist',
     sourcemap: true,
     minify: true,
     target: 'es2015',
     emptyOutDir: true,
-    // ✅ Ensure CSS is included
     cssCodeSplit: false,
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true,
+    },
   },
   server: {
     port: 5173,
