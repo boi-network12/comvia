@@ -41,13 +41,14 @@ export default function SetupWidgetPage() {
   const selectedIcon = ICON_OPTIONS.find(icon => icon.value === widgetIcon);
 
   const embedCode = `<script>
-  window.comviaSettings = {
-    position: "${widgetPosition}",
-    color: "${widgetColor}",
-    icon: "${widgetIcon}"
-  };
-</script>
-<script src="https://cdn.comvia.app/widget.js" async></script>`;
+    window.comviaSettings = {
+      companyId: "${user?._id || 'your-company-id'}",
+      position: "${widgetPosition}",
+      color: "${widgetColor}",
+      icon: "${widgetIcon}"
+    };
+  </script>
+  <script src="${process.env.NEXT_PUBLIC_WIDGET_URL || 'https://cdn.comvia.app/widget.js'}" async></script>`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(embedCode);

@@ -1,10 +1,10 @@
-// src/hooks/useWidget.ts
-
+// widget/src/hooks/useWidget.ts
 import { useEffect, useState, useCallback } from 'react';
 import { useWidgetStore } from '../store/widgetStore';
 import { useSocket } from './useSocket';
 import type { WidgetConfig, WidgetSettings, Message } from '../types';
 import { widgetAPI } from '../utils/api';
+import { WIDGET_CONFIG } from '../config';
 
 export function useWidget() {
   const {
@@ -33,6 +33,7 @@ export function useWidget() {
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [companyId, setCompanyId] = useState<string | null>(null);
 
   // Socket connection
   const {
@@ -47,7 +48,6 @@ export function useWidget() {
     onConnect: () => {
       console.log('🟢 Socket connected');
       setConnected(true);
-      // Load chat history
       loadChatHistory();
     },
     onDisconnect: () => {
@@ -55,10 +55,7 @@ export function useWidget() {
       setConnected(false);
     },
     onMessage: (message: Message) => {
-      // Message already added by socket hook
-      // But we can do additional processing here
       if (message.sender === 'bot' || message.sender === 'agent') {
-        // Play notification sound or show notification
         if (!isOpen) {
           // Increment unread count (already handled by store)
         }
@@ -68,28 +65,58 @@ export function useWidget() {
 
   // Load config from script tag or window
   useEffect(() => {
-    const loadConfig = () => {
+    const loadConfig = async () => {
+      setIsLoading(true);
+      
       // Check for window.comviaSettings
       const windowConfig = (window as any).comviaSettings || {};
+      const companyIdFromConfig = windowConfig.companyId;
       
       // Check for data attributes on script tag
       const script = document.querySelector('script[data-comvia]');
       const dataConfig = script ? (script as HTMLElement).dataset : {};
 
+      // Build base config
       const config: WidgetConfig = {
-        position: windowConfig.position || dataConfig.position || 'bottom-right',
-        color: windowConfig.color || dataConfig.color || '#F97316',
-        icon: windowConfig.icon || dataConfig.icon || 'chat',
+        position: windowConfig.position || dataConfig.position || WIDGET_CONFIG.DEFAULTS.position,
+        color: windowConfig.color || dataConfig.color || WIDGET_CONFIG.DEFAULTS.color,
+        icon: windowConfig.icon || dataConfig.icon || WIDGET_CONFIG.DEFAULTS.icon,
         companyName: windowConfig.companyName || dataConfig.companyName || 'Comvia',
         companyLogo: windowConfig.companyLogo || dataConfig.companyLogo,
-        apiUrl: windowConfig.apiUrl || dataConfig.apiUrl || import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
-        socketUrl: windowConfig.socketUrl || dataConfig.socketUrl || import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001',
+        apiUrl: windowConfig.apiUrl || dataConfig.apiUrl || WIDGET_CONFIG.API_URL,
+        socketUrl: windowConfig.socketUrl || dataConfig.socketUrl || WIDGET_CONFIG.SOCKET_URL,
       };
 
       setConfig(config);
 
-      // Set settings in store
-      const settings: WidgetSettings = {
+      // ✅ If there's a companyId, fetch settings from API
+      if (companyIdFromConfig) {
+        setCompanyId(companyIdFromConfig);
+        try {
+          const response = await widgetAPI.getCompanySettings(companyIdFromConfig);
+          if (response.success && response.data) {
+            const settingsData = response.data;
+            const widgetSettings: WidgetSettings = {
+              position: settingsData.widgetSettings?.position || config.position || 'bottom-right',
+              color: settingsData.widgetSettings?.color || config.color || '#F97316',
+              icon: settingsData.widgetSettings?.icon || config.icon || 'chat',
+              font: settingsData.widgetSettings?.font || 'inter',
+              welcomeMessage: settingsData.widgetSettings?.welcomeMessage || 'Hi there! 👋 How can I help you today?',
+              quickReplies: settingsData.widgetSettings?.quickReplies || ['Pricing', 'Features', 'Support', 'Demo'],
+              companyName: settingsData.companyName || config.companyName || 'Comvia',
+              companyLogo: settingsData.companyLogo || config.companyLogo,
+            };
+            setSettings(widgetSettings);
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error('❌ Failed to fetch company settings:', error);
+        }
+      }
+
+      // Fallback: Use local config
+      const fallbackSettings: WidgetSettings = {
         position: config.position as WidgetSettings['position'],
         color: config.color!,
         icon: config.icon!,
@@ -99,7 +126,7 @@ export function useWidget() {
         companyName: config.companyName,
         companyLogo: config.companyLogo,
       };
-      setSettings(settings);
+      setSettings(fallbackSettings);
 
       // Set default user if not exists
       if (!user) {
@@ -137,14 +164,11 @@ export function useWidget() {
 
   // Send message
   const sendMessage = useCallback((content: string, sender: 'user' | 'agent' = 'user') => {
-    // Add to local store
     const newMessage = addMessage({ content, sender });
     
-    // Send via socket
     if (socketConnected) {
       sendSocketMessage(content, sender);
     } else {
-      // Fallback to REST API
       widgetAPI.sendMessage({
         content,
         sender,
@@ -152,7 +176,6 @@ export function useWidget() {
         timestamp: new Date().toISOString(),
       }).then(response => {
         if (response.success && response.data) {
-          // Bot response
           addMessage({
             content: response.data.reply || 'Thanks for your message!',
             sender: 'bot',
@@ -160,7 +183,6 @@ export function useWidget() {
         }
       }).catch(err => {
         console.error('Failed to send message:', err);
-        // Show error in chat
         addMessage({
           content: '⚠️ Failed to send message. Please try again.',
           sender: 'bot',
@@ -185,7 +207,6 @@ export function useWidget() {
   }, [isOpen, socketConnected, connectSocket]);
 
   return {
-    // State
     isOpen,
     isMinimized,
     messages,
@@ -197,8 +218,7 @@ export function useWidget() {
     config,
     isLoading,
     error: error || socketError,
-    
-    // Actions
+    companyId,
     toggleWidget,
     openWidget,
     closeWidget,

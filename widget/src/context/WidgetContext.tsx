@@ -1,5 +1,4 @@
 // widget/src/context/WidgetContext.tsx
-
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { useWidgetStore } from '../store/widgetStore';
 import { useSocket } from '../hooks/useSocket';
@@ -8,7 +7,6 @@ import { WIDGET_CONFIG } from '../config';
 import type { WidgetConfig, WidgetSettings, Message } from '../types';
 
 interface WidgetContextType {
-  // State
   isOpen: boolean;
   isMinimized: boolean;
   messages: Message[];
@@ -20,8 +18,8 @@ interface WidgetContextType {
   isLoading: boolean;
   error: string | null;
   config: WidgetConfig | null;
+  companyId: string | null; // ✅ Added companyId
   
-  // Actions
   toggleWidget: () => void;
   openWidget: () => void;
   closeWidget: () => void;
@@ -65,6 +63,7 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [companyId, setCompanyId] = useState<string | null>(null); // ✅ Added companyId state
 
   // Socket connection
   const {
@@ -86,7 +85,6 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
       setConnected(false);
     },
     onMessage: (message: Message) => {
-      // Message already added by socket hook
       if (message.sender === 'bot' || message.sender === 'agent') {
         // Additional processing if needed
       }
@@ -95,11 +93,12 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
 
   // Load config from script tag or window
   useEffect(() => {
-    const loadConfig = () => {
-      // Check for window.comviaSettings
-      const windowConfig = (window as any).comviaSettings || {};
+    const loadConfig = async () => {
+      setIsLoading(true);
       
-      // Check for data attributes on script tag
+      const windowConfig = (window as any).comviaSettings || {};
+      const companyIdFromConfig = windowConfig.companyId;
+      
       const script = document.querySelector('script[data-comvia]');
       const dataConfig = script ? (script as HTMLElement).dataset : {};
 
@@ -115,8 +114,34 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
 
       setConfig(config);
 
-      // Set settings in store
-      const settings: WidgetSettings = {
+      // ✅ If companyId exists, fetch settings from API
+      if (companyIdFromConfig) {
+        setCompanyId(companyIdFromConfig);
+        try {
+          const response = await widgetAPI.getCompanySettings(companyIdFromConfig);
+          if (response.success && response.data) {
+            const settingsData = response.data;
+            const widgetSettings: WidgetSettings = {
+              position: settingsData.widgetSettings?.position || config.position || 'bottom-right',
+              color: settingsData.widgetSettings?.color || config.color || '#F97316',
+              icon: settingsData.widgetSettings?.icon || config.icon || 'chat',
+              font: settingsData.widgetSettings?.font || 'inter',
+              welcomeMessage: settingsData.widgetSettings?.welcomeMessage || 'Hi there! 👋',
+              quickReplies: settingsData.widgetSettings?.quickReplies || ['Pricing', 'Features', 'Support', 'Demo'],
+              companyName: settingsData.companyName || config.companyName || 'Comvia',
+              companyLogo: settingsData.companyLogo || config.companyLogo,
+            };
+            setSettings(widgetSettings);
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error('❌ Failed to fetch company settings:', error);
+        }
+      }
+
+      // Fallback settings
+      const fallbackSettings: WidgetSettings = {
         position: config.position as WidgetSettings['position'],
         color: config.color!,
         icon: config.icon!,
@@ -126,9 +151,8 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
         companyName: config.companyName,
         companyLogo: config.companyLogo,
       };
-      setSettings(settings);
+      setSettings(fallbackSettings);
 
-      // Set default user if not exists
       if (!user) {
         const savedUserId = localStorage.getItem(WIDGET_CONFIG.STORAGE_KEYS.USER_ID);
         setUser({
@@ -164,14 +188,11 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
 
   // Send message
   const sendMessage = (content: string, sender: 'user' | 'agent' = 'user') => {
-    // Add to local store
     addMessage({ content, sender });
     
-    // Send via socket
     if (socketConnected) {
       sendSocketMessage(content, sender);
     } else {
-      // Fallback to REST API
       widgetAPI.sendMessage({
         content,
         sender,
@@ -179,7 +200,6 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
         timestamp: new Date().toISOString(),
       }).then(response => {
         if (response.success && response.data) {
-          // Bot response
           addMessage({
             content: response.data.reply || 'Thanks for your message!',
             sender: 'bot',
@@ -211,7 +231,6 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
   }, [isOpen, socketConnected, connectSocket]);
 
   const value: WidgetContextType = {
-    // State
     isOpen,
     isMinimized,
     messages,
@@ -223,8 +242,7 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     isLoading,
     error: error || socketError,
     config,
-    
-    // Actions
+    companyId, // ✅ Added companyId
     toggleWidget,
     openWidget,
     closeWidget,

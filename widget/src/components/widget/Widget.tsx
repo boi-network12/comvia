@@ -1,5 +1,4 @@
 // widget/src/components/widget/Widget.tsx
-
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWidgetContext } from '../../context/WidgetContext';
@@ -27,6 +26,7 @@ export const Widget: React.FC = () => {
     sendMessage,
     sendTyping,
     connectSocket,
+    companyId, // ✅ Added companyId
   } = useWidgetContext();
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -49,6 +49,13 @@ export const Widget: React.FC = () => {
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, closeWidget]);
+
+  // Log company ID for debugging
+  useEffect(() => {
+    if (companyId) {
+      console.log(`🏢 Widget initialized for company: ${companyId}`);
+    }
+  }, [companyId]);
 
   if (!settings) return null;
 

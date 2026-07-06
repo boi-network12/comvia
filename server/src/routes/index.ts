@@ -6,6 +6,7 @@ import teamRoutes from './teamRoutes';
 import analyticsRoutes from './analyticsRoutes';
 import widgetRoutes from './widgetRoutes';
 import messageRoutes from './messageRoutes';
+import companyRoutes from './companyRoutes';
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.use('/team', teamRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/widget', widgetRoutes);
 router.use('/messages', messageRoutes); 
+router.use('/company', companyRoutes);
 
 console.log("API routes initialized");
 

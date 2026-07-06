@@ -1,5 +1,4 @@
 // widget/src/utils/api.ts
-
 import axios from 'axios';
 import type { ApiResponse, Message } from '../types';
 import { WIDGET_CONFIG } from '../config';
@@ -88,34 +87,30 @@ export const widgetAPI = {
     }
   },
 
-  // Track visitor
-  // trackVisitor: async (data: {
-  //   widgetId: string;
-  //   visitorId: string;
-  //   page: string;
-  //   referrer?: string;
-  // }): Promise<ApiResponse> => {
-  //   try {
-  //     const response = await api.post('/widget/track', data);
-  //     return response.data;
-  //   } catch (error) {
-  //     console.error('Failed to track visitor:', error);
-  //     return { success: false, message: 'Failed to track visitor' };
-  //   }
-  // },
-
-  trackVisitor: async (data: {
-      visitorId: string;
-      name?: string;
-      email?: string;
-      page?: string;
-      referrer?: string;
-    }) => {
-      const response = await api.post('/widget/track', data);
+  // ✅ NEW: Get company settings by company ID
+  getCompanySettings: async (companyId: string): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.get(`/company/${companyId}/widget`);
       return response.data;
-    },
+    } catch (error) {
+      console.error('❌ Failed to get company settings:', error);
+      return { success: false, message: 'Failed to load company settings' };
+    }
+  },
 
-    // Get conversation history - NEW
+  // Track visitor
+  trackVisitor: async (data: {
+    visitorId: string;
+    name?: string;
+    email?: string;
+    page?: string;
+    referrer?: string;
+  }) => {
+    const response = await api.post('/widget/track', data);
+    return response.data;
+  },
+
+  // Get conversation history
   getConversationHistory: async (conversationId: string, limit?: number) => {
     const response = await api.get(`/messages/${conversationId}`, {
       params: { limit: limit || 50 }
@@ -123,7 +118,7 @@ export const widgetAPI = {
     return response.data;
   },
   
-  // Send message via REST fallback - NEW
+  // Send message via REST fallback
   sendMessageRest: async (data: {
     conversationId: string;
     content: string;

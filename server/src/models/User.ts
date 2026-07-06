@@ -20,6 +20,7 @@ export interface IUser extends Document {
   companyName?: string;
   companyLogo?: string;
   companyLogoPublicId?: string;
+  companyId: string;
   widgetSettings: {
     position: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
     color: string;
@@ -153,6 +154,11 @@ const UserSchema = new Schema<IUser>(
     setupCompleted: {
       type: Boolean,
       default: false,
+    },
+    companyId: {
+      type: String,
+      unique: true,
+      default: () => `comvia_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     },
     widgetSettings: {
       position: {
