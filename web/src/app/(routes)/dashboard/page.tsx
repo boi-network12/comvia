@@ -137,6 +137,13 @@ export default function DashboardPage() {
     },
   ];
 
+  // Safe way to get first letter
+  const getInitial = (name?: string, email?: string): string => {
+    const str = name?.trim() || email?.trim() || "U";
+    return str.charAt(0).toUpperCase();
+  };
+
+
   // Real conversation status counts
   const conversationStatus = [
     { label: "Open", count: openConversations, color: "text-blue-500", bg: "bg-blue-500/10" },
@@ -150,7 +157,7 @@ export default function DashboardPage() {
     id: conv._id || index,
     user: {
       name: conv.metadata?.visitorName || 'Anonymous',
-      avatar: conv.metadata?.visitorName?.charAt(0) || 'V',
+      avatar: getInitial(conv.metadata?.visitorName),
       color: `bg-${['blue', 'purple', 'emerald', 'orange', 'pink'][index % 5]}-500`,
     },
     action: conv.status === 'resolved' ? 'resolved' : 
@@ -174,17 +181,23 @@ export default function DashboardPage() {
       const rating = ((hash % 5) * 0.1) + 4.5;
       
       return {
-        name: member.name || member.email,
+        name: member.name || member.email || "Unknown",
         chats: chats,
         rating: rating,
-        avatar: (member.name || member.email).charAt(0),
+        avatar: getInitial(member.name, member.email),  
         color: `bg-${['blue', 'purple', 'emerald'][index]}-500`,
       };
     });
 
   // If no top performers from team, use fallback
   const displayPerformers = topPerformers.length > 0 ? topPerformers : [
-    { name: user.name, chats: 25, rating: 4.8, avatar: user.name.charAt(0), color: "bg-primary" },
+    { 
+      name: user.name || "You", 
+      chats: 25, 
+      rating: 4.8, 
+      avatar: getInitial(user.name), 
+      color: "bg-primary" 
+    },
   ];
 
   return (
@@ -462,7 +475,7 @@ export default function DashboardPage() {
                     : "bg-gray-400"
                 }`}
               >
-                {(member.name || member.email).charAt(0).toUpperCase()}
+                {getInitial(member.name, member.email)}
               </div>
             ))}
             {members.length > 3 && (
