@@ -577,20 +577,20 @@
 //   };
 // }
 // widget/src/hooks/useSocket.ts
-import { useEffect, useRef, useState } from 'react';
-import type { Message } from '../types';
+import { useEffect, useRef } from 'react';
+// import type { Message } from '../types';
 
 // ============================================================
 // TYPES
 // ============================================================
 
-interface UseSocketOptions {
-  socketUrl?: string;
-  userId?: string;
-  onConnect?: () => void;
-  onDisconnect?: () => void;
-  onMessage?: (message: Message) => void;
-}
+// interface UseSocketOptions {
+//   socketUrl?: string;
+//   userId?: string;
+//   onConnect?: () => void;
+//   onDisconnect?: () => void;
+//   onMessage?: (message: Message) => void;
+// }
 
 interface UseSocketReturn {
   socket: null;
@@ -616,7 +616,7 @@ interface UseSocketReturn {
  * WebSocket is only for the Web Dashboard (agents).
  */
 export function useSocket(): UseSocketReturn {
-  const [error, setError] = useState<string | null>(null);
+  // const [error, setError] = useState<string | null>(null);
   const isMounted = useRef<boolean>(true);
 
   // ============================================================
@@ -632,7 +632,6 @@ export function useSocket(): UseSocketReturn {
     }
 
     console.log('ℹ️ [Widget] WebSocket disabled. Using REST API only.');
-    setError(null);
   };
 
   /**
@@ -646,7 +645,7 @@ export function useSocket(): UseSocketReturn {
    * Send a message via WebSocket - DISABLED for Widget
    * @returns {boolean} Always returns false
    */
-  const sendMessage = (content: string, sender: 'user' | 'agent' = 'user'): boolean => {
+  const sendMessage = (): boolean => {
     console.warn('⚠️ [Widget] WebSocket disabled. Use widgetAPI.sendMessage() instead.');
     return false;
   };
@@ -654,7 +653,7 @@ export function useSocket(): UseSocketReturn {
   /**
    * Send typing indicator via WebSocket - DISABLED for Widget
    */
-  const sendTyping = (isTyping: boolean): void => {
+  const sendTyping = (): void => {
     // No-op - WebSocket disabled
   };
 

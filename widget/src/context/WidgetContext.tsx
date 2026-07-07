@@ -72,23 +72,7 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     sendTyping: sendSocketTyping,
     connect: connectSocket,
     disconnect: disconnectSocket,
-  } = useSocket({
-    userId: user?.id,
-    onConnect: () => {
-      console.log('🟢 Socket connected');
-      setConnected(true);
-      loadChatHistory();
-    },
-    onDisconnect: () => {
-      console.log('🔴 Socket disconnected');
-      setConnected(false);
-    },
-    onMessage: (message: Message) => {
-      if (message.sender === 'bot' || message.sender === 'agent') {
-        // Additional processing if needed
-      }
-    },
-  });
+  } = useSocket();
 
   // Load config from script tag or window
   useEffect(() => {

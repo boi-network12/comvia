@@ -1,7 +1,7 @@
 // src/components/Widget/WidgetHeader.tsx
 
 import React from 'react';
-import { Minimize2, Maximize2, X, Wifi, WifiOff } from 'lucide-react';
+import { Minimize2, Maximize2, X } from 'lucide-react';
 import { useWidgetContext } from '../../context';
 
 interface WidgetHeaderProps {

@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useWidgetStore } from '../store/widgetStore';
 import { useSocket } from './useSocket';
-import type { WidgetConfig, WidgetSettings, Message } from '../types';
+import type { WidgetConfig, WidgetSettings } from '../types';
 import { widgetAPI } from '../utils/api';
 import { WIDGET_CONFIG } from '../config';
 
