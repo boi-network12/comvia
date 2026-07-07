@@ -62,7 +62,6 @@ router.get('/history/:visitorId', async (req, res) => {
   }
 });
 
-// router.post('/visitor/message', async (req, res) => {
 //   try {
 //     const { content, sender, userId, timestamp, companyId } = req.body;
     
@@ -229,27 +228,34 @@ router.post('/visitor/message', async (req, res) => {
     
     console.log(`📨 Visitor message from ${userId}:`, content);
 
+    // ✅ FIX: Use the userId as the visitorId for lookup
+    // But ALSO check if there's a persistent visitor ID from localStorage
+    let visitorId = userId;
+
     // 🔥 FIX: Find existing conversation for this visitor
     // Use a simpler query - just find by visitorId
     let conversation = await Conversation.findOne({
       visitorId: userId,
       companyId: companyId,
-      status: { $in: ['open', 'in-progress'] } // Only find active conversations
+      status: { $in: ['open', 'in-progress'] } 
     });
 
     // If no active conversation found, try to find any conversation with this visitor
-    if (!conversation) {
+     if (!conversation) {
       conversation = await Conversation.findOne({
-        visitorId: userId,
+        $or: [
+          { visitorId: visitorId },
+          { 'metadata.visitorId': visitorId },
+          { 'metadata.visitorId': userId }
+        ],
         companyId: companyId
-      }).sort({ createdAt: -1 }); // Get the most recent one
+      }).sort({ createdAt: -1 });
     }
 
     // If still no conversation, create a new one
     if (!conversation) {
-      console.log(`🆕 Creating new conversation for visitor: ${userId}`);
+      console.log(`🆕 Creating new conversation for visitor: ${visitorId}`);
       
-      // Find the company user
       const companyUser = await User.findOne({ companyId: companyId });
 
       if (!companyUser) {
@@ -261,32 +267,52 @@ router.post('/visitor/message', async (req, res) => {
       }
 
       // Create new conversation
-      conversation = await Conversation.create({
+      // conversation = await Conversation.create({
+      //   userId: companyUser._id,
+      //   visitorId: userId,
+      //   companyId: companyId,
+      //   title: `Chat with Visitor`,
+      //   status: 'open',
+      //   priority: 'medium',
+      //   channel: 'widget',
+      //   assignedTo: companyUser._id, 
+      //   assignedToName: companyUser.name,
+      //   participants: [
+      //     {
+      //       userId: userId,
+      //       userType: 'visitor',
+      //       name: 'Visitor',
+      //       joinedAt: new Date()
+      //     },
+      //     {
+      //       userId: companyUser._id,
+      //       userType: 'agent',
+      //       name: companyUser.name,
+      //       joinedAt: new Date()
+      //     }
+      //   ],
+      //   metadata: {
+      //     visitorName: 'Visitor',
+      //     page: req.headers.referer || 'Unknown',
+      //     companyId: companyId,
+      //   },
+      //   lastMessageAt: new Date(),
+      //   lastMessagePreview: content.substring(0, 100)
+      // });
+      
+       conversation = await Conversation.create({
         userId: companyUser._id,
-        visitorId: userId,
+        visitorId: visitorId,
         companyId: companyId,
         title: `Chat with Visitor`,
         status: 'open',
         priority: 'medium',
         channel: 'widget',
-        assignedTo: companyUser._id, 
+        assignedTo: companyUser._id,
         assignedToName: companyUser.name,
-        participants: [
-          {
-            userId: userId,
-            userType: 'visitor',
-            name: 'Visitor',
-            joinedAt: new Date()
-          },
-          {
-            userId: companyUser._id,
-            userType: 'agent',
-            name: companyUser.name,
-            joinedAt: new Date()
-          }
-        ],
         metadata: {
           visitorName: 'Visitor',
+          visitorId: visitorId, // ✅ Store the visitor ID in metadata
           page: req.headers.referer || 'Unknown',
           companyId: companyId,
         },
@@ -300,6 +326,7 @@ router.post('/visitor/message', async (req, res) => {
       // If conversation was closed/resolved, reopen it
       if (conversation.status === 'resolved' || conversation.status === 'closed') {
         conversation.status = 'open';
+        await conversation.save();
         console.log(`🔄 Reopened conversation: ${conversation._id}`);
       }
     }

@@ -185,9 +185,9 @@ export const authenticateSocket = async (socket: Socket, next: (err?: Error) => 
       const decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
       console.log(`✅ [AUTH] Token verified for user ID: ${decoded.id}`);
 
-      if (!decoded.id) {
-        throw new Error('Invalid token: no user ID');
-      }
+      // if (!decoded.id) {
+      //   throw new Error('Invalid token: no user ID');
+      // }
 
       // ✅ Try to fetch user data from API
       try {

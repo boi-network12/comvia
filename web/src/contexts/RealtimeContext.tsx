@@ -44,29 +44,64 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   const joinedConversationsRef = useRef<Set<string>>(new Set());
   const messageCallbacksRef = useRef<((message: Message, conversationId: string) => void)[]>([]);
 
-  // Auto-connect when user is authenticated
+  // ✅ FIX: Connect with proper authentication using realtimeService directly
   useEffect(() => {
     if (isAuthenticated && user) {
       const token = localStorage.getItem('accessToken');
-      console.log('🔑 [CONTEXT] Token retrieved:', token ? 'YES' : 'NO');
-    console.log('🔑 [CONTEXT] Token preview:', token ? token.substring(0, 30) + '...' : 'NO TOKEN');
+      console.log('🔑 [CONTEXT] Token found:', !!token);
+      
       if (token) {
-        realtime.connect(token);
+        // ✅ Connect to realtime service using realtimeService (which returns Socket)
+        const socket = realtimeService.connect(token);
+        console.log('🔑 [CONTEXT] Socket connected:', !!socket);
+        
+        // ✅ Join agents room after connection
+        if (socket) {
+          // Handle connect event
+          const onConnect = () => {
+            console.log('🟢 [CONTEXT] Connected to realtime, joining agents room...');
+            socket.emit('join_agents');
+          };
+          
+          // If already connected, join immediately
+          if (socket.connected) {
+            onConnect();
+          } else {
+            socket.on('connect', onConnect);
+          }
+        }
       } else {
-        console.warn('⚠️ [CONTEXT] No token found in localStorage');
+        console.warn('⚠️ [CONTEXT] No token found');
       }
     }
     
     return () => {
-      realtime.disconnect();
+      realtimeService.disconnect();
     };
   }, [isAuthenticated, user]);
 
-   // Listen for connection changes
+  // ✅ Listen for connection status changes
   useEffect(() => {
     const unsubscribe = realtimeService.onConnectionChange((connected) => {
+      console.log(`🔄 [CONTEXT] Connection status changed: ${connected}`);
       setIsConnected(connected);
+      
+      // If reconnected, re-join agents room
+      if (connected) {
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+          const socket = realtimeService.connect(token);
+          if (socket?.connected) {
+            socket.emit('join_agents');
+          } else if (socket) {
+            socket.once('connect', () => {
+              socket.emit('join_agents');
+            });
+          }
+        }
+      }
     });
+    
     return () => {
       if (unsubscribe) unsubscribe();
     };
@@ -137,26 +172,6 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     }, []);
 
   
-// Wrap joinConversation to track joined rooms
-  // const joinConversation = useCallback((conversationId: string) => {
-  //   if (!conversationId) return;
-  //   if (joinedConversationsRef.current.has(conversationId)) {
-  //     console.log(`Already joined conversation ${conversationId}`);
-  //     return;
-  //   }
-  //   joinedConversationsRef.current.add(conversationId);
-  //   realtime.joinConversation(conversationId);
-  // }, [realtime]);
-
-  // Wrap leaveConversation to remove from tracked rooms
-  // const leaveConversation = useCallback((conversationId: string) => {
-  //   if (!conversationId) return;
-  //   if (!joinedConversationsRef.current.has(conversationId)) {
-  //     return;
-  //   }
-  //   joinedConversationsRef.current.delete(conversationId);
-  //   realtime.leaveConversation(conversationId);
-  // }, [realtime]);
   const leaveConversation = useCallback((conversationId: string) => {
     if (!conversationId) return;
     if (!joinedConversationsRef.current.has(conversationId)) {
@@ -174,12 +189,6 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Clear all joined rooms on disconnect
-  // useEffect(() => {
-  //   if (!realtime.isConnected) {
-  //     joinedConversationsRef.current.clear();
-  //   }
-  // }, [realtime.isConnected]);
   
   useEffect(() => {
     if (!realtimeService.isConnected) {

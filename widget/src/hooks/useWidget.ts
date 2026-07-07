@@ -137,7 +137,6 @@ export function useWidget() {
     loadConfig();
   }, [setSettings, setUser, user]);
 
-  // widget/src/hooks/useWidget.ts
 
 // ✅ Helper function to get or create persistent visitor ID
 const getOrCreateVisitorId = (): string => {
@@ -162,12 +161,12 @@ const sendMessage = (content: string, sender: 'user' | 'agent' = 'user') => {
   if (!content || !content.trim()) return;
   
   console.log(`📤 [WIDGET] Sending message: "${content}" from ${sender}`);
+
+  // ✅ ALWAYS get the persistent visitor ID
+  const userId = getOrCreateVisitorId();
   
   // Add user message immediately
   addMessage({ content, sender });
-  
-  // ✅ Get OR CREATE persistent visitor ID
-  const userId = getOrCreateVisitorId();
   
   // Also update user in store if not set
   if (!user || user.id !== userId) {
