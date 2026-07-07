@@ -40,15 +40,28 @@ export default function SetupWidgetPage() {
 
   const selectedIcon = ICON_OPTIONS.find(icon => icon.value === widgetIcon);
 
-  const embedCode = `<script>
-    window.comviaSettings = {
-      companyId: "${user?._id || 'your-company-id'}",
-      position: "${widgetPosition}",
-      color: "${widgetColor}",
-      icon: "${widgetIcon}"
-    };
-  </script>
-  <script src="${process.env.NEXT_PUBLIC_WIDGET_URL || 'https://cdn.comvia.app/widget.js'}" async></script>`;
+  const embedCode = `
+  // Add this component to your Next.js app
+    export default function Layout({ children }) {
+      return (
+        <>
+          {children}
+          <WidgetLoader companyId="${user?.companyId || 'YOUR_COMPANY_ID'}" />
+        </>
+      );
+    }
+
+    // OR for non-Next.js sites, use this script:
+    <script>
+      (function() {
+        var settings = { companyId: "${user?.companyId || 'YOUR_COMPANY_ID'}" };
+        var script = document.createElement('script');
+        script.src = '${process.env.NEXT_PUBLIC_WIDGET_URL || 'https://comvia-widget.vercel.app/comvia-widget.min.js'}';
+        script.setAttribute('data-settings', encodeURIComponent(JSON.stringify(settings)));
+        document.head.appendChild(script);
+      })();
+    </script>
+  `;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(embedCode);

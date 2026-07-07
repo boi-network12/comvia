@@ -84,6 +84,7 @@ export interface User {
   companyLogo?: string;
   setupCompleted: boolean;
   integrations?: Integrations; 
+  companyId?: string;
   widgetSettings: {
     position: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
     color: string;

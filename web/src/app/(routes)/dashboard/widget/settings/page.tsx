@@ -97,7 +97,7 @@ export default function WidgetSettingsPage() {
             Your Company ID
           </p>
           <p className="text-sm text-blue-600 dark:text-blue-400 font-mono truncate">
-            {user?._id || 'Loading...'}
+            {user?.companyId || 'Loading...'}
           </p>
         </div>
         <button
