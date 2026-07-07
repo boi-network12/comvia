@@ -1,30 +1,29 @@
 # fly.toml
-app = 'comvia-realtime'
-primary_region = 'ams'
+app = "comvia-realtime"
+primary_region = "ams"
 
 [build]
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = "stop"
   auto_start_machines = true
   min_machines_running = 0
-  processes = ['app']
-  # ✅ Add health check
-  [http_service.checks]
-    [http_service.checks.health]
-      path = "/health"
-      interval = "5s"
-      timeout = "2s"
+  processes = ["app"]
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "15s"
+  method = "GET"
+  timeout = "2s"
+  path = "/health"
 
 [[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
+  cpu_kind = "shared"
   cpus = 1
   memory_mb = 256
 
-# ✅ Add environment variables
 [env]
   NODE_ENV = "production"
   PORT = "8080"
