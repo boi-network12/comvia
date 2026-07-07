@@ -6,6 +6,7 @@ import type { WidgetConfig, WidgetSettings } from '../types';
 import { widgetAPI } from '../utils/api';
 import { WIDGET_CONFIG } from '../config';
 
+
 export function useWidget() {
   const {
     isOpen,
@@ -38,7 +39,7 @@ export function useWidget() {
   const {
     isConnected: socketConnected,
     error: socketError,
-    sendMessage: sendSocketMessage,
+    // sendMessage: sendSocketMessage,
     sendTyping: sendSocketTyping,
     connect: connectSocket,
     disconnect: disconnectSocket,
@@ -136,6 +137,86 @@ export function useWidget() {
     loadConfig();
   }, [setSettings, setUser, user]);
 
+  // widget/src/hooks/useWidget.ts
+
+// ✅ Helper function to get or create persistent visitor ID
+const getOrCreateVisitorId = (): string => {
+  // First check localStorage
+  let visitorId = localStorage.getItem('comvia_visitor_id');
+  
+  if (!visitorId) {
+    // Generate new ID
+    visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('comvia_visitor_id', visitorId);
+    console.log('🆕 [WIDGET] Created new visitor ID:', visitorId);
+  } else {
+    console.log('♻️ [WIDGET] Using existing visitor ID:', visitorId);
+  }
+  
+  return visitorId;
+};
+
+// Update the sendMessage function
+const sendMessage = (content: string, sender: 'user' | 'agent' = 'user') => {
+  // Don't send empty messages
+  if (!content || !content.trim()) return;
+  
+  console.log(`📤 [WIDGET] Sending message: "${content}" from ${sender}`);
+  
+  // Add user message immediately
+  addMessage({ content, sender });
+  
+  // ✅ Get OR CREATE persistent visitor ID
+  const userId = getOrCreateVisitorId();
+  
+  // Also update user in store if not set
+  if (!user || user.id !== userId) {
+    setUser({
+      id: userId,
+      name: 'Visitor',
+    });
+  }
+  
+  // Get companyId from global config
+  const windowConfig = (window as any).comviaSettings || {};
+  const companyId = windowConfig.companyId || windowConfig.company_id;
+  
+  console.log(`📤 [WIDGET] User ID: ${userId}, Company ID: ${companyId}`);
+  
+  // Send via REST API
+  widgetAPI.sendMessage({
+    content,
+    sender,
+    userId: userId,
+    timestamp: new Date().toISOString(),
+  }).then(response => {
+    console.log('📥 [WIDGET] Message response:', response);
+    
+    if (response.success && response.data) {
+      if (response.data.reply) {
+        addMessage({
+          content: response.data.reply,
+          sender: 'bot',
+        });
+      }
+      if (response.data.conversationId) {
+        localStorage.setItem('comvia_conversation_id', response.data.conversationId);
+      }
+    } else {
+      addMessage({
+        content: '⚠️ Sorry, I couldn\'t process your message. Please try again.',
+        sender: 'bot',
+      });
+    }
+  }).catch(err => {
+    console.error('❌ [WIDGET] Error sending message:', err);
+    addMessage({
+      content: '⚠️ Connection error. Please try again later.',
+      sender: 'bot',
+    });
+  });
+};
+
   // Load chat history from server
   const loadChatHistory = async () => {
     try {
@@ -156,33 +237,33 @@ export function useWidget() {
   };
 
   // Send message
-  const sendMessage = useCallback((content: string, sender: 'user' | 'agent' = 'user') => {
-    // const newMessage = addMessage({ content, sender });
+  // const sendMessage = useCallback((content: string, sender: 'user' | 'agent' = 'user') => {
+  //   // const newMessage = addMessage({ content, sender });
     
-    if (socketConnected) {
-      sendSocketMessage(content, sender);
-    } else {
-      widgetAPI.sendMessage({
-        content,
-        sender,
-        userId: user?.id || 'anonymous',
-        timestamp: new Date().toISOString(),
-      }).then(response => {
-        if (response.success && response.data) {
-          addMessage({
-            content: response.data.reply || 'Thanks for your message!',
-            sender: 'bot',
-          });
-        }
-      }).catch(err => {
-        console.error('Failed to send message:', err);
-        addMessage({
-          content: '⚠️ Failed to send message. Please try again.',
-          sender: 'bot',
-        });
-      });
-    }
-  }, [addMessage, socketConnected, sendSocketMessage, user]);
+  //   if (socketConnected) {
+  //     sendSocketMessage(content, sender);
+  //   } else {
+  //     widgetAPI.sendMessage({
+  //       content,
+  //       sender,
+  //       userId: user?.id || 'anonymous',
+  //       timestamp: new Date().toISOString(),
+  //     }).then(response => {
+  //       if (response.success && response.data) {
+  //         addMessage({
+  //           content: response.data.reply || 'Thanks for your message!',
+  //           sender: 'bot',
+  //         });
+  //       }
+  //     }).catch(err => {
+  //       console.error('Failed to send message:', err);
+  //       addMessage({
+  //         content: '⚠️ Failed to send message. Please try again.',
+  //         sender: 'bot',
+  //       });
+  //     });
+  //   }
+  // }, [addMessage, socketConnected, sendSocketMessage, user]);
 
   // Send typing indicator
   const sendTyping = useCallback((isTyping: boolean) => {

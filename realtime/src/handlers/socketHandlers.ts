@@ -1,6 +1,6 @@
 // realtime/src/handlers/socketHandlers.ts
 import { Server, Socket } from 'socket.io';
-import axios from 'axios';
+// import axios from 'axios';
 import { trackVisitor } from '../middleware/visitorTracking';
 
 // Add this interface
@@ -18,29 +18,61 @@ export function setupSocketHandlers(
 ) {
   const userId = socket.data.userId || socket.data.user?.id;
   
-  if (userId) {
+  // if (userId) {
+  //   userSockets.set(socket.id, userId);
+  //   activeUsers.set(userId, socket.id);
+  // }
+  if (userId && !socket.data.isVisitor) {
     userSockets.set(socket.id, userId);
     activeUsers.set(userId, socket.id);
+    console.log(`✅ [SOCKET] User ${socket.data.user?.name || userId} added to active users`);
   }
 
   // ✅ NEW: Handle agents joining the agents room
+  // socket.on('join_agents', () => {
+  //   // Check if user is an agent or admin
+  //   const role = socket.data.user?.role;
+  //   if (role === 'admin' || role === 'agent') {
+  //     socket.join('agents');
+  //     console.log(`👤 Agent joined agents room: ${socket.data.user?.name || socket.id}`);
+      
+  //     // Notify other agents
+  //     socket.to('agents').emit('agent_joined', {
+  //       userId: socket.data.user?.id || socket.id,
+  //       name: socket.data.user?.name || 'Agent',
+  //       timestamp: new Date().toISOString()
+  //     });
+  //   } else {
+  //     console.log(`⚠️ Non-agent tried to join agents room: ${socket.id}`);
+  //   }
+  // });
+
   socket.on('join_agents', () => {
-    // Check if user is an agent or admin
-    const role = socket.data.user?.role;
-    if (role === 'admin' || role === 'agent') {
+    console.log(`👤 [SOCKET] join_agents called by ${socket.id}`);
+    console.log(`👤 [SOCKET] isVisitor: ${socket.data.isVisitor}`);
+    console.log(`👤 [SOCKET] user:`, socket.data.user);
+    
+    // ✅ Check if user is authenticated
+    const isAgent = socket.data.user && 
+                    (socket.data.user.role === 'admin' || socket.data.user.role === 'agent');
+    
+    if (isAgent) {
       socket.join('agents');
-      console.log(`👤 Agent joined agents room: ${socket.data.user?.name || socket.id}`);
+      console.log(`👤 [SOCKET] Agent joined agents room: ${socket.data.user?.name || socket.id}`);
       
       // Notify other agents
       socket.to('agents').emit('agent_joined', {
-        userId: socket.data.user?.id || socket.id,
+        userId: socket.data.user?._id || socket.id,
         name: socket.data.user?.name || 'Agent',
         timestamp: new Date().toISOString()
       });
     } else {
-      console.log(`⚠️ Non-agent tried to join agents room: ${socket.id}`);
+      console.log(`⚠️ [SOCKET] Non-agent tried to join agents room: ${socket.id}`);
+      // Send a message back to let them know
+      socket.emit('error', { message: 'Only agents can join the agents room' });
     }
   });
+
 
   // Handle joining conversation
   socket.on('join_conversation', (conversationId: string) => {

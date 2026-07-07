@@ -71,6 +71,13 @@ export const widgetAPI = {
       // ✅ Get companyId from window.comviaSettings
       const windowConfig = (window as any).comviaSettings || {};
       const companyId = windowConfig.companyId || windowConfig.company_id;
+
+      // ✅ Ensure userId is never empty
+      let userId = data.userId;
+      if (!userId || userId === 'anonymous') {
+        userId = localStorage.getItem('comvia_visitor_id') || `visitor_${Date.now()}`;
+        localStorage.setItem('comvia_visitor_id', userId);
+      }
       
       console.log('📤 [WIDGET] Sending message:', {
         content: data.content,
@@ -82,7 +89,7 @@ export const widgetAPI = {
       const response = await api.post('/widget/visitor/message', {
         content: data.content,
         sender: data.sender,
-        userId: data.userId,
+        userId: userId,
         timestamp: data.timestamp,
         companyId: companyId // ✅ Include companyId
       });

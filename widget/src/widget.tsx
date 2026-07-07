@@ -19,9 +19,23 @@ export interface WidgetConfig {
   quickReplies?: string[];
   font?: string;
   companyId?: string;
+  visitorId?: string; // ← ADD THIS
 }
 
-let isInitializing = false; // ✅ Add this
+// ✅ HELPER: Get or create persistent visitor ID
+const getOrCreateVisitorId = (): string => {
+  let visitorId = localStorage.getItem('comvia_visitor_id');
+  if (!visitorId) {
+    visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('comvia_visitor_id', visitorId);
+    console.log('🆕 [WIDGET] Created new visitor ID:', visitorId);
+  } else {
+    console.log('♻️ [WIDGET] Using existing visitor ID:', visitorId);
+  }
+  return visitorId;
+};
+
+let isInitializing = false;
 
 // Global widget instance
 let widgetInstance: ReactDOM.Root | null = null;
@@ -30,13 +44,11 @@ let isInitialized = false;
 
 // Main initialization function
 export function initComviaWidget(config: WidgetConfig = {}) {
-  // ✅ Check if already initializing
   if (isInitializing) {
     console.log('⏳ Widget initialization already in progress...');
     return widgetContainer;
   }
 
-  // Don't initialize twice
   if (isInitialized) {
     console.log('💬 Widget already initialized');
     return widgetContainer;
@@ -47,7 +59,7 @@ export function initComviaWidget(config: WidgetConfig = {}) {
   // Merge with existing config
   const existingConfig = (window as any).comviaSettings || {};
 
-  // ✅ Check for data-settings attribute on script tag
+  // Check for data-settings attribute on script tag
   const scripts = document.querySelectorAll('script');
   let settingsAttr = null;
   for (const script of scripts) {
@@ -70,7 +82,12 @@ export function initComviaWidget(config: WidgetConfig = {}) {
 
   const mergedConfig = { ...parsedSettings, ...existingConfig, ...config };
 
-  // ✅ Ensure apiUrl is set correctly
+  // ✅ ENSURE visitorId is set
+  if (!mergedConfig.visitorId) {
+    mergedConfig.visitorId = getOrCreateVisitorId();
+  }
+
+  // Ensure apiUrl is set correctly
   if (!mergedConfig.apiUrl) {
     mergedConfig.apiUrl = import.meta.env.VITE_API_URL || 'https://comvia-backend-endpoint.vercel.app/api';
   }
@@ -78,7 +95,10 @@ export function initComviaWidget(config: WidgetConfig = {}) {
   // Store config globally
   (window as any).comviaSettings = mergedConfig;
 
-  console.log('💬 [WIDGET] Final config:', mergedConfig);
+  console.log('💬 [WIDGET] Final config:', {
+    ...mergedConfig,
+    visitorId: mergedConfig.visitorId, // ← Log the visitor ID
+  });
 
   // Remove existing widget if any
   destroyWidget();
@@ -97,7 +117,7 @@ export function initComviaWidget(config: WidgetConfig = {}) {
   );
 
   isInitialized = true;
-  console.log('💬 Comvia Widget initialized with config:', mergedConfig);
+  console.log('💬 Comvia Widget initialized with visitor ID:', mergedConfig.visitorId);
   return widgetContainer;
 }
 
@@ -115,89 +135,10 @@ export function destroyWidget() {
 }
 
 // ============================================================
-// ✅ IMPROVED: Better auto-initialization with multiple methods
+// AUTO-INITIALIZATION
 // ============================================================
 
-// (function autoInit() {
-//   // Method 1: Check for window.comviaSettings
-//   const config = (window as any).comviaSettings || {};
-
-//   // Method 2: Check for data attributes on script tag
-//   const scripts = document.querySelectorAll('script');
-//   let currentScript: HTMLScriptElement | null = null;
-  
-//   for (const script of scripts) {
-//     if (script.src && script.src.includes('comvia-widget')) {
-//       currentScript = script;
-//       break;
-//     }
-//   }
-
-//   if (currentScript) {
-//     const dataConfig = (currentScript as HTMLElement).dataset;
-//     const mappedConfig: Record<string, any> = {};
-//     Object.keys(dataConfig).forEach(key => {
-//       const value = dataConfig[key];
-//       if (key === 'position') mappedConfig.position = value;
-//       else if (key === 'color') mappedConfig.color = value;
-//       else if (key === 'icon') mappedConfig.icon = value;
-//       else if (key === 'companyName') mappedConfig.companyName = value;
-//       else if (key === 'companyLogo') mappedConfig.companyLogo = value;
-//       else if (key === 'apiUrl') mappedConfig.apiUrl = value;
-//       else if (key === 'socketUrl') mappedConfig.socketUrl = value;
-//       else if (key === 'welcomeMessage') mappedConfig.welcomeMessage = value;
-//       else if (key === 'font') mappedConfig.font = value;
-//       else if (key === 'companyId') mappedConfig.companyId = value;
-//       else if (key === 'quickReplies' && value) {
-//         try {
-//           mappedConfig.quickReplies = JSON.parse(value);
-//         } catch {
-//           mappedConfig.quickReplies = value.split(',').map(s => s.trim());
-//         }
-//       }
-//     });
-//     Object.assign(config, mappedConfig);
-//   }
-
-//   // Method 3: Check for URL parameters (for testing)
-//   try {
-//     const params = new URLSearchParams(window.location.search);
-//     const settingsParam = params.get('comvia_settings');
-//     if (settingsParam) {
-//       const urlConfig = JSON.parse(decodeURIComponent(settingsParam));
-//       Object.assign(config, urlConfig);
-//     }
-//   } catch (e) {
-//     // Ignore URL parsing errors
-//   }
-
-//   // ✅ Check if we should auto-init
-//   const shouldAutoInit = config.position || config.color || config.companyName || config.companyId;
-  
-//   if (shouldAutoInit) {
-//     const initFn = () => {
-//       // Wait a tiny bit to ensure DOM is ready
-//       setTimeout(() => {
-//         initComviaWidget(config);
-//       }, 10);
-//     };
-
-//     if (document.readyState === 'loading') {
-//       document.addEventListener('DOMContentLoaded', initFn);
-//     } else if (document.readyState === 'complete') {
-//       initFn();
-//     } else {
-//       // DOM is interactive but not complete yet
-//       if (document.body) {
-//         initFn();
-//       } else {
-//         document.addEventListener('DOMContentLoaded', initFn);
-//       }
-//     }
-//   }
-// })();
-
-   (function autoInit() {
+(function autoInit() {
   const config = (window as any).comviaSettings || {};
 
   // Check for data-settings attribute
@@ -218,6 +159,13 @@ export function destroyWidget() {
     } catch (e) {
       console.warn('⚠️ Failed to parse data-settings:', e);
     }
+  }
+
+  // ✅ Check for existing visitor ID in localStorage
+  const existingVisitorId = localStorage.getItem('comvia_visitor_id');
+  if (existingVisitorId) {
+    config.visitorId = existingVisitorId;
+    console.log('♻️ [WIDGET] Restored visitor ID from localStorage:', existingVisitorId);
   }
 
   const shouldAutoInit = config.position || config.color || config.companyName || config.companyId;
@@ -244,21 +192,18 @@ export function destroyWidget() {
 })();
 
 // ============================================================
-// ✅ IMPROVED: Multiple exposure methods for maximum compatibility
+// EXPOSE TO WINDOW
 // ============================================================
 
-// 1. Standard: ComviaWidget object
 (window as any).ComviaWidget = {
   init: initComviaWidget,
   destroy: destroyWidget,
   version: '1.0.0',
 };
 
-// 2. Direct functions (backward compatibility)
 (window as any).initComviaWidget = initComviaWidget;
 (window as any).destroyWidget = destroyWidget;
 
-// 3. For module imports (if someone uses import)
 export default { 
   init: initComviaWidget, 
   destroy: destroyWidget,

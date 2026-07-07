@@ -48,10 +48,15 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isAuthenticated && user) {
       const token = localStorage.getItem('accessToken');
+      console.log('🔑 [CONTEXT] Token retrieved:', token ? 'YES' : 'NO');
+    console.log('🔑 [CONTEXT] Token preview:', token ? token.substring(0, 30) + '...' : 'NO TOKEN');
       if (token) {
         realtime.connect(token);
+      } else {
+        console.warn('⚠️ [CONTEXT] No token found in localStorage');
       }
     }
+    
     return () => {
       realtime.disconnect();
     };
