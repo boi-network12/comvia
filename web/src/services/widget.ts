@@ -31,6 +31,7 @@ export interface WidgetSettingsResponse {
 
 export interface EmbedScriptResponse {
   script: string;
+  vanillaScript: string;
   scriptUrl: string;
 }
 

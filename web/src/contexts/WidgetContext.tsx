@@ -11,13 +11,15 @@ interface WidgetContextType {
   companyName: string;
   companyLogo?: string;
   embedScript: string;
+  vanillaScript: string; 
+  scriptUrl: string;   
   isLoading: boolean;
   isDirty: boolean;
   
   loadSettings: () => Promise<void>;
   updateAppearance: (data: WidgetAppearanceData) => Promise<void>;
   updateContent: (data: WidgetContentData) => Promise<void>;
-  getEmbedScript: () => Promise<string>;
+  getEmbedScript: () => Promise<{ script: string; vanillaScript: string; scriptUrl: string }>;
   previewWidget: () => Promise<{ settings: WidgetSettings; companyName: string; companyLogo?: string }>;
   resetToDefaults: () => Promise<void>;
 }
@@ -36,6 +38,8 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+   const [vanillaScript, setVanillaScript] = useState(''); 
+  const [scriptUrl, setScriptUrl] = useState(''); 
 
   // ==================== STABLE CALLBACKS ====================
 
@@ -61,9 +65,12 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
   const getEmbedScript = useCallback(async () => {
     try {
       const response = await widgetAPI.getEmbedScript();
-      const script = response.data.script;
+      const { script, vanillaScript, scriptUrl } = response.data;
+      
       setEmbedScript(script);
-      return script;
+      setVanillaScript(vanillaScript);
+      setScriptUrl(scriptUrl);
+      return response.data;
     } catch (error) {
       handleError(error, 'Failed to generate embed script');
       throw error;
@@ -150,6 +157,8 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     companyName,
     companyLogo,
     embedScript,
+    vanillaScript,
+    scriptUrl,
     isLoading,
     isDirty,
     loadSettings,
@@ -163,6 +172,8 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     companyName,
     companyLogo,
     embedScript,
+    vanillaScript,  
+    scriptUrl,
     isLoading,
     isDirty,
     loadSettings,

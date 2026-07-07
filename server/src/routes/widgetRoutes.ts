@@ -266,39 +266,6 @@ router.post('/visitor/message', async (req, res) => {
         });
       }
 
-      // Create new conversation
-      // conversation = await Conversation.create({
-      //   userId: companyUser._id,
-      //   visitorId: userId,
-      //   companyId: companyId,
-      //   title: `Chat with Visitor`,
-      //   status: 'open',
-      //   priority: 'medium',
-      //   channel: 'widget',
-      //   assignedTo: companyUser._id, 
-      //   assignedToName: companyUser.name,
-      //   participants: [
-      //     {
-      //       userId: userId,
-      //       userType: 'visitor',
-      //       name: 'Visitor',
-      //       joinedAt: new Date()
-      //     },
-      //     {
-      //       userId: companyUser._id,
-      //       userType: 'agent',
-      //       name: companyUser.name,
-      //       joinedAt: new Date()
-      //     }
-      //   ],
-      //   metadata: {
-      //     visitorName: 'Visitor',
-      //     page: req.headers.referer || 'Unknown',
-      //     companyId: companyId,
-      //   },
-      //   lastMessageAt: new Date(),
-      //   lastMessagePreview: content.substring(0, 100)
-      // });
       
        conversation = await Conversation.create({
         userId: companyUser._id,

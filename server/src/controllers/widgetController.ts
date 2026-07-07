@@ -103,21 +103,42 @@ export const getWidgetEmbedScript = async (req: Request, res: Response, next: Ne
       companyLogo: user.companyLogo,
     };
 
-    const script = `<script>
-  (function() {
-    var settings = ${JSON.stringify(settings)};
-    var script = document.createElement('script');
-    script.src = '${process.env.WIDGET_JS_URL || 'https://cdn.comvia.app/widget.js'}';
-    script.setAttribute('data-settings', encodeURIComponent(JSON.stringify(settings)));
-    document.head.appendChild(script);
-  })();
-</script>`;
+    // Generate the widget script using the WidgetLoader approach
+    const script = `<Script
+      id="comvia-widget-loader"
+      strategy="afterInteractive"
+      dangerouslySetInnerHTML={{
+        __html: \`
+          (function() {
+            var settings = ${JSON.stringify(settings)};
+            var script = document.createElement('script');
+            script.src = '${process.env.WIDGET_JS_URL || 'https://comvia-widget.vercel.app/comvia-widget.min.js'}';
+            script.setAttribute('data-settings', encodeURIComponent(JSON.stringify(settings)));
+            document.head.appendChild(script);
+          })();
+        \`
+      }}
+      onLoad={() => setIsLoaded(true)}
+    />`;
+
+        // Also provide the vanilla JS version for non-Next.js sites
+        const vanillaScript = `<script>
+      (function() {
+        var settings = ${JSON.stringify(settings)};
+        var script = document.createElement('script');
+        script.src = '${process.env.WIDGET_JS_URL || 'https://comvia-widget.vercel.app/comvia-widget.min.js'}';
+        script.setAttribute('data-settings', encodeURIComponent(JSON.stringify(settings)));
+        document.head.appendChild(script);
+      })();
+    </script>`;
 
     res.status(200).json({
       success: true,
       data: {
         script,
-        scriptUrl: process.env.WIDGET_JS_URL || 'https://cdn.comvia.app/widget.js',
+        vanillaScript, // For non-Next.js sites
+        scriptUrl: process.env.WIDGET_JS_URL || 'https://comvia-widget.vercel.app/comvia-widget.min.js',
+        settings, // Return settings for debugging
       },
     });
   } catch (error) {

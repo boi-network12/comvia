@@ -158,3 +158,20 @@ body {
 .delay-300 { animation-delay: 300ms; }
 .delay-400 { animation-delay: 400ms; }
 .delay-500 { animation-delay: 500ms; }
+
+.code-block {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #d4d4d4;
+    background: #1e1e1e;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+  }
+  .code-block .string { color: #ce9178; }
+  .code-block .keyword { color: #569cd6; }
+  .code-block .function { color: #dcdcaa; }
+  .code-block .comment { color: #6a9955; }
+  .code-block .variable { color: #9cdcfe; }
+  .code-block .number { color: #b5cea8; }
