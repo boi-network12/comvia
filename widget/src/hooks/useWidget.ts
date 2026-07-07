@@ -43,7 +43,8 @@ export function useWidget() {
     connect: connectSocket,
     disconnect: disconnectSocket,
   } = useSocket({
-    userId: user?.id,
+    userId: user?.id || localStorage.getItem('comvia_user_id') || `visitor_${Date.now()}`,
+    
     onConnect: () => {
       console.log('🟢 Socket connected');
       setConnected(true);
