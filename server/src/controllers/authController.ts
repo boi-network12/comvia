@@ -22,6 +22,7 @@ import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinary';
 import { CustomError, UnauthorizedError, BadRequestError, NotFoundError, ConflictError } from '../utils/errors';
 import { logger } from '../utils/logger';
 import { sendMail } from '../utils/mailer';
+import { ensureDBConnection } from '../config/db';
 
 // Helper function to create tokens
 const createTokens = (userId: string) => {
@@ -167,14 +168,117 @@ export const checkUser = async (req: Request, res: Response, next: NextFunction)
 // @desc    Login user
 // @route   POST /api/auth/login
 // @access  Public
+// export const login = async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+//     // Validate input
+//     const validatedData = loginSchema.parse(req.body);
+//     const { email, password } = validatedData;
+
+//     // Find user
+//     const user = await User.findOne({ email }).select('+password');
+//     if (!user) {
+//       throw new UnauthorizedError('Invalid email or password');
+//     }
+
+//     // Check account lock
+//     checkAccountLock(user);
+
+//     // Verify password
+//     const isPasswordValid = await user.comparePassword(password);
+//     if (!isPasswordValid) {
+//       await handleLoginAttempt(user, false);
+//       throw new UnauthorizedError('Invalid email or password');
+//     }
+
+//     // Reset login attempts on success
+//     await handleLoginAttempt(user, true);
+
+//     // Generate tokens
+//     const { accessToken, refreshToken } = createTokens(user._id.toString());
+
+//     // Set refresh token cookie
+//     setTokenCookie(res, refreshToken);
+
+//     // Remove password from response
+//     const userResponse = user.toObject();
+//     delete (userResponse as any).password;
+//     delete (userResponse as any).emailVerificationToken;
+//     delete (userResponse as any).emailVerificationExpires;
+//     delete (userResponse as any).resetPasswordToken;
+//     delete (userResponse as any).resetPasswordExpires;
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Login successful',
+//       data: {
+//         user: userResponse,
+//         accessToken,
+//       },
+//     });
+//   } catch (error) {
+//     if (error instanceof z.ZodError) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Validation error',
+//         errors: error.issues,
+//       });
+//     }
+//     next(error);
+//   }
+// };
+// server/src/controllers/authController.ts - Updated login with retry
+
+// @desc    Login user
+// @route   POST /api/auth/login
+// @access  Public
 export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Validate input
     const validatedData = loginSchema.parse(req.body);
     const { email, password } = validatedData;
 
-    // Find user
-    const user = await User.findOne({ email }).select('+password');
+    // ✅ Retry logic with exponential backoff
+    let user = null;
+    let lastError = null;
+    const maxRetries = 3;
+    let attempt = 0;
+
+    while (attempt < maxRetries) {
+      try {
+        // Ensure connection is active
+        await ensureDBConnection();
+        
+        // Execute query with timeout
+        user = await User.findOne({ email })
+          .select('+password')
+          .maxTimeMS(15000); // 15 second timeout
+        
+        break; // Success, exit retry loop
+      } catch (dbError: any) {
+        lastError = dbError;
+        attempt++;
+        
+        // Check if it's a timeout error
+        const isTimeout = dbError.message?.includes('timed out') || 
+                         dbError.code === 'ETIMEOUT' ||
+                         dbError.name === 'MongoTimeoutError';
+        
+        if (isTimeout && attempt < maxRetries) {
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          logger.warn(`DB query timed out, retrying in ${delay}ms... (attempt ${attempt}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else if (attempt >= maxRetries) {
+          // All retries exhausted
+          logger.error('All retry attempts failed:', dbError);
+          throw new Error('Database operation timed out. Please try again.');
+        } else {
+          // Non-timeout error
+          throw dbError;
+        }
+      }
+    }
+
     if (!user) {
       throw new UnauthorizedError('Invalid email or password');
     }

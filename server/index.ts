@@ -6,7 +6,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
-import connectDB from './src/config/db';
+import connectDB, { getDBStatus } from './src/config/db';
 import errorHandler from './src/middlewares/errorHandler';
 import { getCorsOptions } from './src/config/corsConfig';
 import routes from './src/routes';
@@ -29,20 +29,40 @@ app.use(corsDebug);
 app.use('/api', routes);
 
 // Health check
-app.get('/health', async (req, res) => {
-  let dbStatus = 'disconnected';
-  let dbHost = 'N/A';
+// app.get('/health', async (req, res) => {
+//   let dbStatus = 'disconnected';
+//   let dbHost = 'N/A';
   
-  try {
-    const conn = await import('mongoose');
-    if (conn.default.connection.readyState === 1) {
-      dbStatus = 'connected';
-      dbHost = conn.default.connection.host;
-    }
-  } catch (error) {
-    // DB not connected
-  }
+//   try {
+//     const conn = await import('mongoose');
+//     if (conn.default.connection.readyState === 1) {
+//       dbStatus = 'connected';
+//       dbHost = conn.default.connection.host;
+//     }
+//   } catch (error) {
+//     // DB not connected
+//   }
 
+//   res.status(200).json({
+//     status: 'ok',
+//     message: 'Server is running',
+//     timestamp: new Date().toISOString(),
+//     environment: process.env.NODE_ENV || 'development',
+//     vercel: process.env.VERCEL === '1' ? 'yes' : 'no',
+//     database: {
+//       status: dbStatus,
+//       host: dbHost,
+//     },
+//     uptime: Math.floor(process.uptime()),
+//     memory: {
+//       used: Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 100) / 100,
+//       total: Math.round((process.memoryUsage().heapTotal / 1024 / 1024) * 100) / 100,
+//     }
+//   });
+// });
+app.get('/health', async (req, res) => {
+  const dbStatus = getDBStatus();
+  
   res.status(200).json({
     status: 'ok',
     message: 'Server is running',
@@ -50,8 +70,12 @@ app.get('/health', async (req, res) => {
     environment: process.env.NODE_ENV || 'development',
     vercel: process.env.VERCEL === '1' ? 'yes' : 'no',
     database: {
-      status: dbStatus,
-      host: dbHost,
+      status: dbStatus.readyState === 1 ? 'connected' : 
+              dbStatus.readyState === 2 ? 'connecting' : 
+              dbStatus.readyState === 3 ? 'disconnecting' : 'disconnected',
+      host: dbStatus.host,
+      name: dbStatus.name,
+      readyState: dbStatus.readyState,
     },
     uptime: Math.floor(process.uptime()),
     memory: {
@@ -61,11 +85,12 @@ app.get('/health', async (req, res) => {
   });
 });
 
+
 // Root
 app.get('/', (req, res) => {
   res.status(200).json({
     message: 'Comvia API Server',
-    version: '1.0.0',
+    version: '1.1.0',
     status: 'running',
   });
 });
@@ -75,15 +100,26 @@ app.use(errorHandler);
 
 // ✅ Connect to DB WITHOUT blocking the export
 // Don't await here - let it connect in background
-connectDB()
-  .then(() => {
-    logger.info('✅ Database connected successfully');
-  })
-  .catch((err) => {
-    // ✅ Log but don't crash in serverless
-    logger.error('⚠️ Database connection failed:', err.message);
-    logger.error('⚠️ API will continue to run but DB operations will fail');
-  });
+const connectWithRetry = async (retries = 5, delay = 3000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await connectDB();
+      logger.info('✅ Database connected successfully');
+      return;
+    } catch (error: unknown) {
+      const err = error as Error; 
+      logger.error(`⚠️ Database connection attempt ${i + 1}/${retries} failed:`, err.message);
+      if (i < retries - 1) {
+        logger.info(`Retrying in ${delay/1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  logger.error('❌ All database connection attempts failed');
+};
+
+// Non-blocking connection
+connectWithRetry();
 
 
 // =============== LOCAL SERVER ===============

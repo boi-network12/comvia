@@ -23,8 +23,12 @@ import { protect, restrictTo, isEmailVerified } from '../middlewares/auth';
 import { uploadAvatar, uploadCompanyLogo } from '../middlewares/uploadMiddleware';
 import { isSetupComplete } from '../middlewares/setupMiddleware';
 import { authLimiter } from '../middlewares/rateLimiter';
+import { withDB } from '../middlewares/dbMiddleware';
 
 const router = Router();
+
+// ✅ Apply DB middleware to all auth routes
+router.use(withDB);
 
 // Public routes
 router.post('/register', authLimiter, register);
