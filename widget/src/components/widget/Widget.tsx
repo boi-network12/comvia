@@ -87,23 +87,36 @@ export const Widget: React.FC = () => {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
             className={cn(
-              isMobile && 'min-w-screen min-h-screen',
-              isMobile && 'fixed right-0 top-0 left-0 bottom-0',
-              !isMobile && 'rounded-2xl',
-              !isMobile && 'mb-4 w-[380px] max-w-[calc(100vw-32px)]',
+              // Mobile Fullscreen
+              isMobile && 'fixed inset-x-0 top-0 w-full',          // ← Changed
+              isMobile && 'h-[100dvh] min-h-[100dvh]', 
+
+              // Desktop
+              !isMobile && 'rounded-2xl mb-4 w-[380px] max-w-[calc(100vw-32px)]',
+              !isMobile && 'h-[600px] max-h-[85vh]',
+
               'flex flex-col',
               'bg-white dark:bg-gray-900',
-              'shadow-2xl',
-              'border border-gray-200/50 dark:border-gray-800/50',
+              'shadow-2xl border border-gray-200/50 dark:border-gray-800/50',
               'overflow-hidden',
-              isMinimized ? 'h-16' : 'h-[600px] max-h-[85vh]'
+              isMinimized ? '' : 'h-[600px] max-h-[85vh]'
             )}
             style={{
               fontFamily: settings.font === 'inter' ? 'Inter, system-ui, sans-serif' :
                           settings.font === 'system' ? 'system-ui, sans-serif' :
                           'Inter, system-ui, sans-serif',
+                 ...(isMobile && {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: '100dvh',
+      maxHeight: '100dvh',
+      // This prevents the layout shift
+      transform: 'none',
+    })
             }}
           >
             {/* Header */}
@@ -128,23 +141,6 @@ export const Widget: React.FC = () => {
                   }}
                 />
                 <WidgetFooter />
-                {/* Connection Status */}
-                {/* {!isConnected && !isLoading && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 text-center">
-                    <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                      ⚠️ {error || 'Connecting to chat server...'}
-                      <button 
-                        onClick={() => {
-                          connectionAttempted.current = false;
-                          connectSocket();
-                        }}
-                        className="ml-2 underline font-medium"
-                      >
-                        Retry
-                      </button>
-                    </p>
-                  </div>
-                )} */}
               </>
             )}
           </motion.div>

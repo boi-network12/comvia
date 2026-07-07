@@ -24,7 +24,7 @@ export const WidgetMessage: React.FC<WidgetMessageProps> = ({ message }) => {
   return (
     <div
       className={cn(
-        'flex items-end gap-2',
+        'flex items-end gap-2 scroll',
         isUser ? 'flex-row-reverse' : 'flex-row'
       )}
     >

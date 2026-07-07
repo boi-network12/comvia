@@ -42,11 +42,25 @@ export const WidgetInput: React.FC<WidgetInputProps> = ({
     onTyping(e.target.value.length > 0);
   };
 
+  const handleFocus = () => {
+  setIsFocused(true);
+    // Prevent the page from scrolling when input is focused on mobile
+    if (window.innerWidth <= 768) {
+      // Scroll the input into view smoothly
+      setTimeout(() => {
+        inputRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }, 100);
+    }
+  };
+
   return (
     <div
       className={cn(
         'p-3 border-t border-gray-200 dark:border-gray-800',
-        'bg-white dark:bg-gray-900'
+        'bg-white dark:bg-gray-900 '
       )}
     >
       <div className="flex items-center gap-2">
@@ -64,16 +78,15 @@ export const WidgetInput: React.FC<WidgetInputProps> = ({
           value={message}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => setIsFocused(true)}
+          onFocus={handleFocus}
           onBlur={() => setIsFocused(false)}
           placeholder={"Type a message..." }
-          // disabled={isConnected}
           className={cn(
             'flex-1 px-3 py-2 rounded-lg',
             'bg-gray-100 dark:bg-gray-800',
             'text-sm focus:outline-none',
             'transition-all duration-200',
-            isFocused && 'ring-2'
+            isFocused && 'ring-1'
           )}
           style={isFocused ? { '--tw-ring-color': color } as React.CSSProperties : undefined}
         />
