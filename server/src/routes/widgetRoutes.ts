@@ -136,8 +136,27 @@ router.post('/visitor/message', async (req, res) => {
     conversation.unreadCount = (conversation.unreadCount || 0) + 1;
     await conversation.save();
 
-    // process.env.REALTIME_URL ||
-    const RealtimeUrl =  'https://comvia-realtime.fly.dev'
+    // 🔥 GET AUTO-REPLY
+    const autoReplyContent = getAutoReply(content);
+    
+    // 🔥 SAVE AUTO-REPLY TO DATABASE
+    const autoReplyMessage = await Message.create({
+      conversationId: conversation._id,
+      senderId: 'system',
+      senderType: 'system',
+      content: autoReplyContent,
+      type: 'text',
+      status: 'sent'
+    });
+    
+    // 🔥 UPDATE CONVERSATION WITH AUTO-REPLY
+    conversation.lastMessageAt = new Date();
+    conversation.lastMessagePreview = autoReplyContent.substring(0, 100);
+    conversation.unreadCount = (conversation.unreadCount || 0) + 1;
+    await conversation.save();
+    
+    // 🔥 BROADCAST BOTH MESSAGES TO REALTIME
+    const RealtimeUrl = 'https://comvia-realtime.fly.dev';
 
     try {
       const realtimeUrl = RealtimeUrl;
@@ -155,6 +174,23 @@ router.post('/visitor/message', async (req, res) => {
           }
         })
       });
+
+      // 🔥 ALSO BROADCAST AUTO-REPLY
+      await fetch(`${RealtimeUrl}/api/broadcast`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: 'new_visitor_message',
+          data: {
+            conversationId: conversation._id,
+            message: autoReplyMessage,
+            visitorId: userId,
+            companyId: companyId,
+            conversation: conversation
+          }
+        })
+      });
+
       console.log(`📤 [WIDGET] Broadcasted to realtime server`);
     } catch (broadcastError: unknown) {
       const bcError = broadcastError as Error;
@@ -162,13 +198,14 @@ router.post('/visitor/message', async (req, res) => {
     }
 
     // Get auto-reply (you can customize this)
-    const autoReply = getAutoReply(content);
+    // const autoReply = getAutoReply(content);
+    
 
     // Send response
     res.json({
       success: true,
       data: {
-        reply: autoReply,
+        reply: autoReplyContent,
         messageId: message._id,
         conversationId: conversation._id
       }

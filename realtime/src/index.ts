@@ -179,14 +179,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`🌐 WebSocket: ws://0.0.0.0:${PORT}`);
 });
 
-// // ✅ Add health check endpoint that Fly.io expects
-// app.get('/health', (req, res) => {
-//   res.status(200).json({ 
-//     status: 'ok',
-//     uptime: process.uptime(),
-//     connections: io?.engine?.clientsCount || 0
-//   });
-// });
 
 
 // Graceful shutdown

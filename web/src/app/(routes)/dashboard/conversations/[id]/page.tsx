@@ -60,6 +60,8 @@ export default function ConversationDetailPage() {
     resolveConversation,
     escalateConversation,
     loadConversation,
+    setMessages, 
+    setCurrentConversation,
   } = useConversation();
 
   const { 
@@ -67,7 +69,8 @@ export default function ConversationDetailPage() {
     sendMessage: sendRealtimeMessage,
     joinConversation,
     leaveConversation,
-    messages: realtimeMessages,
+    onNewMessage,
+    // messages: realtimeMessages,
   } = useRealtimeContext();
 
   const [newMessage, setNewMessage] = useState("");
@@ -109,22 +112,33 @@ export default function ConversationDetailPage() {
     };
   }, [conversationId, isRealtimeConnected, joinConversation, leaveConversation]);
 
-  // Refresh messages when realtime messages arrive
+   // 🔥 NEW: Handle realtime messages by appending them
   useEffect(() => {
-    if (realtimeMessages.length > 0 && conversationId && !isLoading) {
-      const lastMessage = realtimeMessages[realtimeMessages.length - 1];
-      if (lastMessage?.conversationId === conversationId) {
-        // Only reload if we didn't just receive a realtime message
-        if (!isRealtimeMessageRef.current) {
-          isRealtimeMessageRef.current = true;
-          loadConversation(conversationId);
-          setTimeout(() => {
-            isRealtimeMessageRef.current = false;
-          }, 500);
-        }
-      }
-    }
-  }, [realtimeMessages, conversationId, loadConversation, isLoading]);
+    const unsubscribe = onNewMessage((message, msgConversationId) => {
+      // Only process messages for this conversation
+      if (msgConversationId !== conversationId) return;
+      
+      console.log(`📨 [PAGE] New message for conversation ${conversationId}:`, message);
+      
+      // Append message to the conversation's messages
+      setMessages(prev => {
+        // Avoid duplicates
+        if (prev.some(m => m._id === message._id)) return prev;
+        return [...prev, message];
+      });
+      
+      // Update conversation preview
+      setCurrentConversation(prev => prev ? {
+        ...prev,
+        lastMessagePreview: message.content,
+        lastMessageAt: message.createdAt
+      } : null);
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [conversationId, onNewMessage, setMessages, setCurrentConversation]);
 
 
   // Scroll to bottom when messages change

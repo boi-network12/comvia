@@ -30,6 +30,7 @@ interface RealtimeContextType {
   leaveConversation: (conversationId: string) => void;
   connect: (token: string) => void;
   disconnect: () => void;
+  onNewMessage: (callback: (message: Message, conversationId: string) => void) => () => void;
 }
 
 const RealtimeContext = createContext<RealtimeContextType | undefined>(undefined);
@@ -41,6 +42,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   const [visitorMessages, setVisitorMessages] = useState<VisitorMessageData[]>([]);
   const realtime = useRealtime();
   const joinedConversationsRef = useRef<Set<string>>(new Set());
+  const messageCallbacksRef = useRef<((message: Message, conversationId: string) => void)[]>([]);
 
   // Auto-connect when user is authenticated
   useEffect(() => {
@@ -73,6 +75,10 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       
       if (data.message) {
         setMessages(prev => [...prev, data.message]);
+
+        messageCallbacksRef.current.forEach(callback => {
+          callback(data.message, data.conversationId);
+        });
       }
     });
 
@@ -81,11 +87,21 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Listen for regular messages
-  useEffect(() => {
+   useEffect(() => {
     const unsubscribe = realtimeService.onMessage((message) => {
       console.log('📨 [CONTEXT] New message:', message);
-      setMessages(prev => [...prev, message]);
+      setMessages(prev => {
+        // Avoid duplicates
+        if (prev.some(m => m._id === message._id)) return prev;
+        return [...prev, message];
+      });
+      
+      // Notify all registered callbacks
+      if (message.conversationId) {
+        messageCallbacksRef.current.forEach(callback => {
+          callback(message, message.conversationId);
+        });
+      }
     });
 
     return () => {
@@ -145,6 +161,14 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     realtimeService.leaveConversation(conversationId);
   }, []);
 
+  // 🔥 Register a callback for new messages
+  const onNewMessage = useCallback((callback: (message: Message, conversationId: string) => void) => {
+    messageCallbacksRef.current.push(callback);
+    return () => {
+      messageCallbacksRef.current = messageCallbacksRef.current.filter(cb => cb !== callback);
+    };
+  }, []);
+
   // Clear all joined rooms on disconnect
   // useEffect(() => {
   //   if (!realtime.isConnected) {
@@ -169,6 +193,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       leaveConversation,
       connect,
       disconnect,
+      onNewMessage
       }}>
       {children}
     </RealtimeContext.Provider>

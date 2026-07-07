@@ -35,6 +35,8 @@ interface ConversationContextType {
   markAsRead: (conversationId: string) => Promise<void>;
   clearCurrentConversation: () => void;
   refreshConversations: () => Promise<void>;
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  setCurrentConversation: React.Dispatch<React.SetStateAction<Conversation | null>>;
 }
 
 const ConversationContext = createContext<ConversationContextType | undefined>(undefined);
@@ -326,6 +328,8 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
     markAsRead,
     clearCurrentConversation,
     refreshConversations,
+    setMessages, 
+    setCurrentConversation,   
   }), [
     conversations,
     currentConversation,
