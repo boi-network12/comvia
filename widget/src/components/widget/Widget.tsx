@@ -90,7 +90,7 @@ export const Widget: React.FC = () => {
               isMobile && 'min-w-screen min-h-screen',
               isMobile && 'fixed right-0 top-0 left-0 bottom-0',
               !isMobile && 'rounded-2xl',
-              'mb-4 w-[380px] max-w-[calc(100vw-32px)]',
+              !isMobile && 'mb-4 w-[380px] max-w-[calc(100vw-32px)]',
               'flex flex-col',
               'bg-white dark:bg-gray-900',
               'shadow-2xl',
