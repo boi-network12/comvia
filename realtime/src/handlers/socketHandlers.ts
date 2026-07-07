@@ -29,23 +29,6 @@ export function setupSocketHandlers(
   }
 
   // ✅ NEW: Handle agents joining the agents room
-  // socket.on('join_agents', () => {
-  //   // Check if user is an agent or admin
-  //   const role = socket.data.user?.role;
-  //   if (role === 'admin' || role === 'agent') {
-  //     socket.join('agents');
-  //     console.log(`👤 Agent joined agents room: ${socket.data.user?.name || socket.id}`);
-      
-  //     // Notify other agents
-  //     socket.to('agents').emit('agent_joined', {
-  //       userId: socket.data.user?.id || socket.id,
-  //       name: socket.data.user?.name || 'Agent',
-  //       timestamp: new Date().toISOString()
-  //     });
-  //   } else {
-  //     console.log(`⚠️ Non-agent tried to join agents room: ${socket.id}`);
-  //   }
-  // });
 
   socket.on('join_agents', () => {
     console.log(`👤 [SOCKET] join_agents called by ${socket.id}`);
@@ -137,6 +120,87 @@ export function setupSocketHandlers(
         name: visitorData.name,
         page: visitorData.page,
         timestamp: new Date().toISOString(),
+      });
+    }
+  });
+
+    socket.on('identify_visitor', (data: { visitorId: string; companyId: string; userAgent?: string; url?: string }) => {
+    console.log(`👤 [SOCKET] Visitor identified: ${data.visitorId}`);
+    
+    // Store visitor info on socket
+    socket.data.visitorId = data.visitorId;
+    socket.data.companyId = data.companyId;
+    socket.data.isVisitor = true;
+    
+    // Join a room for this visitor
+    socket.join(`visitor_${data.visitorId}`);
+    
+    // Also join company room to receive agent messages
+    if (data.companyId) {
+      socket.join(`company_${data.companyId}`);
+    }
+    
+    // Notify agents
+    io.to('agents').emit('visitor_online', {
+      visitorId: data.visitorId,
+      companyId: data.companyId,
+      userAgent: data.userAgent,
+      url: data.url,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  socket.on('send_message', async (data: { 
+    conversationId: string; 
+    content: string; 
+    sender: string; 
+    visitorId?: string;
+    timestamp?: string;
+  }) => {
+    console.log(`📨 [SOCKET] Message from visitor:`, data);
+    
+    // If visitor is sending, broadcast to agents
+    if (socket.data.isVisitor || data.sender === 'visitor') {
+      // Broadcast to all agents
+      io.to('agents').emit('visitor_message', {
+        conversationId: data.conversationId,
+        message: {
+          _id: `msg_${Date.now()}`,
+          content: data.content,
+          senderId: data.visitorId || socket.data.visitorId,
+          senderType: 'visitor',
+          createdAt: data.timestamp || new Date().toISOString(),
+          status: 'sent'
+        },
+        visitorId: data.visitorId || socket.data.visitorId,
+        conversation: {
+          _id: data.conversationId,
+          status: 'open'
+        }
+      });
+      
+      // Also send as new_visitor_message
+      io.to('agents').emit('new_visitor_message', {
+        conversationId: data.conversationId,
+        message: {
+          _id: `msg_${Date.now()}`,
+          content: data.content,
+          senderId: data.visitorId || socket.data.visitorId,
+          senderType: 'visitor',
+          createdAt: data.timestamp || new Date().toISOString(),
+          status: 'sent'
+        },
+        visitorId: data.visitorId || socket.data.visitorId,
+        conversation: {
+          _id: data.conversationId,
+          status: 'open'
+        }
+      });
+      
+      // Send confirmation back to visitor
+      socket.emit('message_sent', {
+        messageId: `msg_${Date.now()}`,
+        status: 'sent'
       });
     }
   });

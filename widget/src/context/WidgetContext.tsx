@@ -1,5 +1,5 @@
 // widget/src/context/WidgetContext.tsx
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
 import { useWidgetStore } from '../store/widgetStore';
 import { useSocket } from '../hooks/useSocket';
 import { widgetAPI } from '../utils/api';
@@ -324,19 +324,17 @@ useEffect(() => {
 
 
   // Send typing indicator
-  const sendTyping = (isTyping: boolean) => {
-    setTyping(isTyping);
-    if (socketConnected) {
-      sendSocketTyping(isTyping);
+  const sendTyping = useCallback((isTyping: boolean) => {
+  setTyping(isTyping);
+  if (socketConnected) {
+    const conversationId = localStorage.getItem('comvia_conversation_id');
+    if (conversationId) {
+      // ✅ Pass both arguments
+      sendSocketTyping(conversationId, isTyping);
     }
-  };
+  }
+}, [setTyping, socketConnected, sendSocketTyping]);
 
-  // // Connect socket when widget opens
-  // useEffect(() => {
-  //   if (isOpen && !socketConnected) {
-  //     connectSocket();
-  //   }
-  // }, [isOpen, socketConnected, connectSocket]);
   
   // ✅ Instead, only connect when widget mounts:
   useEffect(() => {

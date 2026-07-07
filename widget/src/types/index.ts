@@ -8,6 +8,16 @@ export interface Message {
   status?: 'sending' | 'sent' | 'delivered' | 'read';
 }
 
+export interface SocketMessage {
+  id?: string;
+  content: string;
+  senderType?: 'agent' | 'user' | 'bot' | string; // what your backend actually sends
+  sender?: 'agent' | 'user' | 'bot' | string;
+  message?: string; // sometimes backends use this key
+  timestamp?: string | Date;
+}
+
+
 export interface User {
   id: string;
   name: string;

@@ -1,11 +1,11 @@
 // widget/src/hooks/useWidget.ts
+
 import { useEffect, useState, useCallback } from 'react';
 import { useWidgetStore } from '../store/widgetStore';
 import { useSocket } from './useSocket';
-import type { WidgetConfig, WidgetSettings } from '../types';
+import type { SocketMessage, WidgetConfig, WidgetSettings } from '../types';
 import { widgetAPI } from '../utils/api';
 import { WIDGET_CONFIG } from '../config';
-
 
 export function useWidget() {
   const {
@@ -34,43 +34,78 @@ export function useWidget() {
   const [isLoading, setIsLoading] = useState(true);
   const [error] = useState<string | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  
+  // ✅ Get or create persistent visitor ID
+  const getOrCreateVisitorId = useCallback((): string => {
+    let visitorId = localStorage.getItem('comvia_visitor_id');
+    if (!visitorId) {
+      visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('comvia_visitor_id', visitorId);
+      console.log('🆕 [WIDGET] Created new visitor ID:', visitorId);
+    } else {
+      console.log('♻️ [WIDGET] Using existing visitor ID:', visitorId);
+    }
+    return visitorId;
+  }, []);
 
-  // Socket connection
+  const visitorId = getOrCreateVisitorId();
+
+  // ✅ Socket connection for real-time replies
   const {
     isConnected: socketConnected,
     error: socketError,
-    // sendMessage: sendSocketMessage,
-    sendTyping: sendSocketTyping,
     connect: connectSocket,
     disconnect: disconnectSocket,
-  } = useSocket();
+    sendMessage: sendSocketMessage,
+    sendTyping: sendSocketTyping,
+  } = useSocket({
+    visitorId: visitorId,
+    companyId: (window as any).comviaSettings?.companyId,
+    onAgentMessage: (data) => {
+      console.log('📨 [Widget] Agent reply via socket:', data);
+      addMessage({
+        content: data.content,
+        sender: 'agent',
+      });
+    },
+    onMessage: (message: SocketMessage) => {
+      console.log('📨 [Widget] New message via socket:', message);
 
-  // If useSocket doesn't accept params, handle basic connect/disconnect side-effects here
+      const content = message.content || message.message || '';
+      if (!content) return;
+
+      let sender: 'user' | 'bot' | 'agent' = 'bot';
+
+      if (message.senderType === 'agent' || message.sender === 'agent') {
+        sender = 'agent';
+      } else if (message.senderType === 'user' || message.sender === 'user') {
+        sender = 'user'; // or 'bot' depending on your logic
+      }
+
+      addMessage({
+        content,
+        sender,
+        // Let addMessage / store handle id and timestamp if needed
+      });
+    },
+  });
+
+  // Update connection status
   useEffect(() => {
-    if (socketConnected) {
-      console.log('🟢 Socket connected');
-      setConnected(true);
-      // loadChatHistory();
-    } else {
-      console.log('🔴 Socket disconnected');
-      setConnected(false);
-    }
+    setConnected(socketConnected);
   }, [socketConnected, setConnected]);
 
-  // Load config from script tag or window
+  // Load config
   useEffect(() => {
     const loadConfig = async () => {
       setIsLoading(true);
       
-      // Check for window.comviaSettings
       const windowConfig = (window as any).comviaSettings || {};
       const companyIdFromConfig = windowConfig.companyId;
       
-      // Check for data attributes on script tag
       const script = document.querySelector('script[data-comvia]');
       const dataConfig = script ? (script as HTMLElement).dataset : {};
 
-      // Build base config
       const config: WidgetConfig = {
         position: windowConfig.position || dataConfig.position || WIDGET_CONFIG.DEFAULTS.position,
         color: windowConfig.color || dataConfig.color || WIDGET_CONFIG.DEFAULTS.color,
@@ -83,7 +118,6 @@ export function useWidget() {
 
       setConfig(config);
 
-      // ✅ If there's a companyId, fetch settings from API
       if (companyIdFromConfig) {
         setCompanyId(companyIdFromConfig);
         try {
@@ -109,7 +143,7 @@ export function useWidget() {
         }
       }
 
-      // Fallback: Use local config
+      // Fallback settings
       const fallbackSettings: WidgetSettings = {
         position: config.position as WidgetSettings['position'],
         color: config.color!,
@@ -122,11 +156,9 @@ export function useWidget() {
       };
       setSettings(fallbackSettings);
 
-      // Set default user if not exists
       if (!user) {
-        const savedUserId = localStorage.getItem('comvia_user_id');
         setUser({
-          id: savedUserId || `visitor_${Date.now()}`,
+          id: visitorId,
           name: 'Visitor',
         });
       }
@@ -135,91 +167,74 @@ export function useWidget() {
     };
 
     loadConfig();
-  }, [setSettings, setUser, user]);
+  }, [setSettings, setUser, user, visitorId]);
 
-
-// ✅ Helper function to get or create persistent visitor ID
-const getOrCreateVisitorId = (): string => {
-  // First check localStorage
-  let visitorId = localStorage.getItem('comvia_visitor_id');
-  
-  if (!visitorId) {
-    // Generate new ID
-    visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem('comvia_visitor_id', visitorId);
-    console.log('🆕 [WIDGET] Created new visitor ID:', visitorId);
-  } else {
-    console.log('♻️ [WIDGET] Using existing visitor ID:', visitorId);
-  }
-  
-  return visitorId;
-};
-
-// Update the sendMessage function
-const sendMessage = (content: string, sender: 'user' | 'agent' = 'user') => {
-  // Don't send empty messages
-  if (!content || !content.trim()) return;
-  
-  console.log(`📤 [WIDGET] Sending message: "${content}" from ${sender}`);
-
-  // ✅ ALWAYS get the persistent visitor ID
-  const userId = getOrCreateVisitorId();
-  
-  // Add user message immediately
-  addMessage({ content, sender });
-  
-  // Also update user in store if not set
-  if (!user || user.id !== userId) {
-    setUser({
-      id: userId,
-      name: 'Visitor',
-    });
-  }
-  
-  // Get companyId from global config
-  const windowConfig = (window as any).comviaSettings || {};
-  const companyId = windowConfig.companyId || windowConfig.company_id;
-  
-  console.log(`📤 [WIDGET] User ID: ${userId}, Company ID: ${companyId}`);
-  
-  // Send via REST API
-  widgetAPI.sendMessage({
-    content,
-    sender,
-    userId: userId,
-    timestamp: new Date().toISOString(),
-  }).then(response => {
-    console.log('📥 [WIDGET] Message response:', response);
+  // ✅ Send message (with socket fallback)
+  const sendMessage = useCallback((content: string, sender: 'user' | 'agent' = 'user') => {
+    if (!content || !content.trim()) return;
     
-    if (response.success && response.data) {
-      if (response.data.reply) {
+    console.log(`📤 [WIDGET] Sending message: "${content}" from ${sender}`);
+    
+    // Add user message immediately
+    addMessage({ content, sender });
+    
+    const userId = visitorId;
+    // const windowConfig = (window as any).comviaSettings || {};
+    // const companyId = windowConfig.companyId || windowConfig.company_id;
+    
+    // ✅ Try WebSocket first for real-time
+    if (socketConnected) {
+      // We need to get the conversation ID - try from localStorage
+      const conversationId = localStorage.getItem('comvia_conversation_id');
+      if (conversationId) {
+        const sent = sendSocketMessage(conversationId, content);
+        if (sent) {
+          console.log('✅ [WIDGET] Message sent via WebSocket');
+          return;
+        }
+      }
+    }
+    
+    // ✅ Fallback to REST API
+    console.log('📤 [WIDGET] Falling back to REST API');
+    widgetAPI.sendMessage({
+      content,
+      sender,
+      userId: userId,
+      timestamp: new Date().toISOString(),
+      // ✅ companyId is handled inside widgetAPI.sendMessage
+    }).then(response => {
+      console.log('📥 [WIDGET] Message response:', response);
+      
+      if (response.success && response.data) {
+        if (response.data.reply) {
+          addMessage({
+            content: response.data.reply,
+            sender: 'bot',
+          });
+        }
+        if (response.data.conversationId) {
+          localStorage.setItem('comvia_conversation_id', response.data.conversationId);
+        }
+      } else {
         addMessage({
-          content: response.data.reply,
+          content: '⚠️ Sorry, I couldn\'t process your message. Please try again.',
           sender: 'bot',
         });
       }
-      if (response.data.conversationId) {
-        localStorage.setItem('comvia_conversation_id', response.data.conversationId);
-      }
-    } else {
+    }).catch(err => {
+      console.error('❌ [WIDGET] Error sending message:', err);
       addMessage({
-        content: '⚠️ Sorry, I couldn\'t process your message. Please try again.',
+        content: '⚠️ Connection error. Please try again later.',
         sender: 'bot',
       });
-    }
-  }).catch(err => {
-    console.error('❌ [WIDGET] Error sending message:', err);
-    addMessage({
-      content: '⚠️ Connection error. Please try again later.',
-      sender: 'bot',
     });
-  });
-};
+  }, [addMessage, visitorId, socketConnected, sendSocketMessage]);
 
-  // Load chat history from server
-  const loadChatHistory = async () => {
+  // Load chat history
+  const loadChatHistory = useCallback(async () => {
     try {
-      const response = await widgetAPI.getHistory(user?.id || '');
+      const response = await widgetAPI.getHistory(visitorId);
       if (response.success && response.data) {
         const historyMessages = response.data.map((msg: any) => ({
           id: msg.id || Date.now().toString(),
@@ -233,42 +248,16 @@ const sendMessage = (content: string, sender: 'user' | 'agent' = 'user') => {
     } catch (error) {
       console.error('Failed to load chat history:', error);
     }
-  };
-
-  // Send message
-  // const sendMessage = useCallback((content: string, sender: 'user' | 'agent' = 'user') => {
-  //   // const newMessage = addMessage({ content, sender });
-    
-  //   if (socketConnected) {
-  //     sendSocketMessage(content, sender);
-  //   } else {
-  //     widgetAPI.sendMessage({
-  //       content,
-  //       sender,
-  //       userId: user?.id || 'anonymous',
-  //       timestamp: new Date().toISOString(),
-  //     }).then(response => {
-  //       if (response.success && response.data) {
-  //         addMessage({
-  //           content: response.data.reply || 'Thanks for your message!',
-  //           sender: 'bot',
-  //         });
-  //       }
-  //     }).catch(err => {
-  //       console.error('Failed to send message:', err);
-  //       addMessage({
-  //         content: '⚠️ Failed to send message. Please try again.',
-  //         sender: 'bot',
-  //       });
-  //     });
-  //   }
-  // }, [addMessage, socketConnected, sendSocketMessage, user]);
+  }, [visitorId, setMessages]);
 
   // Send typing indicator
   const sendTyping = useCallback((isTyping: boolean) => {
     setTyping(isTyping);
     if (socketConnected) {
-      sendSocketTyping(isTyping);
+      const conversationId = localStorage.getItem('comvia_conversation_id');
+      if (conversationId) {
+        sendSocketTyping(conversationId, isTyping);
+      }
     }
   }, [setTyping, socketConnected, sendSocketTyping]);
 
