@@ -118,7 +118,7 @@ io.on('connection', (socket) => {
 // Start Server
 // ======================
 // Ensure PORT is a number so the overload for server.listen(number, hostname, callback) is used
-const PORT: number = Number(process.env.PORT) || 3001;
+const PORT: number = Number(process.env.PORT) || 8080;
 
 // ✅ Use PORT from environment exactly as Fly.io provides
 server.listen(PORT, '0.0.0.0', () => {

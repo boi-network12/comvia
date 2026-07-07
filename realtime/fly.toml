@@ -5,7 +5,7 @@ primary_region = "ams"
 [build]
 
 [http_service]
-  internal_port = 3001
+  internal_port = 8080
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
@@ -26,6 +26,6 @@ primary_region = "ams"
 
 [env]
   NODE_ENV = "production"
-  PORT = "3001"
+  PORT = "8080"
   ALLOWED_ORIGINS = "https://comvia-widget.vercel.app,https://comvia-backend-endpoint.vercel.app,https://comvia.vercel.app"
   API_URL = "https://comvia-backend-endpoint.vercel.app/api"
