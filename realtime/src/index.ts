@@ -11,6 +11,33 @@ import { authenticateSocket } from './middleware/auth';
 import { setupPresence } from './handlers/presence';
 import { setupMessageHandlers } from './handlers/messageHandlers';
 
+interface BroadcastMessageData {
+  conversationId: string;
+  message: {
+    _id: string;
+    content: string;
+    senderId: string;
+    senderType: string;
+    createdAt: string;
+  };
+  visitorId: string;
+  conversation: {
+    _id: string;
+    status: string;
+  };
+}
+
+interface BroadcastRequestBody {
+  event: 'new_visitor_message' | 'new_message' | 'visitor_message';
+  data: BroadcastMessageData;
+}
+
+interface BroadcastResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
 const app = express();
 const server = http.createServer(app);
 
@@ -35,6 +62,32 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 app.use(express.json());
+
+app.post('/api/broadcast', express.json(), (req, res) => {
+  try {
+    const { event, data } = req.body;
+    
+    console.log(`📡 [REALTIME] Broadcasting event: ${event}`, data);
+    
+    // Broadcast to all connected clients
+    io.emit(event, data);
+    
+    // If it's a visitor message, also emit as new_message
+    if (event === 'new_visitor_message') {
+      io.to('agents').emit('visitor_message', data);
+      if (data.message) {
+        io.to('agents').emit('new_message', data.message);
+      }
+    }
+
+    
+    res.json({ success: true, message: 'Broadcast sent' });
+  } catch (err : unknown) {
+    const error = err as Error;
+    console.error('❌ [REALTIME] Broadcast error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // ======================
 // Routes

@@ -50,18 +50,45 @@ export const widgetAPI = {
   },
 
   // Send message (fallback when socket is not available)
+  // sendMessage: async (data: {
+  //   content: string;
+  //   sender: string;
+  //   userId: string;
+  //   timestamp: string;
+  // }): Promise<ApiResponse<{ reply?: string }>> => {
+  //   try {
+  //     const response = await api.post('/widget/message', data);
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error('Failed to send message:', error);
+  //     return { success: false, message: 'Failed to send message' };
+  //   }
+  // },
+  
   sendMessage: async (data: {
     content: string;
     sender: string;
     userId: string;
     timestamp: string;
-  }): Promise<ApiResponse<{ reply?: string }>> => {
+  }): Promise<ApiResponse<{ reply?: string; messageId?: string }>> => {
     try {
-      const response = await api.post('/widget/message', data);
+      // Use the new visitor endpoint
+      const response = await api.post('/widget/visitor/message', {
+        content: data.content,
+        sender: data.sender,
+        userId: data.userId,
+        timestamp: data.timestamp
+      });
       return response.data;
     } catch (error) {
       console.error('Failed to send message:', error);
-      return { success: false, message: 'Failed to send message' };
+      return { 
+        success: false, 
+        message: 'Failed to send message',
+        data: {
+          reply: '⚠️ Sorry, I\'m having trouble connecting. Please try again.'
+        }
+      };
     }
   },
 

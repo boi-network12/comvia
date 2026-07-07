@@ -8,6 +8,7 @@ const router = Router();
 // PUBLIC - widget uses this to get settings
 router.get('/:companyId/widget', async (req, res) => {
   const { companyId } = req.params;
+
   const user = await User.findOne({ companyId }).select('companyName companyLogo widgetSettings');
   
   if (!user) {
@@ -17,16 +18,9 @@ router.get('/:companyId/widget', async (req, res) => {
   res.json({
     success: true,
     data: {
-      companyName: user.companyName || 'Comvia',
+      companyName: user.companyName || null,
       companyLogo: user.companyLogo,
-      widgetSettings: user.widgetSettings || {
-        position: 'bottom-right',
-        color: '#F97316',
-        icon: 'chat',
-        font: 'inter',
-        welcomeMessage: 'Hi there! 👋',
-        quickReplies: ['Pricing', 'Features', 'Support', 'Demo'],
-      },
+      widgetSettings: user.widgetSettings || {},
     },
   });
 });

@@ -3,7 +3,12 @@ import { Server, Socket } from 'socket.io';
 import axios from 'axios';
 import { trackVisitor } from '../middleware/visitorTracking';
 
-const API_URL = process.env.API_URL || 'http://localhost:8080/api';
+// Add this interface
+interface AgentJoinData {
+  userId: string;
+  name: string;
+  role: 'admin' | 'agent';
+}
 
 export function setupSocketHandlers(
   socket: Socket,
@@ -17,6 +22,25 @@ export function setupSocketHandlers(
     userSockets.set(socket.id, userId);
     activeUsers.set(userId, socket.id);
   }
+
+  // ✅ NEW: Handle agents joining the agents room
+  socket.on('join_agents', () => {
+    // Check if user is an agent or admin
+    const role = socket.data.user?.role;
+    if (role === 'admin' || role === 'agent') {
+      socket.join('agents');
+      console.log(`👤 Agent joined agents room: ${socket.data.user?.name || socket.id}`);
+      
+      // Notify other agents
+      socket.to('agents').emit('agent_joined', {
+        userId: socket.data.user?.id || socket.id,
+        name: socket.data.user?.name || 'Agent',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      console.log(`⚠️ Non-agent tried to join agents room: ${socket.id}`);
+    }
+  });
 
   // Handle joining conversation
   socket.on('join_conversation', (conversationId: string) => {

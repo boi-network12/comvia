@@ -21,6 +21,8 @@ export interface WidgetConfig {
   companyId?: string;
 }
 
+let isInitializing = false; // ✅ Add this
+
 // Global widget instance
 let widgetInstance: ReactDOM.Root | null = null;
 let widgetContainer: HTMLElement | null = null;
@@ -28,11 +30,19 @@ let isInitialized = false;
 
 // Main initialization function
 export function initComviaWidget(config: WidgetConfig = {}) {
+  // ✅ Check if already initializing
+  if (isInitializing) {
+    console.log('⏳ Widget initialization already in progress...');
+    return widgetContainer;
+  }
+
   // Don't initialize twice
   if (isInitialized) {
     console.log('💬 Widget already initialized');
     return widgetContainer;
   }
+
+  isInitializing = true;
 
   // Merge with existing config
   const existingConfig = (window as any).comviaSettings || {};

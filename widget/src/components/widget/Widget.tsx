@@ -1,4 +1,5 @@
 // widget/src/components/widget/Widget.tsx
+
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWidgetContext } from '../../context/WidgetContext';
@@ -30,15 +31,18 @@ export const Widget: React.FC = () => {
   } = useWidgetContext();
   const [unreadCount] = useState(0);
   const isMobile = useIsMobile();
-
   const widgetRef = useRef<HTMLDivElement>(null);
+  const connectionAttempted = useRef(false);
 
-  // Try to connect on mount
+  // Only connect once when component mounts
   useEffect(() => {
-    if (!isConnected && !isLoading) {
+    // ✅ Prevent multiple connection attempts
+    if (!connectionAttempted.current && !isConnected && !isLoading) {
+      connectionAttempted.current = true;
+      console.log('🔌 Widget mounting, initiating connection...');
       connectSocket();
     }
-  }, [isConnected, isLoading, connectSocket]);
+  }, []); // Empty dependency array
 
   // Close widget on escape key
   useEffect(() => {
@@ -104,7 +108,6 @@ export const Widget: React.FC = () => {
                           'Inter, system-ui, sans-serif',
             }}
           >
-
             {/* Header */}
             <WidgetHeader onToggleMinimize={() => {}} onClose={closeWidget} />
 
@@ -134,7 +137,10 @@ export const Widget: React.FC = () => {
                     <p className="text-xs text-yellow-700 dark:text-yellow-400">
                       ⚠️ {error || 'Connecting to chat server...'}
                       <button 
-                        onClick={connectSocket}
+                        onClick={() => {
+                          connectionAttempted.current = false;
+                          connectSocket();
+                        }}
                         className="ml-2 underline font-medium"
                       >
                         Retry

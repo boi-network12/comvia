@@ -186,32 +186,76 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
   };
 
   // Send message
+  // const sendMessage = (content: string, sender: 'user' | 'agent' = 'user') => {
+  //   addMessage({ content, sender });
+    
+  //   // if (socketConnected) {
+  //   //   sendSocketMessage(content, sender);
+  //   // } else {
+  //   //   widgetAPI.sendMessage({
+  //   //     content,
+  //   //     sender,
+  //   //     userId: user?.id || 'anonymous',
+  //   //     timestamp: new Date().toISOString(),
+  //   //   }).then(response => {
+  //   //     if (response.success && response.data) {
+  //   //       addMessage({
+  //   //         content: response.data.reply || 'Thanks for your message!',
+  //   //         sender: 'bot',
+  //   //       });
+  //   //     }
+  //   //   }).catch(err => {
+  //   //     console.error('Failed to send message:', err);
+  //   //     addMessage({
+  //   //       content: '⚠️ Failed to send message. Please try again.',
+  //   //       sender: 'bot',
+  //   //     });
+  //   //   });
+  //   // }
+  //   // Try socket first if connected
+  //   if (socketConnected) {
+  //     sendSocketMessage(content, sender);
+  //     return;
+  //   }
+  // };
+
   const sendMessage = (content: string, sender: 'user' | 'agent' = 'user') => {
+    // Add user message immediately
     addMessage({ content, sender });
     
+    // Try socket first if connected
     if (socketConnected) {
       sendSocketMessage(content, sender);
-    } else {
-      widgetAPI.sendMessage({
-        content,
-        sender,
-        userId: user?.id || 'anonymous',
-        timestamp: new Date().toISOString(),
-      }).then(response => {
-        if (response.success && response.data) {
-          addMessage({
-            content: response.data.reply || 'Thanks for your message!',
-            sender: 'bot',
-          });
-        }
-      }).catch(err => {
-        console.error('Failed to send message:', err);
+      return;
+    }
+    
+    // Fallback to REST API
+    widgetAPI.sendMessage({
+      content,
+      sender,
+      userId: user?.id || localStorage.getItem('comvia_user_id') || `visitor_${Date.now()}`,
+      timestamp: new Date().toISOString(),
+    }).then(response => {
+      if (response.success && response.data) {
+        // Add bot reply
         addMessage({
-          content: '⚠️ Failed to send message. Please try again.',
+          content: response.data.reply || 'Thanks for your message!',
           sender: 'bot',
         });
+      } else {
+        // Show error
+        addMessage({
+          content: '⚠️ Sorry, I couldn\'t process your message. Please try again.',
+          sender: 'bot',
+        });
+      }
+    }).catch(err => {
+      console.error('Failed to send message:', err);
+      addMessage({
+        content: '⚠️ Connection error. Please try again later.',
+        sender: 'bot',
       });
-    }
+    });
   };
 
   // Send typing indicator
@@ -222,12 +266,24 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Connect socket when widget opens
+  // // Connect socket when widget opens
+  // useEffect(() => {
+  //   if (isOpen && !socketConnected) {
+  //     connectSocket();
+  //   }
+  // }, [isOpen, socketConnected, connectSocket]);
+  
+  // ✅ Instead, only connect when widget mounts:
   useEffect(() => {
-    if (isOpen && !socketConnected) {
-      connectSocket();
+    // Only connect if not already connected and not loading
+    if (!socketConnected && !isLoading) {
+      // Small delay to prevent race conditions
+      const timer = setTimeout(() => {
+        connectSocket();
+      }, 200);
+      return () => clearTimeout(timer);
     }
-  }, [isOpen, socketConnected, connectSocket]);
+  }, []);
 
   const value: WidgetContextType = {
     isOpen,

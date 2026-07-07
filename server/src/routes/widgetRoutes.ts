@@ -10,6 +10,7 @@ import {
 import { getVisitors, trackVisitor } from '../controllers/visitorController';
 import Conversation from '../models/Conversation';
 import Message from '../models/Message';
+import { getAutoReply } from '../helper/replyHelper';
 
 const router = Router();
 
@@ -59,6 +60,103 @@ router.get('/history/:visitorId', async (req, res) => {
     });
   }
 });
+
+router.post('/visitor/message', async (req, res) => {
+  try {
+    const { content, sender, userId, timestamp } = req.body;
+    
+    console.log(`📨 Visitor message from ${userId}:`, content);
+
+    // Find or create conversation for this visitor
+    let conversation = await Conversation.findOne({
+      'participants.userId': userId,
+      'participants.userType': 'visitor',
+      isActive: true
+    });
+
+    if (!conversation) {
+      // Create new conversation
+      conversation = await Conversation.create({
+        userId: userId,
+        visitorId: userId,
+        title: `Chat with Visitor`,
+        status: 'open',
+        channel: 'widget',
+        participants: [{
+          userId: userId,
+          userType: 'visitor',
+          name: 'Visitor',
+          joinedAt: new Date()
+        }],
+        metadata: {
+          visitorName: 'Visitor',
+          page: req.headers.referer || 'Unknown'
+        },
+        lastMessageAt: new Date()
+      });
+      console.log(`✅ [WIDGET] Created new conversation: ${conversation._id}`);
+    }
+
+    // Save message
+    const message = await Message.create({
+      conversationId: conversation._id,
+      senderId: userId,
+      senderType: 'visitor',
+      content: content,
+      type: 'text',
+      status: 'sent'
+    });
+
+    // Update conversation
+    conversation.lastMessageAt = new Date();
+    conversation.lastMessagePreview = content.substring(0, 100);
+    conversation.unreadCount = (conversation.unreadCount || 0) + 1;
+    await conversation.save();
+
+    // process.env.REALTIME_URL ||
+    const RealtimeUrl =  'https://comvia-realtime.fly.dev'
+
+    try {
+      const realtimeUrl = RealtimeUrl;
+      await fetch(`${realtimeUrl}/api/broadcast`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: 'new_visitor_message',
+          data: {
+            conversationId: conversation._id,
+            message: message,
+            visitorId: userId
+          }
+        })
+      });
+      console.log(`📤 [WIDGET] Broadcasted to realtime server`);
+    } catch (broadcastError: unknown) {
+      const bcError = broadcastError as Error;
+      console.log('⚠️ [WIDGET] Could not broadcast to realtime:', bcError.message);
+    }
+
+    // Get auto-reply (you can customize this)
+    const autoReply = getAutoReply(content);
+
+    // Send response
+    res.json({
+      success: true,
+      data: {
+        reply: autoReply,
+        messageId: message._id
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error handling visitor message:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process message'
+    });
+  }
+});
+
 
 router.use(protect);
 

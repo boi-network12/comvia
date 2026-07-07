@@ -1,8 +1,8 @@
 // src/components/Widget/WidgetHeader.tsx
 
 import React from 'react';
-import { Minimize2, Maximize2, X } from 'lucide-react';
-import { useWidget } from '../../hooks/useWidget';
+import { Minimize2, Maximize2, X, Wifi, WifiOff } from 'lucide-react';
+import { useWidgetContext } from '../../context';
 
 interface WidgetHeaderProps {
   onToggleMinimize: () => void;
@@ -10,7 +10,7 @@ interface WidgetHeaderProps {
 }
 
 export const WidgetHeader: React.FC<WidgetHeaderProps> = ({ onClose }) => {
-  const { settings, isMinimized, minimizeWidget, maximizeWidget } = useWidget();
+  const { settings, isMinimized, minimizeWidget, maximizeWidget, isConnected } = useWidgetContext();
 
   const color = settings?.color || '#F97316';
   const companyName = settings?.companyName || 'Comvia';
@@ -38,17 +38,35 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({ onClose }) => {
             </div>
           )}
           
-          <div className="min-w-0">
+           <div className="min-w-0">
             <p className="font-semibold text-sm truncate">{companyName}</p>
-            <p className="text-xs opacity-80 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-green-400 rounded-full inline-block" />
-              Online
-            </p>
+            <div className="flex items-center gap-1.5">
+              {/* Connection Status Indicator */}
+              {isConnected ? (
+                <>
+                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full inline-block animate-pulse" />
+                  <span className="text-xs opacity-80">Online</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full inline-block animate-pulse" />
+                  <span className="text-xs opacity-80">Connecting...</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-1">
+          {/* Connection indicator icon */}
+          <div className="hidden sm:block mr-1">
+            {isConnected ? (
+              <Wifi className="w-3.5 h-3.5 opacity-70" />
+            ) : (
+              <WifiOff className="w-3.5 h-3.5 opacity-70" />
+            )}
+          </div>
           <button
             onClick={isMinimized ? maximizeWidget : minimizeWidget}
             className="hidden md:block p-1.5 rounded-lg hover:bg-white/20 transition-colors"
@@ -68,6 +86,14 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({ onClose }) => {
             <X className="w-4 h-4" />
           </button>
         </div>
+        {!isConnected && (
+        <div className="mt-2 px-2 py-0.5 bg-black/20 rounded text-xs text-center">
+          <span className="flex items-center justify-center gap-1.5">
+            <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full inline-block animate-pulse" />
+            Reconnecting...
+          </span>
+        </div>
+      )}
       </div>
     </div>
   );

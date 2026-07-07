@@ -4,6 +4,7 @@ import axios, { AxiosInstance } from 'axios';
 // Types
 export interface Message {
   _id: string;
+  id: string;
   conversationId: string;
   senderId: string;
   senderType: 'user' | 'agent' | 'system' | 'visitor';

@@ -2,22 +2,37 @@
 import { io, Socket } from "socket.io-client";
 import { Message } from "./conversations";
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+
+interface VisitorMessageData {
+  conversationId: string;
+  message: Message;
+  visitorId: string;
+  conversation: {
+    _id: string;
+    status: string;
+  };
+}
+
+// type MessageHandler = (message: Message) => void;
+type VisitorMessageHandler = (data: VisitorMessageData) => void;
+// type ConnectionCallback = (connected: boolean) => void;
+
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://comvia-realtime.fly.dev';
 
 class RealtimeService {
   private socket: Socket | null = null;
   private messageHandlers: ((message: Message) => void)[] = [];
+  private visitorMessageHandlers: VisitorMessageHandler[] = [];
   private connectionCallbacks: ((connected: boolean) => void)[] = [];
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
 
-  connect(token: string) {
+  connect(token: string): Socket | null {
     if (this.socket?.connected) {
       console.log('🟢 Already connected to realtime');
       return this.socket;
     }
 
-    // Clean up old socket
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
@@ -38,6 +53,9 @@ class RealtimeService {
       console.log('🟢 Realtime connected');
       this.reconnectAttempts = 0;
       this.notifyConnectionCallbacks(true);
+
+      // 🔥 Join agents room to receive visitor messages
+      this.socket?.emit('join_agents');
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -53,9 +71,24 @@ class RealtimeService {
       }
     });
 
-    this.socket.on('visitor_message', (data: Message) => {
-      console.log('📨 Visitor message received:', data);
-      this.messageHandlers.forEach(handler => handler(data));
+    // this.socket.on('visitor_message', (data: Message) => {
+    //   console.log('📨 Visitor message received:', data);
+    //   this.messageHandlers.forEach(handler => handler(data));
+    // });
+     // 🔥 Listen for visitor messages
+    this.socket.on('visitor_message', (data: VisitorMessageData) => {
+      console.log('📨 [WEB] Visitor message received:', data);
+      this.visitorMessageHandlers.forEach(handler => handler(data));
+      
+      if (data.message) {
+        this.messageHandlers.forEach(handler => handler(data.message));
+      }
+    });
+
+     // 🔥 Listen for new visitor message event
+    this.socket.on('new_visitor_message', (data: VisitorMessageData) => {
+      console.log('📨 [WEB] New visitor message event:', data);
+      this.visitorMessageHandlers.forEach(handler => handler(data));
     });
 
     this.socket.on('new_message', (data: Message) => {
@@ -70,11 +103,12 @@ class RealtimeService {
     return this.socket;
   }
 
-  disconnect() {
+  disconnect(): void {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
       this.messageHandlers = [];
+      this.visitorMessageHandlers = [];
       this.connectionCallbacks = [];
       console.log('🔌 Realtime disconnected manually');
     }
@@ -84,6 +118,14 @@ class RealtimeService {
     this.messageHandlers.push(handler);
     return () => {
       this.messageHandlers = this.messageHandlers.filter(h => h !== handler);
+    };
+  }
+
+  // 🔥 NEW: Register visitor message handler
+  onVisitorMessage(handler: VisitorMessageHandler): () => void {
+    this.visitorMessageHandlers.push(handler);
+    return () => {
+      this.visitorMessageHandlers = this.visitorMessageHandlers.filter(h => h !== handler);
     };
   }
 
