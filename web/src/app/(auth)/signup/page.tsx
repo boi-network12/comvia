@@ -280,7 +280,7 @@ export default function SignupPage() {
         </div>
 
         {/* Cloudflare Turnstile Captcha */}
-        <div className="pt-2">
+        {/* <div className="pt-2">
           <div
             ref={captchaContainerRef}
             className="flex justify-center min-h-[65px]"
@@ -300,7 +300,7 @@ export default function SignupPage() {
               ✓ Verification complete
             </p>
           )}
-        </div>
+        </div> */}
 
         {/* Submit */}
         <button
