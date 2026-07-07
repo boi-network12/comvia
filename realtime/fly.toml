@@ -1,31 +1,35 @@
-# fly.toml
-app = "comvia-realtime"
-primary_region = "ams"
+# fly.toml app configuration file generated for comvia-realtime on 2026-07-07T01:47:49Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'comvia-realtime'
+primary_region = 'ams'
 
 [build]
+
+[env]
+  ALLOWED_ORIGINS = 'https://comvia-widget.vercel.app,https://comvia-backend-endpoint.vercel.app,https://comvia.vercel.app'
+  API_URL = 'https://comvia-backend-endpoint.vercel.app/api'
+  NODE_ENV = 'production'
+  PORT = '8080'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
-  processes = ["app"]
+  processes = ['app']
 
-[[http_service.checks]]
-  grace_period = "10s"
-  interval = "15s"
-  method = "GET"
-  timeout = "2s"
-  path = "/health"
+  [[http_service.checks]]
+    interval = '15s'
+    timeout = '2s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/health'
 
 [[vm]]
-  cpu_kind = "shared"
+  cpu_kind = 'shared'
   cpus = 1
   memory_mb = 256
-
-[env]
-  NODE_ENV = "production"
-  PORT = "8080"
-  ALLOWED_ORIGINS = "https://comvia-widget.vercel.app,https://comvia-backend-endpoint.vercel.app,https://comvia.vercel.app"
-  API_URL = "https://comvia-backend-endpoint.vercel.app/api"
