@@ -33,11 +33,7 @@ export default function Home() {
       <Footer />
 
       <WidgetLoader 
-        position="bottom-right"
-        color="#F97316"
-        icon="chat"
-        companyName="Comvia support"
-        companyLogo="https://res.cloudinary.com/dypgxulgp/image/upload/v1783365898/company-logos/rxpufzatykimmoka45wi.png"
+         companyId="comvia_1783365155343_45eccxrab"
       />
     </>
   );

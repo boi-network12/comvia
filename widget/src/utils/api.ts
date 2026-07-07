@@ -3,15 +3,26 @@ import axios from 'axios';
 import type { ApiResponse, Message } from '../types';
 import { WIDGET_CONFIG } from '../config';
 
+// ✅ Get API URL from multiple sources
 const getApiUrl = () => {
-  return (window as any).comviaSettings?.apiUrl || 
-         import.meta.env.VITE_API_URL || 
-         WIDGET_CONFIG.API_URL;
+  // 1. Check window.comviaSettings (set by widget initialization)
+  const windowConfig = (window as any).comviaSettings || {};
+  if (windowConfig.apiUrl) {
+    return windowConfig.apiUrl.replace(/\/$/, '');
+  }
+  
+  // 2. Check Vite environment variable
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/$/, '');
+  }
+  
+  // 3. Fallback to config
+  return WIDGET_CONFIG.API_URL.replace(/\/$/, '');
 };
 
 const api = axios.create({
   baseURL: getApiUrl(),
-  timeout: WIDGET_CONFIG.TIMEOUTS.api,
+  timeout: WIDGET_CONFIG.TIMEOUTS.api || 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -19,7 +30,7 @@ const api = axios.create({
 
 // Add token interceptor
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem(WIDGET_CONFIG.STORAGE_KEYS.TOKEN);
+  const token = localStorage.getItem(WIDGET_CONFIG.STORAGE_KEYS?.TOKEN || 'comvia_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -31,7 +42,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem(WIDGET_CONFIG.STORAGE_KEYS.TOKEN);
+      localStorage.removeItem(WIDGET_CONFIG.STORAGE_KEYS?.TOKEN || 'comvia_token');
     }
     return Promise.reject(error);
   }
@@ -49,39 +60,41 @@ export const widgetAPI = {
     }
   },
 
-  // Send message (fallback when socket is not available)
-  // sendMessage: async (data: {
-  //   content: string;
-  //   sender: string;
-  //   userId: string;
-  //   timestamp: string;
-  // }): Promise<ApiResponse<{ reply?: string }>> => {
-  //   try {
-  //     const response = await api.post('/widget/message', data);
-  //     return response.data;
-  //   } catch (error) {
-  //     console.error('Failed to send message:', error);
-  //     return { success: false, message: 'Failed to send message' };
-  //   }
-  // },
-  
+  // ✅ CRITICAL: Send message with companyId
   sendMessage: async (data: {
     content: string;
     sender: string;
     userId: string;
     timestamp: string;
-  }): Promise<ApiResponse<{ reply?: string; messageId?: string }>> => {
+  }): Promise<ApiResponse<{ reply?: string; messageId?: string; conversationId?: string }>> => {
     try {
-      // Use the new visitor endpoint
+      // ✅ Get companyId from window.comviaSettings
+      const windowConfig = (window as any).comviaSettings || {};
+      const companyId = windowConfig.companyId || windowConfig.company_id;
+      
+      console.log('📤 [WIDGET] Sending message:', {
+        content: data.content,
+        userId: data.userId,
+        companyId: companyId
+      });
+
+      // Use the visitor message endpoint
       const response = await api.post('/widget/visitor/message', {
         content: data.content,
         sender: data.sender,
         userId: data.userId,
-        timestamp: data.timestamp
+        timestamp: data.timestamp,
+        companyId: companyId // ✅ Include companyId
       });
+      
+      console.log('📥 [WIDGET] Message response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error('❌ [WIDGET] Failed to send message:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Response data:', error.response?.data);
+        console.error('Response status:', error.response?.status);
+      }
       return { 
         success: false, 
         message: 'Failed to send message',
@@ -114,10 +127,11 @@ export const widgetAPI = {
     }
   },
 
-  // ✅ NEW: Get company settings by company ID
+  // ✅ Get company settings by company ID
   getCompanySettings: async (companyId: string): Promise<ApiResponse<any>> => {
     try {
       const response = await api.get(`/company/${companyId}/widget`);
+      console.log('📥 [WIDGET] Company settings response:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Failed to get company settings:', error);

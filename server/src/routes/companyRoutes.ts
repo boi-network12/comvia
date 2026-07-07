@@ -7,22 +7,39 @@ const router = Router();
 
 // PUBLIC - widget uses this to get settings
 router.get('/:companyId/widget', async (req, res) => {
-  const { companyId } = req.params;
+  try {
+    const { companyId } = req.params;
+    
+    console.log(`📤 [SERVER] Fetching settings for company: ${companyId}`);
 
-  const user = await User.findOne({ companyId }).select('companyName companyLogo widgetSettings');
-  
-  if (!user) {
-    return res.status(404).json({ success: false, message: 'Company not found' });
+    const user = await User.findOne({ companyId })
+      .select('companyName companyLogo widgetSettings');
+    
+    if (!user) {
+      console.log(`❌ [SERVER] Company not found: ${companyId}`);
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Company not found' 
+      });
+    }
+    
+    console.log(`✅ [SERVER] Found company: ${user.companyName}`);
+    
+    res.json({
+      success: true,
+      data: {
+        companyName: user.companyName,
+        companyLogo: user.companyLogo,
+        widgetSettings: user.widgetSettings || {}
+      },
+    });
+  } catch (error) {
+    console.error('❌ [SERVER] Error fetching company settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch company settings'
+    });
   }
-  
-  res.json({
-    success: true,
-    data: {
-      companyName: user.companyName || null,
-      companyLogo: user.companyLogo,
-      widgetSettings: user.widgetSettings || {},
-    },
-  });
 });
 
 // PRIVATE - user gets their own company ID

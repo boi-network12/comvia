@@ -13,7 +13,13 @@ export const getConversations = async (req: Request, res: Response, next: NextFu
     const userId = req.user?.id;
     const { status, assignedTo, page = 1, limit = 20, search } = req.query;
 
-    const query: any = { userId };
+     const query: any = {};
+    
+    // ✅ Find conversations assigned to this user OR where user is the company
+    query.$or = [
+      { assignedTo: userId },
+      { companyId: req.user?.companyId } // If we store companyId on user
+    ];
 
     if (status) query.status = status;
     if (assignedTo) query.assignedTo = assignedTo;
@@ -38,7 +44,7 @@ export const getConversations = async (req: Request, res: Response, next: NextFu
 
     // Get unread count
     const unreadCount = await Conversation.countDocuments({
-      userId,
+      ...query,
       unreadCount: { $gt: 0 },
     });
 

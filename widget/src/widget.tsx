@@ -46,10 +46,39 @@ export function initComviaWidget(config: WidgetConfig = {}) {
 
   // Merge with existing config
   const existingConfig = (window as any).comviaSettings || {};
-  const mergedConfig = { ...existingConfig, ...config };
+
+  // ✅ Check for data-settings attribute on script tag
+  const scripts = document.querySelectorAll('script');
+  let settingsAttr = null;
+  for (const script of scripts) {
+    const attr = script.getAttribute('data-settings');
+    if (attr) {
+      settingsAttr = attr;
+      break;
+    }
+  }
+
+  let parsedSettings = {};
+  if (settingsAttr) {
+    try {
+      parsedSettings = JSON.parse(decodeURIComponent(settingsAttr));
+      console.log('📦 [WIDGET] Parsed settings from data-settings:', parsedSettings);
+    } catch (e) {
+      console.warn('⚠️ [WIDGET] Failed to parse data-settings:', e);
+    }
+  }
+
+  const mergedConfig = { ...parsedSettings, ...existingConfig, ...config };
+
+  // ✅ Ensure apiUrl is set correctly
+  if (!mergedConfig.apiUrl) {
+    mergedConfig.apiUrl = import.meta.env.VITE_API_URL || 'https://comvia-backend-endpoint.vercel.app/api';
+  }
   
   // Store config globally
   (window as any).comviaSettings = mergedConfig;
+
+  console.log('💬 [WIDGET] Final config:', mergedConfig);
 
   // Remove existing widget if any
   destroyWidget();
@@ -89,65 +118,112 @@ export function destroyWidget() {
 // ✅ IMPROVED: Better auto-initialization with multiple methods
 // ============================================================
 
-(function autoInit() {
-  // Method 1: Check for window.comviaSettings
+// (function autoInit() {
+//   // Method 1: Check for window.comviaSettings
+//   const config = (window as any).comviaSettings || {};
+
+//   // Method 2: Check for data attributes on script tag
+//   const scripts = document.querySelectorAll('script');
+//   let currentScript: HTMLScriptElement | null = null;
+  
+//   for (const script of scripts) {
+//     if (script.src && script.src.includes('comvia-widget')) {
+//       currentScript = script;
+//       break;
+//     }
+//   }
+
+//   if (currentScript) {
+//     const dataConfig = (currentScript as HTMLElement).dataset;
+//     const mappedConfig: Record<string, any> = {};
+//     Object.keys(dataConfig).forEach(key => {
+//       const value = dataConfig[key];
+//       if (key === 'position') mappedConfig.position = value;
+//       else if (key === 'color') mappedConfig.color = value;
+//       else if (key === 'icon') mappedConfig.icon = value;
+//       else if (key === 'companyName') mappedConfig.companyName = value;
+//       else if (key === 'companyLogo') mappedConfig.companyLogo = value;
+//       else if (key === 'apiUrl') mappedConfig.apiUrl = value;
+//       else if (key === 'socketUrl') mappedConfig.socketUrl = value;
+//       else if (key === 'welcomeMessage') mappedConfig.welcomeMessage = value;
+//       else if (key === 'font') mappedConfig.font = value;
+//       else if (key === 'companyId') mappedConfig.companyId = value;
+//       else if (key === 'quickReplies' && value) {
+//         try {
+//           mappedConfig.quickReplies = JSON.parse(value);
+//         } catch {
+//           mappedConfig.quickReplies = value.split(',').map(s => s.trim());
+//         }
+//       }
+//     });
+//     Object.assign(config, mappedConfig);
+//   }
+
+//   // Method 3: Check for URL parameters (for testing)
+//   try {
+//     const params = new URLSearchParams(window.location.search);
+//     const settingsParam = params.get('comvia_settings');
+//     if (settingsParam) {
+//       const urlConfig = JSON.parse(decodeURIComponent(settingsParam));
+//       Object.assign(config, urlConfig);
+//     }
+//   } catch (e) {
+//     // Ignore URL parsing errors
+//   }
+
+//   // ✅ Check if we should auto-init
+//   const shouldAutoInit = config.position || config.color || config.companyName || config.companyId;
+  
+//   if (shouldAutoInit) {
+//     const initFn = () => {
+//       // Wait a tiny bit to ensure DOM is ready
+//       setTimeout(() => {
+//         initComviaWidget(config);
+//       }, 10);
+//     };
+
+//     if (document.readyState === 'loading') {
+//       document.addEventListener('DOMContentLoaded', initFn);
+//     } else if (document.readyState === 'complete') {
+//       initFn();
+//     } else {
+//       // DOM is interactive but not complete yet
+//       if (document.body) {
+//         initFn();
+//       } else {
+//         document.addEventListener('DOMContentLoaded', initFn);
+//       }
+//     }
+//   }
+// })();
+
+   (function autoInit() {
   const config = (window as any).comviaSettings || {};
 
-  // Method 2: Check for data attributes on script tag
+  // Check for data-settings attribute
   const scripts = document.querySelectorAll('script');
-  let currentScript: HTMLScriptElement | null = null;
-  
+  let settingsAttr = null;
   for (const script of scripts) {
-    if (script.src && script.src.includes('comvia-widget')) {
-      currentScript = script;
+    const attr = script.getAttribute('data-settings');
+    if (attr) {
+      settingsAttr = attr;
       break;
     }
   }
-
-  if (currentScript) {
-    const dataConfig = (currentScript as HTMLElement).dataset;
-    const mappedConfig: Record<string, any> = {};
-    Object.keys(dataConfig).forEach(key => {
-      const value = dataConfig[key];
-      if (key === 'position') mappedConfig.position = value;
-      else if (key === 'color') mappedConfig.color = value;
-      else if (key === 'icon') mappedConfig.icon = value;
-      else if (key === 'companyName') mappedConfig.companyName = value;
-      else if (key === 'companyLogo') mappedConfig.companyLogo = value;
-      else if (key === 'apiUrl') mappedConfig.apiUrl = value;
-      else if (key === 'socketUrl') mappedConfig.socketUrl = value;
-      else if (key === 'welcomeMessage') mappedConfig.welcomeMessage = value;
-      else if (key === 'font') mappedConfig.font = value;
-      else if (key === 'companyId') mappedConfig.companyId = value;
-      else if (key === 'quickReplies' && value) {
-        try {
-          mappedConfig.quickReplies = JSON.parse(value);
-        } catch {
-          mappedConfig.quickReplies = value.split(',').map(s => s.trim());
-        }
-      }
-    });
-    Object.assign(config, mappedConfig);
-  }
-
-  // Method 3: Check for URL parameters (for testing)
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const settingsParam = params.get('comvia_settings');
-    if (settingsParam) {
-      const urlConfig = JSON.parse(decodeURIComponent(settingsParam));
-      Object.assign(config, urlConfig);
+  
+  if (settingsAttr) {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(settingsAttr));
+      Object.assign(config, parsed);
+    } catch (e) {
+      console.warn('⚠️ Failed to parse data-settings:', e);
     }
-  } catch (e) {
-    // Ignore URL parsing errors
   }
 
-  // ✅ Check if we should auto-init
   const shouldAutoInit = config.position || config.color || config.companyName || config.companyId;
   
   if (shouldAutoInit) {
     const initFn = () => {
-      // Wait a tiny bit to ensure DOM is ready
       setTimeout(() => {
         initComviaWidget(config);
       }, 10);
@@ -158,7 +234,6 @@ export function destroyWidget() {
     } else if (document.readyState === 'complete') {
       initFn();
     } else {
-      // DOM is interactive but not complete yet
       if (document.body) {
         initFn();
       } else {

@@ -11,6 +11,7 @@ import { getVisitors, trackVisitor } from '../controllers/visitorController';
 import Conversation from '../models/Conversation';
 import Message from '../models/Message';
 import { getAutoReply } from '../helper/replyHelper';
+import User from '../models/User';
 
 const router = Router();
 
@@ -63,7 +64,7 @@ router.get('/history/:visitorId', async (req, res) => {
 
 router.post('/visitor/message', async (req, res) => {
   try {
-    const { content, sender, userId, timestamp } = req.body;
+    const { content, sender, userId, timestamp, companyId } = req.body;
     
     console.log(`📨 Visitor message from ${userId}:`, content);
 
@@ -71,26 +72,48 @@ router.post('/visitor/message', async (req, res) => {
     let conversation = await Conversation.findOne({
       'participants.userId': userId,
       'participants.userType': 'visitor',
+      companyId: companyId,
       isActive: true
     });
 
     if (!conversation) {
+      // ✅ Find the company user to get settings
+      const companyUser = await User.findOne({ companyId: companyId });
+
+       if (!companyUser) {
+        console.error(`❌ Company not found: ${companyId}`);
+        return res.status(404).json({
+          success: false,
+          message: 'Company not found'
+        });
+      }
+
+
       // Create new conversation
       conversation = await Conversation.create({
-        userId: userId,
+        userId: companyUser._id,
         visitorId: userId,
+        companyId: companyId,
         title: `Chat with Visitor`,
         status: 'open',
         channel: 'widget',
+        assignedTo: companyUser._id, 
+        assignedToName: companyUser.name,
         participants: [{
           userId: userId,
           userType: 'visitor',
           name: 'Visitor',
           joinedAt: new Date()
+        },{
+          userId: companyUser._id,
+          userType: 'agent',
+          name: companyUser.name,
+          joinedAt: new Date()
         }],
         metadata: {
           visitorName: 'Visitor',
-          page: req.headers.referer || 'Unknown'
+          page: req.headers.referer || 'Unknown',
+          companyId: companyId,
         },
         lastMessageAt: new Date()
       });
@@ -126,7 +149,9 @@ router.post('/visitor/message', async (req, res) => {
           data: {
             conversationId: conversation._id,
             message: message,
-            visitorId: userId
+            visitorId: userId,
+            companyId: companyId,
+            conversation: conversation
           }
         })
       });
@@ -144,7 +169,8 @@ router.post('/visitor/message', async (req, res) => {
       success: true,
       data: {
         reply: autoReply,
-        messageId: message._id
+        messageId: message._id,
+        conversationId: conversation._id
       }
     });
 

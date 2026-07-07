@@ -1,12 +1,35 @@
 // widget/src/config/index.ts
 
 
+// ✅ Get the correct API URL
+const getApiUrl = () => {
+  // Check window config first
+  if (typeof window !== 'undefined' && (window as any).comviaSettings?.apiUrl) {
+    return (window as any).comviaSettings.apiUrl;
+  }
+  // Check Vite env
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // Production fallback
+  return 'https://comvia-backend-endpoint.vercel.app/api';
+};
+
+const getSocketUrl = () => {
+  if (typeof window !== 'undefined' && (window as any).comviaSettings?.socketUrl) {
+    return (window as any).comviaSettings.socketUrl;
+  }
+  if (import.meta.env.VITE_SOCKET_URL) {
+    return import.meta.env.VITE_SOCKET_URL;
+  }
+  return 'https://comvia-realtime.fly.dev';
+};
+
 
 export const WIDGET_CONFIG = {
   // API Endpoints
-  API_URL: import.meta.env.VITE_API_URL || 'https://comvia-backend-endpoint.vercel.app/api',
-  // import.meta.env.VITE_SOCKET_URL ||
-  SOCKET_URL:  'https://comvia-realtime.fly.dev',
+  API_URL: getApiUrl(),
+  SOCKET_URL: getSocketUrl(),
   
   
   // Widget Defaults
