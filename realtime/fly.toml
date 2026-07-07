@@ -26,7 +26,7 @@ primary_region = 'ams'
 
 # ✅ Add environment variables
 [env]
-  NODE_ENV = 'production'
-  PORT = '8080'
-  ALLOWED_ORIGINS = 'https://comvia-widget.vercel.app,https://comvia-backend-endpoint.vercel.app,https://your-app.vercel.app',https://comvia.vercel.app
-  API_URL = 'https://comvia-backend-endpoint.vercel.app/api'
+  NODE_ENV = "production"
+  PORT = "8080"
+  ALLOWED_ORIGINS = "https://comvia-widget.vercel.app,https://comvia-backend-endpoint.vercel.app,https://comvia.vercel.app"
+  API_URL = "https://comvia-backend-endpoint.vercel.app/api"
