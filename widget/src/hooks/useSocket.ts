@@ -50,6 +50,10 @@ export function useSocket(options: UseSocketOptions = {}) {
         type: 'visitor',
       },
       withCredentials: true,
+      path: '/socket.io/',
+      // ✅ Force websocket transport
+      upgrade: true,
+      rememberUpgrade: true,
     });
 
     socketRef.current.on('connect', () => {

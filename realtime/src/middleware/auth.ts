@@ -31,19 +31,39 @@ declare module 'socket.io' {
 
 export const authenticateSocket = async (socket: Socket, next: (err?: Error) => void) => {
   try {
+    // ✅ Always set a userId even for visitors
+    socket.data.isVisitor = true;
+    socket.data.userId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+
     // Get token from auth header or handshake query
     const token = socket.handshake.auth.token || 
                   socket.handshake.query.token ||
                   socket.handshake.headers.authorization?.replace('Bearer ', '');
     
-    if (!token) {
-      // For visitors, allow connection without token
-      // They will have limited access
-      socket.data.isVisitor = true;
-      socket.data.userId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      return next();
-    }
+    // if (!token) {
+    //   // For visitors, allow connection without token
+    //   // They will have limited access
+    //   socket.data.isVisitor = true;
+    //   socket.data.userId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    //   return next();
+    // }
 
+     if (token) {
+      try {
+        // Try to authenticate but don't fail
+        const decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+        if (decoded.id) {
+          socket.data.isVisitor = false;
+          socket.data.userId = decoded.id;
+          // You can fetch user data here if needed
+        }
+      } catch (e) {
+        // Token invalid, keep as visitor
+        console.log('Invalid token, connecting as visitor');
+      }
+    }
+    
     try {
       // Verify JWT token
       const decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;

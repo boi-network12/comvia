@@ -24,7 +24,9 @@ const corsOptions = {
         'https://comvia-realtime.fly.dev'
     ],
     credentials: true,
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    transports: ['websocket', 'polling']
 };
 
 // ======================
@@ -37,13 +39,13 @@ app.use(express.json());
 // ======================
 // Routes
 // ======================
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
-});
+// app.get('/health', (req, res) => {
+//   res.status(200).json({ 
+//     status: 'ok',
+//     timestamp: new Date().toISOString(),
+//     uptime: process.uptime()
+//   });
+// });
 
 app.get('/', (req, res) => {
   res.status(200).json({
@@ -117,15 +119,22 @@ io.on('connection', (socket) => {
 // ======================
 // Ensure PORT is a number so the overload for server.listen(number, hostname, callback) is used
 const PORT: number = Number(process.env.PORT) || 3001;
-const AllowEverywhere = '0.0.0.0';
 
-// ✅ CRITICAL: Listen on 0.0.0.0 to accept connections from outside
-server.listen(PORT, AllowEverywhere, () => {
+// ✅ Use PORT from environment exactly as Fly.io provides
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Socket.IO server running on port ${PORT}`);
   console.log(`🌐 WebSocket: ws://0.0.0.0:${PORT}`);
-  console.log(`📊 Allowed origins: ${process.env.ALLOWED_ORIGINS || '*'}`);
-  console.log(`🔒 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
+
+// ✅ Add health check endpoint that Fly.io expects
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok',
+    uptime: process.uptime(),
+    connections: io?.engine?.clientsCount || 0
+  });
+});
+
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
