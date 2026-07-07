@@ -44,11 +44,11 @@ export function useWidget() {
     disconnect: disconnectSocket,
   } = useSocket({
     userId: user?.id || localStorage.getItem('comvia_user_id') || `visitor_${Date.now()}`,
-    
+
     onConnect: () => {
       console.log('🟢 Socket connected');
       setConnected(true);
-      loadChatHistory();
+      // loadChatHistory();
     },
     onDisconnect: () => {
       console.log('🔴 Socket disconnected');
