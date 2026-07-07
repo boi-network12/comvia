@@ -1,9 +1,12 @@
 // widget/src/config/index.ts
 
+
+
 export const WIDGET_CONFIG = {
   // API Endpoints
   API_URL: import.meta.env.VITE_API_URL || 'https://comvia-backend-endpoint.vercel.app/api',
-  SOCKET_URL: import.meta.env.VITE_SOCKET_URL || 'https://comvia-realtime.fly.dev',
+  // import.meta.env.VITE_SOCKET_URL ||
+  SOCKET_URL:  'https://comvia-realtime.fly.dev',
   
   
   // Widget Defaults
@@ -47,4 +50,38 @@ export const WIDGET_CONFIG = {
   },
 } as const;
 
-export type WidgetConfig = typeof WIDGET_CONFIG;
+
+export interface WidgetConfig {
+  API_URL: string;
+  SOCKET_URL: string;
+  DEFAULTS: {
+    position: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+    color: string;
+    icon: string;
+    font: string;
+    welcomeMessage: string;
+    quickReplies: string[];
+  };
+  STORAGE_KEYS: {
+    USER_ID: string;
+    TOKEN: string;
+    SETTINGS: string;
+  };
+  SOCKET: {
+    transports: string[];
+    reconnection: boolean;
+    reconnectionAttempts: number;
+    reconnectionDelay: number;
+    reconnectionDelayMax: number;
+    timeout: number;
+  };
+  TIMEOUTS: {
+    api: number;
+    socket: number;
+  };
+  LIMITS: {
+    maxQuickReplies: number;
+    maxMessageLength: number;
+    maxFileSize: number;
+  };
+}

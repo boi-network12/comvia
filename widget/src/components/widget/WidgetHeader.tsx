@@ -10,7 +10,7 @@ interface WidgetHeaderProps {
 }
 
 export const WidgetHeader: React.FC<WidgetHeaderProps> = ({ onClose }) => {
-  const { settings, isMinimized, minimizeWidget, maximizeWidget, isConnected } = useWidgetContext();
+  const { settings, isMinimized, minimizeWidget, maximizeWidget } = useWidgetContext();
 
   const color = settings?.color || '#F97316';
   const companyName = settings?.companyName || 'Comvia';
@@ -42,7 +42,7 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({ onClose }) => {
             <p className="font-semibold text-sm truncate">{companyName}</p>
             <div className="flex items-center gap-1.5">
               {/* Connection Status Indicator */}
-              {isConnected ? (
+              {/* {isConnected ? (
                 <>
                   <span className="w-1.5 h-1.5 bg-green-400 rounded-full inline-block animate-pulse" />
                   <span className="text-xs opacity-80">Online</span>
@@ -52,7 +52,9 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({ onClose }) => {
                   <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full inline-block animate-pulse" />
                   <span className="text-xs opacity-80">Connecting...</span>
                 </>
-              )}
+              )} */}
+              <span className="w-1.5 h-1.5 bg-green-400 rounded-full inline-block animate-pulse" />
+                  <span className="text-xs opacity-80">Online</span>
             </div>
           </div>
         </div>
@@ -61,11 +63,11 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({ onClose }) => {
         <div className="flex items-center gap-1">
           {/* Connection indicator icon */}
           <div className="hidden sm:block mr-1">
-            {isConnected ? (
+            {/* {isConnected ? (
               <Wifi className="w-3.5 h-3.5 opacity-70" />
             ) : (
               <WifiOff className="w-3.5 h-3.5 opacity-70" />
-            )}
+            )} */}
           </div>
           <button
             onClick={isMinimized ? maximizeWidget : minimizeWidget}
@@ -86,14 +88,14 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({ onClose }) => {
             <X className="w-4 h-4" />
           </button>
         </div>
-        {!isConnected && (
+        {/* {!isConnected && (
         <div className="mt-2 px-2 py-0.5 bg-black/20 rounded text-xs text-center">
           <span className="flex items-center justify-center gap-1.5">
             <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full inline-block animate-pulse" />
             Reconnecting...
           </span>
         </div>
-      )}
+      )} */}
       </div>
     </div>
   );

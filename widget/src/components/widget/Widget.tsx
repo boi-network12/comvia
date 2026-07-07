@@ -19,9 +19,7 @@ export const Widget: React.FC = () => {
     messages,
     isTyping,
     settings,
-    isConnected,
     isLoading,
-    error,
     closeWidget,
     toggleWidget,
     sendMessage,
@@ -37,7 +35,7 @@ export const Widget: React.FC = () => {
   // Only connect once when component mounts
   useEffect(() => {
     // ✅ Prevent multiple connection attempts
-    if (!connectionAttempted.current && !isConnected && !isLoading) {
+    if (!connectionAttempted.current && !isLoading) {
       connectionAttempted.current = true;
       console.log('🔌 Widget mounting, initiating connection...');
       connectSocket();
@@ -128,11 +126,10 @@ export const Widget: React.FC = () => {
                   onTyping={(typing) => {
                     sendTyping(typing);
                   }}
-                  isConnected={isConnected}
                 />
                 <WidgetFooter />
                 {/* Connection Status */}
-                {!isConnected && !isLoading && (
+                {/* {!isConnected && !isLoading && (
                   <div className="bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 text-center">
                     <p className="text-xs text-yellow-700 dark:text-yellow-400">
                       ⚠️ {error || 'Connecting to chat server...'}
@@ -147,7 +144,7 @@ export const Widget: React.FC = () => {
                       </button>
                     </p>
                   </div>
-                )}
+                )} */}
               </>
             )}
           </motion.div>

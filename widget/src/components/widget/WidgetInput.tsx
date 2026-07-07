@@ -2,20 +2,18 @@
 
 import React, { useState, useRef } from 'react';
 import type { KeyboardEvent } from "react";
-import { Send, Paperclip, WifiOff } from 'lucide-react';
+import { Send, Paperclip } from 'lucide-react';
 import { useWidget } from '../../hooks/useWidget';
 import { cn } from '../../utils/helpers';
 
 interface WidgetInputProps {
   onSend: (message: string) => void;
   onTyping: (isTyping: boolean) => void;
-  isConnected?: boolean;
 }
 
 export const WidgetInput: React.FC<WidgetInputProps> = ({ 
   onSend, 
   onTyping, 
-  isConnected = true 
 }) => {
   const [message, setMessage] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -23,8 +21,9 @@ export const WidgetInput: React.FC<WidgetInputProps> = ({
   const { settings } = useWidget();
   const color = settings?.color || '#F97316';
 
+  // &&isConnected
   const handleSend = () => {
-    if (message.trim() && isConnected) {
+    if (message.trim()) {
       onSend(message.trim());
       setMessage('');
       onTyping(false);
@@ -53,7 +52,7 @@ export const WidgetInput: React.FC<WidgetInputProps> = ({
       <div className="flex items-center gap-2">
         <button
           className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors disabled:opacity-50"
-          disabled={!isConnected}
+          disabled
           aria-label="Attach file"
         >
           <Paperclip className="w-4 h-4" />
@@ -67,22 +66,21 @@ export const WidgetInput: React.FC<WidgetInputProps> = ({
           onKeyDown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          placeholder={isConnected ? "Type a message..." : "Connecting..."}
-          disabled={!isConnected}
+          placeholder={"Type a message..." }
+          // disabled={isConnected}
           className={cn(
             'flex-1 px-3 py-2 rounded-lg',
             'bg-gray-100 dark:bg-gray-800',
             'text-sm focus:outline-none',
             'transition-all duration-200',
-            isFocused && 'ring-2',
-            !isConnected && 'opacity-50 cursor-not-allowed'
+            isFocused && 'ring-2'
           )}
           style={isFocused ? { '--tw-ring-color': color } as React.CSSProperties : undefined}
         />
 
         <button
           onClick={handleSend}
-          disabled={!message.trim() || !isConnected}
+          // disabled={!message.trim() || !isConnected}
           className={cn(
             'p-2 rounded-lg text-white transition-all',
             'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -91,19 +89,15 @@ export const WidgetInput: React.FC<WidgetInputProps> = ({
           style={{ backgroundColor: color }}
           aria-label="Send message"
         >
-          {!isConnected ? (
-            <WifiOff className="w-4 h-4" />
-          ) : (
-            <Send className="w-4 h-4" />
-          )}
+          <Send className="w-4 h-4" />
         </button>
       </div>
       
-      {!isConnected && (
+      {/* {!isConnected && (
         <p className="text-[10px] text-yellow-500 mt-1 text-center">
           ⚠️ Reconnecting to chat server...
         </p>
-      )}
+      )} */}
     </div>
   );
 };

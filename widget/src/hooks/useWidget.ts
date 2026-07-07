@@ -42,26 +42,19 @@ export function useWidget() {
     sendTyping: sendSocketTyping,
     connect: connectSocket,
     disconnect: disconnectSocket,
-  } = useSocket({
-    userId: user?.id || localStorage.getItem('comvia_user_id') || `visitor_${Date.now()}`,
+  } = useSocket();
 
-    onConnect: () => {
+  // If useSocket doesn't accept params, handle basic connect/disconnect side-effects here
+  useEffect(() => {
+    if (socketConnected) {
       console.log('🟢 Socket connected');
       setConnected(true);
       // loadChatHistory();
-    },
-    onDisconnect: () => {
+    } else {
       console.log('🔴 Socket disconnected');
       setConnected(false);
-    },
-    onMessage: (message: Message) => {
-      if (message.sender === 'bot' || message.sender === 'agent') {
-        if (!isOpen) {
-          // Increment unread count (already handled by store)
-        }
-      }
-    },
-  });
+    }
+  }, [socketConnected, setConnected]);
 
   // Load config from script tag or window
   useEffect(() => {
