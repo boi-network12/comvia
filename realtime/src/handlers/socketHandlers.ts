@@ -231,6 +231,12 @@ export function setupSocketHandlers(
           },
           timeout: 10000
         });
+
+        console.log('✅ API Response from /messages:', {
+          status: response.status,
+          success: response.data?.success,
+          messageId: response.data?.data?._id
+        });
         
         if (response.data?.success) {
           savedMessage = response.data.data;
