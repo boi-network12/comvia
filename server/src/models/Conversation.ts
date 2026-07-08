@@ -5,6 +5,7 @@ import { IMessage } from './Message';
 export interface IConversation extends Document {
   userId: string;
   visitorId?: string;
+  companyId?: string;
   title: string;
   status: 'open' | 'in-progress' | 'resolved' | 'escalated' | 'closed';
   priority: 'low' | 'medium' | 'high' | 'urgent';
@@ -59,7 +60,14 @@ const ConversationSchema = new Schema<IConversation>({
     required: true,
     index: true,
   },
-  visitorId: String,
+  visitorId: {
+    type: String,
+    index: true, // ✅ Add index
+  },
+  companyId: { // ✅ NEW FIELD
+    type: String,
+    index: true,
+  },
   title: {
     type: String,
     default: 'New Conversation',

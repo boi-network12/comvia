@@ -122,8 +122,12 @@ export default function ConversationDetailPage() {
       
       // Append message to the conversation's messages
       setMessages(prev => {
-        // Avoid duplicates
-        if (prev.some(m => m._id === message._id)) return prev;
+      // ✅ Check if message already exists (by _id or temp id)
+        const exists = prev.some(m => 
+          m._id === message._id || 
+          (m._id.startsWith('temp_') && m.content === message.content && m.senderId === message.senderId)
+        );
+        if (exists) return prev;
         return [...prev, message];
       });
       
@@ -145,40 +149,6 @@ export default function ConversationDetailPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  // const handleSendMessage = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (!newMessage.trim() || isSending) return;
-
-  //   const messageContent = newMessage.trim();
-  //   setNewMessage("");
-  //   setIsSending(true);
-
-  //   try {
-  //     // Try sending via WebSocket first
-  //     let sent = false;
-  //     if (isRealtimeConnected) {
-  //       sent = sendRealtimeMessage(conversationId, messageContent);
-  //     }
-      
-  //     // Fallback to REST API if WebSocket fails
-  //     if (!sent) {
-  //       await sendMessageRest(conversationId, messageContent);
-  //     }
-      
-  //     // Small delay + refresh only messages, not full conversation
-  //     setTimeout(() => {
-  //       loadConversation(conversationId);  
-  //     }, 300);
-      
-  //   } catch (error) {
-  //     console.error("Failed to send message:", error);
-  //     // Show error in UI (you can add a toast notification here)
-  //   } finally {
-  //     setIsSending(false);
-  //     inputRef.current?.focus();
-  //   }
-  // };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();

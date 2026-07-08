@@ -66,6 +66,7 @@ export const widgetAPI = {
     sender: string;
     userId: string;
     timestamp: string;
+    companyId?: string; 
   }): Promise<ApiResponse<{ reply?: string; messageId?: string; conversationId?: string }>> => {
     try {
       // ✅ Get companyId from window.comviaSettings

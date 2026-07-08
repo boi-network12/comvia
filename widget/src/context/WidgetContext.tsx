@@ -18,7 +18,7 @@ interface WidgetContextType {
   isLoading: boolean;
   error: string | null;
   config: WidgetConfig | null;
-  companyId: string | null; // ✅ Added companyId
+  companyId: string | null;
   
   toggleWidget: () => void;
   openWidget: () => void;
@@ -54,7 +54,6 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     setMessages,
     setTyping,
     setSettings,
-    // setUser,
     setConnected,
     clearUnread,
   } = useWidgetStore();
@@ -62,79 +61,73 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
   const [config] = useState<WidgetConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error] = useState<string | null>(null);
-  const [companyId, setCompanyId] = useState<string | null>(null); // ✅ Added companyId state
+  const [companyId, setCompanyId] = useState<string | null>(null);
 
-  // Socket connection
+  // ✅ Get BOTH sendMessage and sendTyping from useSocket
   const {
     isConnected: socketConnected,
     error: socketError,
-    // sendMessage: sendSocketMessage,
+    sendMessage: socketSendMessage, // ✅ ADD THIS
     sendTyping: sendSocketTyping,
     connect: connectSocket,
     disconnect: disconnectSocket,
   } = useSocket();
 
-
-useEffect(() => {
-  const loadConfig = async () => {
-    setIsLoading(true);
-    
-    // ✅ Get companyId from window config
-    const windowConfig = (window as any).comviaSettings || {};
-    const companyId = windowConfig.companyId;
-    
-    console.log('🔍 [WIDGET] Company ID:', companyId);
-    
-    // ✅ If we have a companyId, fetch ALL settings from API
-    if (companyId) {
-      setCompanyId(companyId);
-      try {
-        const response = await widgetAPI.getCompanySettings(companyId);
-        console.log('📥 [WIDGET] Company settings from API:', response);
-        
-        if (response.success && response.data) {
-          const data = response.data;
+  useEffect(() => {
+    const loadConfig = async () => {
+      setIsLoading(true);
+      
+      const windowConfig = (window as any).comviaSettings || {};
+      const companyId = windowConfig.companyId;
+      
+      console.log('🔍 [WIDGET] Company ID:', companyId);
+      
+      if (companyId) {
+        setCompanyId(companyId);
+        try {
+          const response = await widgetAPI.getCompanySettings(companyId);
+          console.log('📥 [WIDGET] Company settings from API:', response);
           
-          // ✅ Use ALL settings from the API
-          const widgetSettings: WidgetSettings = {
-            position: data.widgetSettings?.position || 'bottom-right',
-            color: data.widgetSettings?.color || '#F97316',
-            icon: data.widgetSettings?.icon || 'chat',
-            font: data.widgetSettings?.font || 'inter',
-            welcomeMessage: data.widgetSettings?.welcomeMessage || 'Hi there! 👋 How can I help you today?',
-            quickReplies: data.widgetSettings?.quickReplies || ['Pricing', 'Features', 'Support', 'Demo'],
-            companyName: data.companyName || 'Comvia',
-            companyLogo: data.companyLogo || '',
-          };
-          
-          setSettings(widgetSettings);
-          setIsLoading(false);
-          return;
+          if (response.success && response.data) {
+            const data = response.data;
+            
+            const widgetSettings: WidgetSettings = {
+              position: data.widgetSettings?.position || 'bottom-right',
+              color: data.widgetSettings?.color || '#F97316',
+              icon: data.widgetSettings?.icon || 'chat',
+              font: data.widgetSettings?.font || 'inter',
+              welcomeMessage: data.widgetSettings?.welcomeMessage || 'Hi there! 👋 How can I help you today?',
+              quickReplies: data.widgetSettings?.quickReplies || ['Pricing', 'Features', 'Support', 'Demo'],
+              companyName: data.companyName || 'Comvia',
+              companyLogo: data.companyLogo || '',
+            };
+            
+            setSettings(widgetSettings);
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error('❌ Failed to fetch company settings:', error);
         }
-      } catch (error) {
-        console.error('❌ Failed to fetch company settings:', error);
       }
-    }
-    
-    // Fallback settings (should rarely be used)
-    const fallbackSettings: WidgetSettings = {
-      position: 'bottom-right',
-      color: '#F97316',
-      icon: 'chat',
-      font: 'inter',
-      welcomeMessage: 'Hi there! 👋 How can I help you today?',
-      quickReplies: ['Pricing', 'Features', 'Support', 'Demo'],
-      companyName: 'Comvia',
-      companyLogo: '',
+      
+      const fallbackSettings: WidgetSettings = {
+        position: 'bottom-right',
+        color: '#F97316',
+        icon: 'chat',
+        font: 'inter',
+        welcomeMessage: 'Hi there! 👋 How can I help you today?',
+        quickReplies: ['Pricing', 'Features', 'Support', 'Demo'],
+        companyName: 'Comvia',
+        companyLogo: '',
+      };
+      setSettings(fallbackSettings);
+      setIsLoading(false);
     };
-    setSettings(fallbackSettings);
-    setIsLoading(false);
-  };
 
-  loadConfig();
-}, []);
+    loadConfig();
+  }, []);
 
-  // Load chat history from server
   const loadChatHistory = async () => {
     try {
       const response = await widgetAPI.getHistory(user?.id || '');
@@ -153,80 +146,87 @@ useEffect(() => {
     }
   };
 
-  // Send message
-
+  // ============================================================
+  // ✅ FIXED: Send Message with Socket + REST Fallback
+  // ============================================================
   const sendMessage = (content: string, sender: 'user' | 'agent' = 'user') => {
-  // Don't send empty messages
-  if (!content || !content.trim()) return;
-  
-  
-  console.log(`📤 [WIDGET] Sending message: "${content}" from ${sender}`);
-  
-  // Add user message immediately
-  addMessage({ content, sender });
-  
-  // Get user ID
-  const userId = user?.id || localStorage.getItem('comvia_user_id') || `visitor_${Date.now()}`;
-  
-  // ✅ Get companyId from global config
-  const windowConfig = (window as any).comviaSettings || {};
-  const companyId = windowConfig.companyId || windowConfig.company_id;
-  
-  console.log(`📤 [WIDGET] User ID: ${userId}, Company ID: ${companyId}`);
-  
-  // ✅ Send via REST API
-  widgetAPI.sendMessage({
-    content,
-    sender,
-    userId: userId,
-    timestamp: new Date().toISOString(),
-  }).then(response => {
-    console.log('📥 [WIDGET] Message response:', response);
+    if (!content || !content.trim()) return;
     
-    if (response.success && response.data) {
-      if (response.data.reply) {
+    console.log(`📤 [WIDGET] Sending message: "${content}" from ${sender}`);
+    
+    // Add user message immediately (optimistic)
+    addMessage({ content, sender });
+    
+    // Get user ID
+    const userId = user?.id || localStorage.getItem('comvia_visitor_id') || `visitor_${Date.now()}`;
+    
+    // Get companyId from global config
+    const windowConfig = (window as any).comviaSettings || {};
+    const companyId = windowConfig.companyId || windowConfig.company_id;
+    
+    console.log(`📤 [WIDGET] User ID: ${userId}, Company ID: ${companyId}`);
+
+    // ✅ FIRST: Try sending via SOCKET
+    const conversationId = localStorage.getItem('comvia_conversation_id');
+
+    if (socketConnected && conversationId && socketSendMessage) {
+      // ✅ Use socket for real-time
+      const sent = socketSendMessage(conversationId, content);
+      if (sent) {
+        console.log('✅ Message sent via socket');
+        // Still need to handle auto-reply from REST
+        // The socket will handle real-time delivery
+        return;
+      }
+    }
+    
+    // ✅ FALLBACK: Send via REST API
+    widgetAPI.sendMessage({
+      content,
+      sender,
+      userId: userId,
+      timestamp: new Date().toISOString(),
+      companyId: companyId 
+    }).then(response => {
+      console.log('📥 [WIDGET] Message response:', response);
+      
+      if (response.success && response.data) {
+        if (response.data.reply) {
+          addMessage({
+            content: response.data.reply,
+            sender: 'bot',
+          });
+        }
+        if (response.data.conversationId) {
+          localStorage.setItem('comvia_conversation_id', response.data.conversationId);
+        }
+      } else {
         addMessage({
-          content: response.data.reply,
+          content: '⚠️ Sorry, I couldn\'t process your message. Please try again.',
           sender: 'bot',
         });
       }
-      if (response.data.conversationId) {
-        localStorage.setItem('comvia_conversation_id', response.data.conversationId);
-      }
-    } else {
+    }).catch(err => {
+      console.error('❌ [WIDGET] Error sending message:', err);
       addMessage({
-        content: '⚠️ Sorry, I couldn\'t process your message. Please try again.',
+        content: '⚠️ Connection error. Please try again later.',
         sender: 'bot',
       });
-    }
-  }).catch(err => {
-    console.error('❌ [WIDGET] Error sending message:', err);
-    addMessage({
-      content: '⚠️ Connection error. Please try again later.',
-      sender: 'bot',
     });
-  });
-};
+  };
 
-
-  // Send typing indicator
   const sendTyping = useCallback((isTyping: boolean) => {
-  setTyping(isTyping);
-  if (socketConnected) {
-    const conversationId = localStorage.getItem('comvia_conversation_id');
-    if (conversationId) {
-      // ✅ Pass both arguments
-      sendSocketTyping(conversationId, isTyping);
+    setTyping(isTyping);
+    if (socketConnected) {
+      const conversationId = localStorage.getItem('comvia_conversation_id');
+      if (conversationId) {
+        sendSocketTyping(conversationId, isTyping);
+      }
     }
-  }
-}, [setTyping, socketConnected, sendSocketTyping]);
+  }, [setTyping, socketConnected, sendSocketTyping]);
 
-  
-  // ✅ Instead, only connect when widget mounts:
   useEffect(() => {
-    // Only connect if not already connected and not loading
     if (!socketConnected && !isLoading) {
-      // Small delay to prevent race conditions
       const timer = setTimeout(() => {
         connectSocket();
       }, 200);
@@ -246,7 +246,7 @@ useEffect(() => {
     isLoading,
     error: error || socketError,
     config,
-    companyId, // ✅ Added companyId
+    companyId,
     toggleWidget,
     openWidget,
     closeWidget,
