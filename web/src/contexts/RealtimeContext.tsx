@@ -114,7 +114,11 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       setVisitorMessages(prev => [...prev, data]);
       
       if (data.message) {
-        setMessages(prev => [...prev, data.message]);
+        setMessages(prev => {
+          // ✅ Avoid duplicates by checking _id
+          if (prev.some(m => m._id === data.message._id)) return prev;
+          return [...prev, data.message];
+        });
 
         messageCallbacksRef.current.forEach(callback => {
           callback(data.message, data.conversationId);

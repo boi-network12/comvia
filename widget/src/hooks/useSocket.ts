@@ -42,6 +42,9 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const visitorIdRef = useRef<string>(
+  options.visitorId || localStorage.getItem('comvia_visitor_id') || `visitor_${Date.now()}`
+);
   
   const socketRef = useRef<Socket | null>(null);
   const isMounted = useRef<boolean>(true);
@@ -64,7 +67,8 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     }
 
     const socketUrl = options.socketUrl || getSocketUrl();
-    const visitorId = options.visitorId || localStorage.getItem('comvia_visitor_id') || `visitor_${Date.now()}`;
+    const visitorId = visitorIdRef;
+
     const companyId = options.companyId || (window as any).comviaSettings?.companyId;
 
     console.log(`🔌 [Widget] Connecting to socket: ${socketUrl}`);
@@ -148,6 +152,12 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
       console.log('✏️ [Widget] Agent typing:', data);
     });
 
+    socket.on('user_typing', (data: { userId: string; isTyping: boolean }) => {
+    // You can use this to show typing indicator
+    console.log('✏️ [Widget] User typing:', data);
+    // If you want to show typing indicator in UI, you can add it here
+  });
+
     // Error handling
     socket.on('error', (err) => {
       console.error('❌ [Widget] Socket error:', err);
@@ -226,7 +236,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
       return false;
     }
 
-    const visitorId = options.visitorId || localStorage.getItem('comvia_visitor_id');
+    const visitorId = visitorIdRef;
     
     socketRef.current.emit('send_message', {
       conversationId,

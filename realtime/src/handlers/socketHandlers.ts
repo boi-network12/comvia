@@ -1,7 +1,11 @@
 // realtime/src/handlers/socketHandlers.ts
 import { Server, Socket } from 'socket.io';
-// import axios from 'axios';
+import axios from 'axios';
 import { trackVisitor } from '../middleware/visitorTracking';
+
+
+const API_URL = process.env.API_URL || 'https://comvia-backend-endpoint.vercel.app/api';
+
 
 // Add this interface
 interface AgentJoinData {
@@ -166,6 +170,18 @@ export function setupSocketHandlers(
       // ==================== VISITOR MESSAGE ====================
     console.log(`👤 Visitor message: ${data.content}`);
 
+     try {
+        await axios.post(`${API_URL}/widget/visitor/message`, {
+          content: data.content,
+          sender: 'visitor',
+          userId: data.visitorId || socket.data.visitorId,
+          timestamp: data.timestamp || new Date().toISOString(),
+          companyId: socket.data.companyId
+        });
+        console.log('✅ Visitor message saved to DB');
+      } catch (error) {
+        console.error('❌ Failed to save visitor message:', error);
+      }
     
       io.to('agents').emit('visitor_message', {
         conversationId: data.conversationId,
@@ -212,6 +228,22 @@ export function setupSocketHandlers(
       // ==================== AGENT / ADMIN MESSAGE ====================
     console.log(`👤 Agent message from ${socket.data.user.name}: ${data.content}`);
 
+     // ✅ FIRST: Save to database via API
+    try {
+      await axios.post(`${API_URL}/messages`, {
+        conversationId: data.conversationId,
+        content: data.content,
+        type: 'text'
+      }, {
+        headers: {
+          'Authorization': `Bearer ${socket.handshake.auth.token}`
+        }
+      });
+      console.log('✅ Agent message saved to DB');
+    } catch (error) {
+      console.error('❌ Failed to save agent message:', error);
+    }
+
      const agentMessage = {
       _id: `msg_${Date.now()}`,
         conversationId: data.conversationId,
@@ -225,6 +257,28 @@ export function setupSocketHandlers(
 
       // Broadcast to everyone in the conversation room (including other agents)
       io.to(data.conversationId).emit('new_message', agentMessage);
+      io.to(data.conversationId).emit('agent_message', {
+        content: data.content,
+        conversationId: data.conversationId,
+        senderId: socket.data.userId || socket.data.user._id,
+        senderName: socket.data.user.name || 'Agent'
+      });
+
+      // ✅ Also broadcast to agents room
+      io.to('agents').emit('new_message', agentMessage);
+
+       // ✅ CRITICAL: Find and send to visitor's personal room
+      const visitorId = data.visitorId || socket.data.visitorId;
+      if (visitorId) {
+        io.to(`visitor_${visitorId}`).emit('new_message', agentMessage);
+        io.to(`visitor_${visitorId}`).emit('agent_message', {
+          content: data.content,
+          conversationId: data.conversationId,
+          senderId: socket.data.userId || socket.data.user._id,
+          senderName: socket.data.user.name || 'Agent'
+        });
+        console.log(`✅ Agent message sent to visitor room: visitor_${visitorId}`);
+      }
 
       // Also send confirmation back to the sender
       socket.emit('message_sent', agentMessage);

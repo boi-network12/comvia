@@ -149,7 +149,8 @@ io.on('connection', (socket) => {
     // Setup all handlers
     setupSocketHandlers(socket, io, activeUsers, userSockets);
     setupPresence(socket, io, activeUsers);
-    setupMessageHandlers(socket, io);
+    // ❌ REMOVE this line to fix duplication:
+    // setupMessageHandlers(socket, io);
     
     // Handle disconnection
     socket.on('disconnect', () => {

@@ -1,6 +1,6 @@
 // widget/src/hooks/useWidget.ts
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useWidgetStore } from '../store/widgetStore';
 import { useSocket } from './useSocket';
 import type { SocketMessage, WidgetConfig, WidgetSettings } from '../types';
@@ -50,18 +50,10 @@ export function useWidget() {
 
   const visitorId = getOrCreateVisitorId();
 
-  // ✅ Socket connection for real-time replies
-  const {
-    isConnected: socketConnected,
-    error: socketError,
-    connect: connectSocket,
-    disconnect: disconnectSocket,
-    sendMessage: sendSocketMessage,
-    sendTyping: sendSocketTyping,
-  } = useSocket({
+  const socketOptions = useMemo(() => ({
     visitorId: visitorId,
     companyId: (window as any).comviaSettings?.companyId,
-    onAgentMessage: (data) => {
+    onAgentMessage: (data: { content: string; conversationId: string }) => {
       console.log('📨 [Widget] Agent reply via socket:', data);
       addMessage({
         content: data.content,
@@ -88,7 +80,17 @@ export function useWidget() {
         // Let addMessage / store handle id and timestamp if needed
       });
     },
-  });
+  }), [visitorId, addMessage]);
+
+  // ✅ Socket connection for real-time replies
+  const {
+    isConnected: socketConnected,
+    error: socketError,
+    connect: connectSocket,
+    disconnect: disconnectSocket,
+    sendMessage: sendSocketMessage,
+    sendTyping: sendSocketTyping,
+  } = useSocket(socketOptions);
 
   // Update connection status
   useEffect(() => {
@@ -215,6 +217,11 @@ export function useWidget() {
         }
         if (response.data.conversationId) {
           localStorage.setItem('comvia_conversation_id', response.data.conversationId);
+          // ✅ Join the conversation room
+          if (socketConnected) {
+            // You'll need access to the socket from useSocket
+            // Add a joinConversation method or use the socket directly
+          }
         }
       } else {
         addMessage({

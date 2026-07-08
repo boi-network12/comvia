@@ -74,83 +74,6 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     disconnect: disconnectSocket,
   } = useSocket();
 
-  // Load config from script tag or window
-  // useEffect(() => {
-  //   const loadConfig = async () => {
-  //     setIsLoading(true);
-      
-  //     const windowConfig = (window as any).comviaSettings || {};
-  //     const companyIdFromConfig = windowConfig.companyId;
-      
-  //     const script = document.querySelector('script[data-comvia]');
-  //     const dataConfig = script ? (script as HTMLElement).dataset : {};
-
-  //     const config: WidgetConfig = {
-  //       position: windowConfig.position || dataConfig.position || WIDGET_CONFIG.DEFAULTS.position,
-  //       color: windowConfig.color || dataConfig.color || WIDGET_CONFIG.DEFAULTS.color,
-  //       icon: windowConfig.icon || dataConfig.icon || WIDGET_CONFIG.DEFAULTS.icon,
-  //       companyName: windowConfig.companyName || dataConfig.companyName || 'Comvia',
-  //       companyLogo: windowConfig.companyLogo || dataConfig.companyLogo,
-  //       apiUrl: windowConfig.apiUrl || dataConfig.apiUrl || WIDGET_CONFIG.API_URL,
-  //       socketUrl: windowConfig.socketUrl || dataConfig.socketUrl || WIDGET_CONFIG.SOCKET_URL,
-  //     };
-
-  //     setConfig(config);
-
-  //     // ✅ If companyId exists, fetch settings from API
-  //     if (companyIdFromConfig) {
-  //       setCompanyId(companyIdFromConfig);
-  //       try {
-  //         const response = await widgetAPI.getCompanySettings(companyIdFromConfig);
-  //         if (response.success && response.data) {
-  //           const settingsData = response.data;
-  //           const widgetSettings: WidgetSettings = {
-  //             position: settingsData.widgetSettings?.position || config.position || 'bottom-right',
-  //             color: settingsData.widgetSettings?.color || config.color || '#F97316',
-  //             icon: settingsData.widgetSettings?.icon || config.icon || 'chat',
-  //             font: settingsData.widgetSettings?.font || 'inter',
-  //             welcomeMessage: settingsData.widgetSettings?.welcomeMessage || 'Hi there! 👋',
-  //             quickReplies: settingsData.widgetSettings?.quickReplies || ['Pricing', 'Features', 'Support', 'Demo'],
-  //             companyName: settingsData.companyName || config.companyName || 'Comvia',
-  //             companyLogo: settingsData.companyLogo || config.companyLogo,
-  //           };
-  //           setSettings(widgetSettings);
-  //           setIsLoading(false);
-  //           return;
-  //         }
-  //       } catch (error) {
-  //         console.error('❌ Failed to fetch company settings:', error);
-  //       }
-  //     }
-
-  //     // Fallback settings
-  //     const fallbackSettings: WidgetSettings = {
-  //       position: config.position as WidgetSettings['position'],
-  //       color: config.color!,
-  //       icon: config.icon!,
-  //       font: 'inter',
-  //       welcomeMessage: WIDGET_CONFIG.DEFAULTS.welcomeMessage,
-  //       quickReplies: WIDGET_CONFIG.DEFAULTS.quickReplies as any,
-  //       companyName: config.companyName,
-  //       companyLogo: config.companyLogo,
-  //     };
-  //     setSettings(fallbackSettings);
-
-  //     if (!user) {
-  //       const savedUserId = localStorage.getItem(WIDGET_CONFIG.STORAGE_KEYS.USER_ID);
-  //       setUser({
-  //         id: savedUserId || `visitor_${Date.now()}`,
-  //         name: 'Visitor',
-  //       });
-  //     }
-
-  //     setIsLoading(false);
-  //   };
-
-  //   loadConfig();
-  // }, [setSettings, setUser, user]);
-
-  // widget/src/context/WidgetContext.tsx
 
 useEffect(() => {
   const loadConfig = async () => {
@@ -231,48 +154,11 @@ useEffect(() => {
   };
 
   // Send message
-  // const sendMessage = (content: string, sender: 'user' | 'agent' = 'user') => {
-  //   // Add user message immediately
-  //   addMessage({ content, sender });
-    
-  //   // Try socket first if connected
-  //   if (socketConnected) {
-  //     sendSocketMessage(content, sender);
-  //     return;
-  //   }
-    
-  //   // Fallback to REST API
-  //   widgetAPI.sendMessage({
-  //     content,
-  //     sender,
-  //     userId: user?.id || localStorage.getItem('comvia_user_id') || `visitor_${Date.now()}`,
-  //     timestamp: new Date().toISOString(),
-  //   }).then(response => {
-  //     if (response.success && response.data) {
-  //       // Add bot reply
-  //       addMessage({
-  //         content: response.data.reply || 'Thanks for your message!',
-  //         sender: 'bot',
-  //       });
-  //     } else {
-  //       // Show error
-  //       addMessage({
-  //         content: '⚠️ Sorry, I couldn\'t process your message. Please try again.',
-  //         sender: 'bot',
-  //       });
-  //     }
-  //   }).catch(err => {
-  //     console.error('Failed to send message:', err);
-  //     addMessage({
-  //       content: '⚠️ Connection error. Please try again later.',
-  //       sender: 'bot',
-  //     });
-  //   });
-  // };
 
   const sendMessage = (content: string, sender: 'user' | 'agent' = 'user') => {
   // Don't send empty messages
   if (!content || !content.trim()) return;
+  
   
   console.log(`📤 [WIDGET] Sending message: "${content}" from ${sender}`);
   
