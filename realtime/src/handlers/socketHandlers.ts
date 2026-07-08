@@ -207,6 +207,15 @@ export function setupSocketHandlers(
         // ✅ USE THE STORED TOKEN FROM THE SOCKET
         const token = socket.data.authToken || socket.handshake.auth.token;
 
+        console.log(`🔍 [SOCKET] Debug - Agent message attempt:`, {
+          conversationId: data.conversationId,
+          content: data.content,
+          userId: socket.data.userId,
+          userRole: socket.data.user?.role,
+          userName: socket.data.user?.name,
+          tokenExists: !!token
+        });
+
 
          console.log(`📤 [SOCKET] Saving agent message to API:`, {
           conversationId: data.conversationId,

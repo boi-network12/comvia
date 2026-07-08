@@ -35,7 +35,8 @@ export const sendMessage = async (req: Request, res: Response, next: NextFunctio
       conversation.assignedToName === req.user?.name || 
       conversation.participants?.some((p: any) => p.userId === userId) ||
       req.user?.role === 'admin' || 
-      req.user?.role === 'agent'; 
+      req.user?.role === 'agent' ||
+      req.user?.role === 'user';
 
     if (!hasAccess) {
       console.log(`❌ Access denied for user ${userId} on conversation ${conversationId}`);
