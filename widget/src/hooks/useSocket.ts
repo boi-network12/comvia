@@ -59,11 +59,20 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
   }, []);
 
   const connect = useCallback(() => {
+    // ✅ PREVENT multiple connections
+    if (isConnectingRef.current) {
+      console.log('⏳ [Widget] Connection already in progress, skipping...');
+      return;
+    }
+
+
     // If already connected or connecting, return
     if (socketRef.current?.connected) {
       console.log('🟢 [Widget] Already connected to socket');
       return;
     }
+
+     isConnectingRef.current = true;
 
     // Clean up existing socket
     if (socketRef.current) {
@@ -100,6 +109,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     socket.on('connect', () => {
       console.log('🟢 [Widget] Socket connected successfully!');
       setIsConnected(true);
+      isConnectingRef.current = false; 
       setError(null);
       setReconnectAttempts(0);
       
@@ -125,6 +135,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     socket.on('connect_error', (err) => {
       console.error('❌ [Widget] Socket connection error:', err.message);
       setError(err.message);
+      isConnectingRef.current = false; 
       setReconnectAttempts(prev => prev + 1);
     });
 
@@ -266,22 +277,34 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
   }, []);
 
   // Auto-connect on mount
+  // Auto-connect on mount - ONLY ONCE
   useEffect(() => {
-    isMounted.current = true;
+    let mounted = true;
     
-    // Small delay to ensure everything is initialized
-    const timer = setTimeout(() => {
-      if (isMounted.current) {
-        connect();
-      }
-    }, 500);
+    // Only connect if not already connected and no connection in progress
+    if (!socketRef.current && !isConnectingRef.current) {
+      isConnectingRef.current = true;
+      console.log('🔌 [Widget] Initial connection attempt...');
+      
+      // Small delay to ensure everything is initialized
+      const timer = setTimeout(() => {
+        if (mounted) {
+          connect();
+          isConnectingRef.current = false;
+        }
+      }, 500);
 
+      return () => {
+        mounted = false;
+        clearTimeout(timer);
+        isConnectingRef.current = false;
+      };
+    }
+    
     return () => {
-      isMounted.current = false;
-      clearTimeout(timer);
-      disconnect();
+      mounted = false;
     };
-  }, [connect, disconnect]);
+  }, []); 
 
   return {
     socket: socketRef.current,
