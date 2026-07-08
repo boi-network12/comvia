@@ -146,6 +146,40 @@ export default function ConversationDetailPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // const handleSendMessage = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (!newMessage.trim() || isSending) return;
+
+  //   const messageContent = newMessage.trim();
+  //   setNewMessage("");
+  //   setIsSending(true);
+
+  //   try {
+  //     // Try sending via WebSocket first
+  //     let sent = false;
+  //     if (isRealtimeConnected) {
+  //       sent = sendRealtimeMessage(conversationId, messageContent);
+  //     }
+      
+  //     // Fallback to REST API if WebSocket fails
+  //     if (!sent) {
+  //       await sendMessageRest(conversationId, messageContent);
+  //     }
+      
+  //     // Small delay + refresh only messages, not full conversation
+  //     setTimeout(() => {
+  //       loadConversation(conversationId);  
+  //     }, 300);
+      
+  //   } catch (error) {
+  //     console.error("Failed to send message:", error);
+  //     // Show error in UI (you can add a toast notification here)
+  //   } finally {
+  //     setIsSending(false);
+  //     inputRef.current?.focus();
+  //   }
+  // };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || isSending) return;
@@ -153,6 +187,26 @@ export default function ConversationDetailPage() {
     const messageContent = newMessage.trim();
     setNewMessage("");
     setIsSending(true);
+
+    // ✅ OPTIMISTIC UPDATE - Show message immediately
+    const tempId = `temp_${Date.now()}`;
+    const now = new Date().toISOString();
+    const optimisticMessage = {
+      _id: tempId,
+      id: tempId,
+      conversationId: conversationId,
+      content: messageContent,
+      senderId: user?._id || '',
+      senderType: 'agent' as const,
+      senderName: user?.name || 'Agent',
+      createdAt: now,
+      updatedAt: now,
+      status: 'sending' as const,
+      type: 'text' as const,
+      readBy: [],
+    };
+    
+    setMessages(prev => [...prev, optimisticMessage ]);
 
     try {
       // Try sending via WebSocket first
@@ -166,14 +220,17 @@ export default function ConversationDetailPage() {
         await sendMessageRest(conversationId, messageContent);
       }
       
-      // Small delay + refresh only messages, not full conversation
-      setTimeout(() => {
-        loadConversation(conversationId);  
-      }, 300);
+      // ✅ Update the optimistic message status to 'sent'
+      setMessages(prev => prev.map(msg => 
+        msg._id === tempId ? { ...msg, status: 'sent' as const } : msg
+      ));
       
     } catch (error) {
       console.error("Failed to send message:", error);
-      // Show error in UI (you can add a toast notification here)
+      // ✅ Mark as failed
+      setMessages(prev => prev.map(msg => 
+        msg._id === tempId ? { ...msg, status: 'failed' as const } : msg
+      ));
     } finally {
       setIsSending(false);
       inputRef.current?.focus();
