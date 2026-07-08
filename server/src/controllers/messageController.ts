@@ -112,69 +112,73 @@ import { logger } from '../utils/logger';
 //   }
 // };
 // server/src/controllers/messageController.ts
+// server/src/controllers/messageController.ts
 export const sendMessage = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id;
-    const userRole = req.user?.role || 'agent';
-    const { conversationId, content, type = 'text' } = req.body;
+    const userRole = req.user?.role;
+    const { conversationId, content } = req.body;
 
-    console.log(`📤 [MESSAGE] Agent trying to send:`, { userId, userRole, conversationId, content });
+    console.log("=== SEND MESSAGE DEBUG ===");
+    console.log("User ID:", userId);
+    console.log("User Role:", userRole);
+    console.log("Conversation ID:", conversationId);
+    console.log("Content:", content);
+    console.log("Full req.user:", req.user);
 
-    if (!content?.trim()) throw new BadRequestError('Message content is required');
-    if (!conversationId) throw new BadRequestError('Conversation ID is required');
+    if (!userId) {
+      console.error("❌ No userId in token!");
+      throw new BadRequestError("Authentication required");
+    }
+
+    if (!conversationId || !content) {
+      throw new BadRequestError("Missing conversationId or content");
+    }
 
     const conversation = await Conversation.findById(conversationId);
-    if (!conversation) throw new NotFoundError('Conversation not found');
+    if (!conversation) {
+      console.error("❌ Conversation not found:", conversationId);
+      throw new NotFoundError("Conversation not found");
+    }
 
-    // Improved access check
+    console.log("Conversation found. Owner:", conversation.userId, "AssignedTo:", conversation.assignedTo);
+
+    // Access check
     const hasAccess = 
       conversation.userId === userId || 
       conversation.assignedTo === userId ||
-      ['admin', 'agent'].includes(userRole) ||
-      conversation.participants?.some((p: any) => p.userId === userId);
+      ['admin', 'agent'].includes(userRole || '');
 
     if (!hasAccess) {
-      console.error(`❌ ACCESS DENIED - User ${userId} (${userRole}) on conv ${conversationId}`);
-      throw new BadRequestError('Access denied to this conversation');
+      console.error("❌ ACCESS DENIED");
+      throw new BadRequestError("You do not have access to this conversation");
     }
 
     const message = await Message.create({
       conversationId,
       senderId: userId,
-      senderType: userRole,
+      senderType: userRole || 'agent',
       senderName: req.user?.name || 'Agent',
-      content: content.trim(),
-      type,
-      status: 'sent',
-      readBy: [userId]
+      content,
+      type: 'text',
+      status: 'sent'
     });
+
+    console.log("✅ Message CREATED successfully:", message._id);
 
     // Update conversation
     conversation.lastMessageAt = new Date();
-    conversation.lastMessagePreview = content.trim().substring(0, 100);
-    conversation.lastMessage = {
-      content: content.trim(),
-      senderId: userId,
-      senderType: userRole,
-      sentAt: new Date()
-    };
-
-    if (['agent', 'admin'].includes(userRole)) {
-      conversation.unreadCount = (conversation.unreadCount || 0) + 1;
-    }
-
+    conversation.lastMessagePreview = content.substring(0, 100);
     await conversation.save();
-
-    console.log(`✅ Message saved successfully: ${message._id}`);
 
     res.status(201).json({ success: true, data: message });
 
   } catch (error: any) {
-    console.error('❌ sendMessage error:', error.message);
+    console.error("❌ sendMessage ERROR:", error.message);
+    console.error("Stack:", error.stack);
     next(error);
   }
 };
-
 
 // @desc    Get messages for conversation
 // @route   GET /api/messages/:conversationId
