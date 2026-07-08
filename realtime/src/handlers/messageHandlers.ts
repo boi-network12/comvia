@@ -36,31 +36,62 @@ export function setupMessageHandlers(socket: Socket, io: Server) {
 
       // For visitors, we need to track them differently
       if (isVisitor) {
-        const message = {
-          id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-          content: data.content,
-          sender: 'visitor',
-          conversationId: data.conversationId || `conv_${socket.id}`,
-          visitorId: socket.data.userId,
-          timestamp: new Date().toISOString()
-        };
+  // ✅ REJECT if no conversation ID
+  if (!data.conversationId) {
+    if (callback) {
+      callback({
+        success: false,
+        message: 'Missing conversation ID'
+      });
+    }
+    return;
+  }
 
-        io.to('agents').emit('visitor_message', message);
-        
-        if (callback) {
-          callback({
-            success: true,
-            data: {
-              id: message.id,
-              content: message.content,
-              sender: message.sender,
-              conversationId: message.conversationId,
-              createdAt: message.timestamp
-            }
-          });
-        }
-        return;
+  try {
+    // ✅ SAVE TO DATABASE FIRST
+    const response = await axios.post(
+      `${API_URL}/widget/visitor/message`,
+      {
+        content: data.content,
+        sender: 'visitor',
+        userId: socket.data.userId,
+        conversationId: data.conversationId,
+        companyId: socket.data.companyId
       }
+    );
+    
+    if (response.data?.success) {
+      // ✅ USE THE REAL DATA FROM THE API
+      const savedMessage = {
+        id: response.data.data.messageId,
+        content: data.content,
+        sender: 'visitor',
+        conversationId: response.data.data.conversationId,
+        visitorId: socket.data.userId,
+        createdAt: new Date().toISOString(),
+        timestamp: new Date().toISOString()
+      };
+
+      io.to('agents').emit('visitor_message', savedMessage);
+      
+      if (callback) {
+        callback({
+          success: true,
+          data: savedMessage
+        });
+      }
+    }
+  } catch (error) {
+    console.error('❌ Failed to save message:', error);
+    if (callback) {
+      callback({
+        success: false,
+        message: 'Failed to save message'
+      });
+    }
+  }
+  return;
+}
 
       // For authenticated users, save to database via API
       const conversationId = data.conversationId;

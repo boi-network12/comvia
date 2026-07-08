@@ -58,9 +58,20 @@ class RealtimeService {
       this.socket?.emit('join_agents');
     });
 
+    // 2. When reconnected after disconnect - join agents again
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log(`🔄 Reconnected after ${attemptNumber} attempts`);
+      this.socket?.emit('join_agents');
+    });
+
     this.socket.on('disconnect', (reason) => {
       console.log('🔴 Realtime disconnected:', reason);
       this.notifyConnectionCallbacks(false);
+
+      // If server kicked us, try to reconnect
+      if (reason === 'io server disconnect') {
+        this.socket?.connect();
+      }
     });
 
     this.socket.on('connect_error', (error) => {

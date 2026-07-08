@@ -70,7 +70,7 @@ router.get('/history/:visitorId', async (req, res) => {
 
 //     // ✅ FIX: Use the userId as the visitorId for lookup
 //     // But ALSO check if there's a persistent visitor ID from localStorage
-//     let visitorId = userId;
+//     // let visitorId = userId;
 
 //     // 🔥 FIX: Find existing conversation for this visitor
 //     // Use a simpler query - just find by visitorId
@@ -84,33 +84,23 @@ router.get('/history/:visitorId', async (req, res) => {
 //      if (!conversation) {
 //       conversation = await Conversation.findOne({
 //         $or: [
-//           { visitorId: visitorId },
-//           { 'metadata.visitorId': visitorId },
+//           { visitorId: userId },
 //           { 'metadata.visitorId': userId }
 //         ],
-//         companyId: companyId
+//         companyId
 //       }).sort({ createdAt: -1 });
 //     }
 
 //     // If still no conversation, create a new one
 //     if (!conversation) {
-//       console.log(`🆕 Creating new conversation for visitor: ${visitorId}`);
-      
-//       const companyUser = await User.findOne({ companyId: companyId });
-
-//       if (!companyUser) {
-//         console.error(`❌ Company not found: ${companyId}`);
-//         return res.status(404).json({
-//           success: false,
-//           message: 'Company not found'
-//         });
-//       }
+//       const companyUser = await User.findOne({ companyId });
+//       if (!companyUser) return res.status(404).json({ success: false, message: 'Company not found' });
 
       
 //        conversation = await Conversation.create({
 //         userId: companyUser._id,
-//         visitorId: visitorId,
-//         companyId: companyId,
+//         visitorId: userId,
+//         companyId,
 //         title: `Chat with Visitor`,
 //         status: 'open',
 //         priority: 'medium',
@@ -119,9 +109,10 @@ router.get('/history/:visitorId', async (req, res) => {
 //         assignedToName: companyUser.name,
 //         metadata: {
 //           visitorName: 'Visitor',
-//           visitorId: visitorId, // ✅ Store the visitor ID in metadata
+//           visitorId: userId, // ✅ Store the visitor ID in metadata
 //           page: req.headers.referer || 'Unknown',
 //           companyId: companyId,
+//           ...req.body.metadata
 //         },
 //         lastMessageAt: new Date(),
 //         lastMessagePreview: content.substring(0, 100)
@@ -237,24 +228,26 @@ router.get('/history/:visitorId', async (req, res) => {
 
 router.post('/visitor/message', async (req, res) => {
   try {
-    const { content, sender, userId, timestamp, companyId } = req.body;
+    const { content, userId, companyId, metadata } = req.body;
     
     console.log(`📨 Visitor message from ${userId}:`, content);
 
-    // ✅ FIX: Use the userId as the visitorId for lookup
-    // But ALSO check if there's a persistent visitor ID from localStorage
-    // let visitorId = userId;
+    if (!content || !userId || !companyId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: content, userId, companyId'
+      });
+    }
 
-    // 🔥 FIX: Find existing conversation for this visitor
-    // Use a simpler query - just find by visitorId
+    // ==================== FIND OR CREATE CONVERSATION ====================
     let conversation = await Conversation.findOne({
       visitorId: userId,
       companyId: companyId,
-      status: { $in: ['open', 'in-progress'] } 
+      status: { $in: ['open', 'in-progress'] }
     });
 
-    // If no active conversation found, try to find any conversation with this visitor
-     if (!conversation) {
+    // If no active conversation, check for any conversation
+    if (!conversation) {
       conversation = await Conversation.findOne({
         $or: [
           { visitorId: userId },
@@ -264,13 +257,17 @@ router.post('/visitor/message', async (req, res) => {
       }).sort({ createdAt: -1 });
     }
 
-    // If still no conversation, create a new one
+    // If still no conversation, CREATE ONE
     if (!conversation) {
       const companyUser = await User.findOne({ companyId });
-      if (!companyUser) return res.status(404).json({ success: false, message: 'Company not found' });
+      if (!companyUser) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Company not found' 
+        });
+      }
 
-      
-       conversation = await Conversation.create({
+      conversation = await Conversation.create({
         userId: companyUser._id,
         visitorId: userId,
         companyId,
@@ -282,10 +279,10 @@ router.post('/visitor/message', async (req, res) => {
         assignedToName: companyUser.name,
         metadata: {
           visitorName: 'Visitor',
-          visitorId: userId, // ✅ Store the visitor ID in metadata
+          visitorId: userId,
           page: req.headers.referer || 'Unknown',
           companyId: companyId,
-          ...req.body.metadata
+          ...metadata
         },
         lastMessageAt: new Date(),
         lastMessagePreview: content.substring(0, 100)
@@ -302,7 +299,7 @@ router.post('/visitor/message', async (req, res) => {
       }
     }
 
-    // Save visitor message
+    // ==================== SAVE MESSAGE ====================
     const message = await Message.create({
       conversationId: conversation._id,
       senderId: userId,
@@ -312,36 +309,38 @@ router.post('/visitor/message', async (req, res) => {
       status: 'sent'
     });
 
-    // Update conversation
+    // ==================== UPDATE CONVERSATION ====================
     conversation.lastMessageAt = new Date();
     conversation.lastMessagePreview = content.substring(0, 100);
     conversation.unreadCount = (conversation.unreadCount || 0) + 1;
     await conversation.save();
 
-    // 🔥 GET AUTO-REPLY
+    // ==================== AUTO-REPLY ====================
     const autoReplyContent = getAutoReply(content);
     
-    // 🔥 SAVE AUTO-REPLY TO DATABASE
-    const autoReplyMessage = await Message.create({
-      conversationId: conversation._id,
-      senderId: 'system',
-      senderType: 'system',
-      content: autoReplyContent,
-      type: 'text',
-      status: 'sent'
-    });
+    let autoReplyMessage = null;
+    if (autoReplyContent) {
+      autoReplyMessage = await Message.create({
+        conversationId: conversation._id,
+        senderId: 'system',
+        senderType: 'system',
+        content: autoReplyContent,
+        type: 'text',
+        status: 'sent'
+      });
 
-    // 🔥 UPDATE CONVERSATION WITH AUTO-REPLY
-    conversation.lastMessageAt = new Date();
-    conversation.lastMessagePreview = autoReplyContent.substring(0, 100);
-    conversation.unreadCount = (conversation.unreadCount || 0) + 1;
-    await conversation.save();
+      // Update conversation again
+      conversation.lastMessageAt = new Date();
+      conversation.lastMessagePreview = autoReplyContent.substring(0, 100);
+      conversation.unreadCount = (conversation.unreadCount || 0) + 1;
+      await conversation.save();
+    }
 
-    // 🔥 BROADCAST TO REALTIME
-    const RealtimeUrl = 'https://comvia-realtime.fly.dev';
+    // ==================== BROADCAST TO REALTIME ====================
+    const RealtimeUrl = process.env.REALTIME_URL || 'https://comvia-realtime.fly.dev';
 
     try {
-      // Send visitor message
+      // Broadcast visitor message
       await fetch(`${RealtimeUrl}/api/broadcast`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -357,36 +356,37 @@ router.post('/visitor/message', async (req, res) => {
         })
       });
 
-      // 🔥 ALSO BROADCAST AUTO-REPLY
-      await fetch(`${RealtimeUrl}/api/broadcast`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: 'new_visitor_message',
-          data: {
-            conversationId: conversation._id,
-            message: autoReplyMessage,
-            visitorId: userId,
-            companyId: companyId,
-            conversation: conversation
-          }
-        })
-      });
+      // Broadcast auto-reply if exists
+      if (autoReplyMessage) {
+        await fetch(`${RealtimeUrl}/api/broadcast`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'new_visitor_message',
+            data: {
+              conversationId: conversation._id,
+              message: autoReplyMessage,
+              visitorId: userId,
+              companyId: companyId,
+              conversation: conversation
+            }
+          })
+        });
+      }
 
-      console.log(`📤 Broadcasted visitor message and auto-reply to realtime`);
-    } catch (broadcastError: unknown) {
-      const bcError = broadcastError as Error;
-      console.log('⚠️ Could not broadcast to realtime:', bcError.message);
+      console.log(`📤 Broadcasted messages to realtime`);
+    } catch (broadcastError) {
+      console.log('⚠️ Could not broadcast to realtime:', broadcastError);
     }
 
-    // Send response back to widget
+    // ==================== RESPONSE ====================
     res.json({
       success: true,
       data: {
-        reply: autoReplyContent,
         messageId: message._id,
         conversationId: conversation._id,
-        autoReplyId: autoReplyMessage._id
+        reply: autoReplyContent,
+        autoReplyId: autoReplyMessage?._id || null
       }
     });
 
@@ -398,7 +398,6 @@ router.post('/visitor/message', async (req, res) => {
     });
   }
 });
-
 
 router.use(protect);
 

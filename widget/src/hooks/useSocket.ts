@@ -43,8 +43,8 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
   const [error, setError] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const visitorIdRef = useRef<string>(
-  options.visitorId || localStorage.getItem('comvia_visitor_id') || `visitor_${Date.now()}`
-);
+    options.visitorId || localStorage.getItem('comvia_visitor_id')
+  );
   
   const socketRef = useRef<Socket | null>(null);
   const isMounted = useRef<boolean>(true);
@@ -52,6 +52,11 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
   const maxReconnectAttempts = 10;
   const isConnectingRef = useRef<boolean>(false);
   
+  useEffect(() => {
+    if (!visitorIdRef.current) {
+      console.error('❌ [Widget] No visitor ID available! Make sure widget.tsx initializes it.');
+    }
+  }, []);
 
   const connect = useCallback(() => {
     // If already connected or connecting, return
