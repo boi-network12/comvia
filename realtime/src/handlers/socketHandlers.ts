@@ -203,12 +203,12 @@ export function setupSocketHandlers(
     } 
     
     // ==================== AGENT / ADMIN MESSAGE ====================
+    // ==================== AGENT / ADMIN MESSAGE ====================
     else if (socket.data.user && !socket.data.isVisitor) {
-      // ✅ USE THE STORED TOKEN FROM THE SOCKET
       const token = socket.data.authToken || socket.handshake.auth.token;
       const conversationId = data.conversationId;
 
-      console.log(`👤 Agent message from ${socket.data.user.name}: ${data.content}`);
+      console.log(`👤 [AGENT MESSAGE] From ${socket.data.user.name}: "${data.content}"`);
 
       if (!token) {
         console.error('❌ No auth token for agent message');
@@ -220,6 +220,7 @@ export function setupSocketHandlers(
 
       // ✅ SAVE TO DATABASE
       try {
+        console.log(`📤 [AGENT] Calling /messages API...`);
 
         const response = await axios.post(`${API_URL}/messages`, {
           conversationId,
@@ -227,48 +228,30 @@ export function setupSocketHandlers(
           type: 'text'
         }, {
           headers: {
-            'Authorization': `Bearer ${ token }`
+            'Authorization': `Bearer ${token}`
           },
           timeout: 10000
         });
 
-        console.log('✅ API Response from /messages:', {
+        console.log('📥 [AGENT] API Response:', {
           status: response.status,
           success: response.data?.success,
           messageId: response.data?.data?._id
         });
-        
+
         if (response.data?.success) {
           savedMessage = response.data.data;
-          console.log('✅ Agent message saved to DB');
+          console.log('✅ Agent message SAVED to DB:', savedMessage._id);
         }
-
-        if (savedMessage) {
-          try {
-            await axios.put(`${API_URL}/conversations/${data.conversationId}`, {
-              assignedTo: socket.data.userId,
-              assignedToName: socket.data.user.name
-            }, {
-              headers: {
-                'Authorization': `Bearer ${ token }`
-              }
-            });
-            console.log(`✅ Assigned conversation to ${socket.data.user.name}`);
-          } catch (assignError) {
-            console.log('⚠️ Could not assign conversation:', assignError);
-          }
+      } catch (err: any) {
+        console.error('❌ Failed to save agent message:', err.message);
+        if (err.response) {
+          console.error('Status:', err.response.status);
+          console.error('Data:', err.response.data);
         }
-      } catch (err : unknown) {
-        const error = err as any;
-        console.error('❌ Failed to save agent message:', error);
-        if (error.response) {
-          console.error('Response status:', error.response.status);
-          console.error('Response data:', error.response.data);
-        }
-        // Continue even if DB fails - we'll use a fallback ID
       }
 
-      // ✅ BUILD MESSAGE (use real ID if available, otherwise fallback)
+      // Build message (even if save failed)
       const agentMessage = {
         _id: savedMessage?._id || `msg_${Date.now()}`,
         conversationId: data.conversationId,
@@ -280,34 +263,21 @@ export function setupSocketHandlers(
         status: 'sent' as const
       };
 
-      // ✅ BROADCAST to all relevant rooms
-      // 1. Conversation room (for other agents)
+      // Broadcast
       io.to(data.conversationId).emit('new_message', agentMessage);
-      // 2. Agents room
       io.to('agents').emit('new_message', agentMessage);
-      
-      io.to(data.conversationId).emit('agent_message', {
-        content: data.content,
-        conversationId: data.conversationId,
-        senderId: socket.data.userId || socket.data.user._id,
-        senderName: socket.data.user.name || 'Agent'
-      });
 
-      // 3. Visitor's personal room (CRITICAL for widget to receive)
       const visitorId = data.visitorId || socket.data.visitorId;
       if (visitorId) {
-        console.log(`📤 Sending agent reply to visitor room: visitor_${visitorId}`);
+        console.log(`📤 Broadcasting to visitor room: visitor_${visitorId}`);
         io.to(`visitor_${visitorId}`).emit('new_message', agentMessage);
         io.to(`visitor_${visitorId}`).emit('agent_message', agentMessage);
-      } else {
-        console.warn('⚠️ No visitorId found for broadcasting');
       }
 
-      // Confirmation to agent
       socket.emit('message_sent', agentMessage);
 
-      console.log(`✅ Agent message broadcasted to room: ${data.conversationId}`);
-    } else {
+      console.log(`✅ Agent message broadcasted for conversation ${data.conversationId}`);
+    }  else {
       console.warn(`⚠️ Unknown sender type for message`);
       socket.emit('error', { message: 'Could not process message' });
     }
