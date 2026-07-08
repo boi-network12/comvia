@@ -14,6 +14,13 @@ export const sendMessage = async (req: Request, res: Response, next: NextFunctio
     const userRole = req.user?.role || 'agent' || 'user' || 'admin';
     const { conversationId, content, type, replyTo } = req.body;
 
+    console.log(`📤 [MESSAGE] Agent trying to send:`, { 
+      userId, 
+      userRole, 
+      conversationId, 
+      contentLength: content?.length 
+    });
+
     if (!content) {
       throw new BadRequestError('Message content is required');
     }
