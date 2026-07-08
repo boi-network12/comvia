@@ -218,11 +218,21 @@ export function setupSocketHandlers(
 
 
          console.log(`📤 [SOCKET] Saving agent message to API:`, {
-          conversationId: data.conversationId,
-          content: data.content,
-          userId: socket.data.userId,
-          token: token ? 'present' : 'missing'
-        });
+            conversationId: data.conversationId,
+            content: data.content,
+            userId: socket.data.userId,
+            userRole: socket.data.user?.role,
+            token: token ? 'present' : 'missing',
+            tokenLength: token ? token.length : 0
+          });
+
+          // ✅ ADD A TEST: Verify the token is valid
+          if (!token) {
+            console.error('❌ [SOCKET] No token available!');
+            socket.emit('error', { message: 'Authentication required' });
+            return;
+          }
+
 
         const response = await axios.post(`${API_URL}/messages`, {
           conversationId: data.conversationId,
@@ -235,7 +245,10 @@ export function setupSocketHandlers(
           timeout: 10000
         });
 
-        console.log(`📥 [SOCKET] API Response:`, response.data);
+        console.log(`📥 [SOCKET] API Response:`, {
+          status: response.status,
+          data: response.data
+        });
         
         if (response.data?.success) {
           savedMessage = response.data.data;
