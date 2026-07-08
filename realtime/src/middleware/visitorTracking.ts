@@ -1,8 +1,8 @@
 // realtime/src/middleware/visitorTracking.ts
 import { Socket } from 'socket.io';
 import axios from 'axios';
+import { API_URL } from '../config/baseApi';
 
-const API_URL = process.env.API_URL || 'https://comvia-backend-endpoint.vercel.app/api';
 
 export interface VisitorData {
   visitorId: string;

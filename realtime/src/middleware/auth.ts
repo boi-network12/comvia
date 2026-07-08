@@ -3,9 +3,10 @@
 import { Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
+import { API_URL } from '../config/baseApi';
 
 const JWT_SECRET = process.env.JWT_SECRET || '8bc54b3f415d679a36567169f0168110434e69205880e0044eb01b70336c8e4c';
-const API_URL = process.env.API_URL || 'https://comvia-backend-endpoint.vercel.app/api';
+
 
 // Types
 interface DecodedToken {

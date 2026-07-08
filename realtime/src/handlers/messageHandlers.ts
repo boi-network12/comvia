@@ -1,8 +1,7 @@
 // realtime/src/handlers/messageHandlers.ts
 import { Server, Socket } from 'socket.io';
 import axios from 'axios';
-
-const API_URL = process.env.API_URL || 'https://comvia-backend-endpoint.vercel.app/api';
+import { API_URL } from '../config/baseApi';
 
 interface MessageData {
   content: string;

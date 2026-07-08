@@ -2,8 +2,8 @@
 import { Server, Socket } from 'socket.io';
 import axios from 'axios';
 import { trackVisitor } from '../middleware/visitorTracking';
+import { API_URL } from '../config/baseApi';
 
-const API_URL = process.env.API_URL || 'https://comvia-backend-endpoint.vercel.app/api';
 
 export function setupSocketHandlers(
   socket: Socket,
@@ -194,7 +194,10 @@ socket.on('send_message', async (data: {
 
   // ==================== AGENT / ADMIN MESSAGE ====================
   else if (socket.data.user && !socket.data.isVisitor) {
-    const token = socket.data.authToken || socket.handshake.auth.token;
+    
+    let token = socket.data.authToken 
+           || socket.handshake.auth.token 
+           || socket.handshake.headers.authorization?.replace('Bearer ', '');
     const conversationId = data.conversationId;
 
     console.log("🔥🔥🔥 AGENT SENDING MESSAGE 🔥🔥🔥");
