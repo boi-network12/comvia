@@ -67,7 +67,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     }
 
     const socketUrl = options.socketUrl || getSocketUrl();
-    const visitorId = visitorIdRef;
+    const visitorId = visitorIdRef.current;
 
     const companyId = options.companyId || (window as any).comviaSettings?.companyId;
 
@@ -236,7 +236,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
       return false;
     }
 
-    const visitorId = visitorIdRef;
+    const visitorId = visitorIdRef.current;
     
     socketRef.current.emit('send_message', {
       conversationId,
