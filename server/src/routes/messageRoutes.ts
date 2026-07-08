@@ -15,7 +15,7 @@ const router = Router();
 router.use(protect);
 
 // Send message
-router.post('/', sendMessage);
+router.post('/ww', sendMessage);
 
 // Get messages for conversation
 router.get('/:conversationId', getMessages);
