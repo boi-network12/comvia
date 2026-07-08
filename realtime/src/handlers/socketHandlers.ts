@@ -204,11 +204,15 @@ export function setupSocketHandlers(
 
       // ✅ SAVE TO DATABASE
       try {
+        // ✅ USE THE STORED TOKEN FROM THE SOCKET
+        const token = socket.data.authToken || socket.handshake.auth.token;
+
+
          console.log(`📤 [SOCKET] Saving agent message to API:`, {
           conversationId: data.conversationId,
           content: data.content,
           userId: socket.data.userId,
-          token: socket.handshake.auth.token ? 'present' : 'missing'
+          token: token ? 'present' : 'missing'
         });
 
         const response = await axios.post(`${API_URL}/messages`, {
@@ -217,7 +221,7 @@ export function setupSocketHandlers(
           type: 'text'
         }, {
           headers: {
-            'Authorization': `Bearer ${socket.handshake.auth.token}`
+            'Authorization': `Bearer ${ token }`
           },
           timeout: 10000
         });
@@ -236,7 +240,7 @@ export function setupSocketHandlers(
               assignedToName: socket.data.user.name
             }, {
               headers: {
-                'Authorization': `Bearer ${socket.handshake.auth.token}`
+                'Authorization': `Bearer ${ token }`
               }
             });
             console.log(`✅ Assigned conversation to ${socket.data.user.name}`);
