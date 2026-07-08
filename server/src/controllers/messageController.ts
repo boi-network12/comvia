@@ -82,6 +82,26 @@ export const sendMessage = async (req: Request, res: Response, next: NextFunctio
     
     await conversation.save();
 
+    const realtimeUrl = 'https://comvia-realtime.fly.dev';
+
+    try {
+      // Broadcast to all rooms
+      const broadcastData = {
+        event: 'new_message',
+        data: message
+      };
+      
+      const response = await fetch(`${realtimeUrl}/api/broadcast`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(broadcastData)
+      });
+      
+      console.log(`📤 Broadcast to realtime: ${response.status}`);
+    } catch (broadcastError) {
+      console.error('⚠️ Could not broadcast to realtime:', broadcastError);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Message sent successfully',
