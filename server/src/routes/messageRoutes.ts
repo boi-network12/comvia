@@ -11,11 +11,13 @@ import {
 
 const router = Router();
 
+// Send message
+router.post('/', sendMessage);
+
 // All routes require authentication
 router.use(protect);
 
-// Send message
-router.post('/', sendMessage);
+
 
 // Get messages for conversation
 router.get('/:conversationId', getMessages);
