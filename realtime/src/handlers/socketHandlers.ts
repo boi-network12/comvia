@@ -51,7 +51,8 @@ export function setupSocketHandlers(
     visitorId: string; 
     companyId: string; 
     userAgent?: string; 
-    url?: string 
+    url?: string ,
+    conversationId?: string
   }) => {
     console.log(`👤 [SOCKET] Visitor identified: ${data.visitorId}`);
     
@@ -63,6 +64,11 @@ export function setupSocketHandlers(
     
     if (data.companyId) {
       socket.join(`company_${data.companyId}`);
+    }
+
+    // Also join the conversation room if we have one
+    if (data.conversationId) {
+      socket.join(data.conversationId);
     }
     
     io.to('agents').emit('visitor_online', {
@@ -200,6 +206,7 @@ export function setupSocketHandlers(
     else if (socket.data.user && !socket.data.isVisitor) {
       // ✅ USE THE STORED TOKEN FROM THE SOCKET
       const token = socket.data.authToken || socket.handshake.auth.token;
+      const conversationId = data.conversationId;
 
       console.log(`👤 Agent message from ${socket.data.user.name}: ${data.content}`);
 
@@ -214,28 +221,8 @@ export function setupSocketHandlers(
       // ✅ SAVE TO DATABASE
       try {
 
-        console.log(`🔍 [SOCKET] Debug - Agent message attempt:`, {
-          conversationId: data.conversationId,
-          content: data.content,
-          userId: socket.data.userId,
-          userRole: socket.data.user?.role,
-          userName: socket.data.user?.name,
-          tokenExists: !!token
-        });
-
-
-         console.log(`📤 [SOCKET] Saving agent message to API:`, {
-            conversationId: data.conversationId,
-            content: data.content,
-            userId: socket.data.userId,
-            userRole: socket.data.user?.role,
-            token: token ? 'present' : 'missing',
-            tokenLength: token ? token.length : 0
-          });
-
-
         const response = await axios.post(`${API_URL}/messages`, {
-          conversationId: data.conversationId,
+          conversationId,
           content: data.content,
           type: 'text'
         }, {
@@ -243,11 +230,6 @@ export function setupSocketHandlers(
             'Authorization': `Bearer ${ token }`
           },
           timeout: 10000
-        });
-
-        console.log(`📥 [SOCKET] API Response:`, {
-          status: response.status,
-          data: response.data
         });
         
         if (response.data?.success) {
@@ -295,6 +277,8 @@ export function setupSocketHandlers(
       // ✅ BROADCAST to all relevant rooms
       // 1. Conversation room (for other agents)
       io.to(data.conversationId).emit('new_message', agentMessage);
+      // 2. Agents room
+      io.to('agents').emit('new_message', agentMessage);
       
       io.to(data.conversationId).emit('agent_message', {
         content: data.content,
@@ -303,23 +287,17 @@ export function setupSocketHandlers(
         senderName: socket.data.user.name || 'Agent'
       });
 
-      // 2. Agents room
-      io.to('agents').emit('new_message', agentMessage);
-
       // 3. Visitor's personal room (CRITICAL for widget to receive)
       const visitorId = data.visitorId || socket.data.visitorId;
       if (visitorId) {
+        console.log(`📤 Sending agent reply to visitor room: visitor_${visitorId}`);
         io.to(`visitor_${visitorId}`).emit('new_message', agentMessage);
-        io.to(`visitor_${visitorId}`).emit('agent_message', {
-          content: data.content,
-          conversationId: data.conversationId,
-          senderId: socket.data.userId || socket.data.user._id,
-          senderName: socket.data.user.name || 'Agent'
-        });
-        console.log(`✅ Agent message sent to visitor room: visitor_${visitorId}`);
+        io.to(`visitor_${visitorId}`).emit('agent_message', agentMessage);
+      } else {
+        console.warn('⚠️ No visitorId found for broadcasting');
       }
 
-      // ✅ Send confirmation back to the sender
+      // Confirmation to agent
       socket.emit('message_sent', agentMessage);
 
       console.log(`✅ Agent message broadcasted to room: ${data.conversationId}`);
