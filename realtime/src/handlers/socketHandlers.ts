@@ -198,14 +198,21 @@ export function setupSocketHandlers(
     
     // ==================== AGENT / ADMIN MESSAGE ====================
     else if (socket.data.user && !socket.data.isVisitor) {
+      // ✅ USE THE STORED TOKEN FROM THE SOCKET
+      const token = socket.data.authToken || socket.handshake.auth.token;
+
       console.log(`👤 Agent message from ${socket.data.user.name}: ${data.content}`);
+
+      if (!token) {
+        console.error('❌ No auth token for agent message');
+        socket.emit('error', { message: 'Authentication required' });
+        return;
+      }
 
       let savedMessage = null;
 
       // ✅ SAVE TO DATABASE
       try {
-        // ✅ USE THE STORED TOKEN FROM THE SOCKET
-        const token = socket.data.authToken || socket.handshake.auth.token;
 
         console.log(`🔍 [SOCKET] Debug - Agent message attempt:`, {
           conversationId: data.conversationId,
@@ -225,13 +232,6 @@ export function setupSocketHandlers(
             token: token ? 'present' : 'missing',
             tokenLength: token ? token.length : 0
           });
-
-          // ✅ ADD A TEST: Verify the token is valid
-          if (!token) {
-            console.error('❌ [SOCKET] No token available!');
-            socket.emit('error', { message: 'Authentication required' });
-            return;
-          }
 
 
         const response = await axios.post(`${API_URL}/messages`, {
@@ -295,6 +295,7 @@ export function setupSocketHandlers(
       // ✅ BROADCAST to all relevant rooms
       // 1. Conversation room (for other agents)
       io.to(data.conversationId).emit('new_message', agentMessage);
+      
       io.to(data.conversationId).emit('agent_message', {
         content: data.content,
         conversationId: data.conversationId,

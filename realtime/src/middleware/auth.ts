@@ -55,6 +55,8 @@ export const authenticateSocket = async (socket: Socket, next: (err?: Error) => 
 
       // ✅ STORE THE TOKEN ON THE SOCKET
       socket.data.authToken = token;
+      socket.data.userId = decoded.id;
+      socket.data.isVisitor = false;
 
       // ✅ Try to fetch user data from API
       try {

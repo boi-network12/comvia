@@ -11,7 +11,7 @@ import { logger } from '../utils/logger';
 export const sendMessage = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id;
-    const userRole = req.user?.role || 'user';
+    const userRole = req.user?.role || 'agent' || 'user' || 'admin';
     const { conversationId, content, type, replyTo } = req.body;
 
     if (!content) {
@@ -34,6 +34,7 @@ export const sendMessage = async (req: Request, res: Response, next: NextFunctio
       conversation.assignedTo === userId || 
       conversation.assignedToName === req.user?.name || 
       conversation.participants?.some((p: any) => p.userId === userId) ||
+      ['admin', 'agent'].includes(req.user?.role || '') ||
       req.user?.role === 'admin' || 
       req.user?.role === 'agent' ||
       req.user?.role === 'user';
@@ -54,17 +55,24 @@ export const sendMessage = async (req: Request, res: Response, next: NextFunctio
       type: type || 'text',
       replyTo,
       status: 'sent',
+      readBy: [userId]
     });
 
     // Update conversation last message
     conversation.lastMessage = {
       content: content,
       senderId: userId,
-      senderType: userRole,
+      senderType: userRole === 'user' ? 'agent' : userRole,
       sentAt: new Date(),
     };
     conversation.lastMessageAt = new Date();
     conversation.lastMessagePreview = content.substring(0, 100);
+
+    // ✅ If agent is sending, increment unread count for visitor
+    if (userRole === 'agent' || userRole === 'admin') {
+      conversation.unreadCount = (conversation.unreadCount || 0) + 1;
+    }
+    
     await conversation.save();
 
     res.status(201).json({
