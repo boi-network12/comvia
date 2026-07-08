@@ -47,7 +47,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
   );
   
   const socketRef = useRef<Socket | null>(null);
-  const isMounted = useRef<boolean>(true);
+  // const isMounted = useRef<boolean>(true);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxReconnectAttempts = 10;
   const isConnectingRef = useRef<boolean>(false);
