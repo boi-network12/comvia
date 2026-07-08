@@ -208,75 +208,67 @@ export function setupSocketHandlers(
       const token = socket.data.authToken || socket.handshake.auth.token;
       const conversationId = data.conversationId;
 
-      console.log(`👤 [AGENT MESSAGE] From ${socket.data.user.name}: "${data.content}"`);
+      console.log("🔥🔥🔥 AGENT SENDING MESSAGE 🔥🔥🔥");
+      console.log("Token exists:", !!token);
+      console.log("ConversationId:", conversationId);
+      console.log("Content:", data.content);
 
       if (!token) {
-        console.error('❌ No auth token for agent message');
-        socket.emit('error', { message: 'Authentication required' });
+        console.error("❌ NO TOKEN");
+        socket.emit('error', { message: 'No token' });
         return;
       }
 
       let savedMessage = null;
 
-      // ✅ SAVE TO DATABASE
       try {
-        console.log(`📤 [AGENT] Calling /messages API...`);
-
         const response = await axios.post(`${API_URL}/messages`, {
           conversationId,
           content: data.content,
           type: 'text'
         }, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          timeout: 10000
+          headers: { 'Authorization': `Bearer ${token}` },
+          timeout: 15000
         });
 
-        console.log('📥 [AGENT] API Response:', {
-          status: response.status,
-          success: response.data?.success,
-          messageId: response.data?.data?._id
-        });
+        console.log("✅ API SUCCESS:", response.data);
 
         if (response.data?.success) {
           savedMessage = response.data.data;
-          console.log('✅ Agent message SAVED to DB:', savedMessage._id);
         }
       } catch (err: any) {
-        console.error('❌ Failed to save agent message:', err.message);
+        console.error("❌ API FAILED COMPLETELY:");
+        console.error("Message:", err.message);
         if (err.response) {
-          console.error('Status:', err.response.status);
-          console.error('Data:', err.response.data);
+          console.error("Status:", err.response.status);
+          console.error("Response Data:", err.response.data);
+        } else if (err.request) {
+          console.error("No response from server");
         }
       }
 
-      // Build message (even if save failed)
+      // Build message anyway
       const agentMessage = {
         _id: savedMessage?._id || `msg_${Date.now()}`,
-        conversationId: data.conversationId,
+        conversationId,
         content: data.content,
         senderId: socket.data.userId || socket.data.user._id,
-        senderType: 'agent' as const,
+        senderType: 'agent',
         senderName: socket.data.user.name || 'Agent',
         createdAt: new Date().toISOString(),
-        status: 'sent' as const
+        status: 'sent'
       };
 
       // Broadcast
-      io.to(data.conversationId).emit('new_message', agentMessage);
+      io.to(conversationId).emit('new_message', agentMessage);
       io.to('agents').emit('new_message', agentMessage);
 
       const visitorId = data.visitorId || socket.data.visitorId;
       if (visitorId) {
-        console.log(`📤 Broadcasting to visitor room: visitor_${visitorId}`);
         io.to(`visitor_${visitorId}`).emit('new_message', agentMessage);
-        io.to(`visitor_${visitorId}`).emit('agent_message', agentMessage);
       }
 
       socket.emit('message_sent', agentMessage);
-
-      console.log(`✅ Agent message broadcasted for conversation ${data.conversationId}`);
     }  else {
       console.warn(`⚠️ Unknown sender type for message`);
       socket.emit('error', { message: 'Could not process message' });
