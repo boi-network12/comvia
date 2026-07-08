@@ -150,9 +150,9 @@ export default function ConversationDetailPage() {
     e.preventDefault();
     if (!newMessage.trim() || isSending) return;
 
-    setIsSending(true);
     const messageContent = newMessage.trim();
     setNewMessage("");
+    setIsSending(true);
 
     try {
       // Try sending via WebSocket first
@@ -166,8 +166,10 @@ export default function ConversationDetailPage() {
         await sendMessageRest(conversationId, messageContent);
       }
       
-      // Refresh messages after sending
-      await loadConversation(conversationId);
+      // Small delay + refresh only messages, not full conversation
+      setTimeout(() => {
+        loadConversation(conversationId);  
+      }, 300);
       
     } catch (error) {
       console.error("Failed to send message:", error);

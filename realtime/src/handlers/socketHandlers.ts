@@ -158,10 +158,15 @@ export function setupSocketHandlers(
     timestamp?: string;
   }) => {
     console.log(`📨 [SOCKET] Message from visitor:`, data);
+
+    const isVisitor = socket.data.isVisitor || data.sender === 'visitor';
     
     // If visitor is sending, broadcast to agents
-    if (socket.data.isVisitor || data.sender === 'visitor') {
-      // Broadcast to all agents
+    if (isVisitor) {
+      // ==================== VISITOR MESSAGE ====================
+    console.log(`👤 Visitor message: ${data.content}`);
+
+    
       io.to('agents').emit('visitor_message', {
         conversationId: data.conversationId,
         message: {
@@ -202,6 +207,32 @@ export function setupSocketHandlers(
         messageId: `msg_${Date.now()}`,
         status: 'sent'
       });
+    } 
+    else if (socket.data.user && !socket.data.isVisitor) {
+      // ==================== AGENT / ADMIN MESSAGE ====================
+    console.log(`👤 Agent message from ${socket.data.user.name}: ${data.content}`);
+
+     const agentMessage = {
+      _id: `msg_${Date.now()}`,
+        conversationId: data.conversationId,
+        content: data.content,
+        senderId: socket.data.userId || socket.data.user._id,
+        senderType: 'agent',
+        senderName: socket.data.user.name || 'Agent',
+        createdAt: new Date().toISOString(),
+        status: 'sent'
+      };
+
+      // Broadcast to everyone in the conversation room (including other agents)
+      io.to(data.conversationId).emit('new_message', agentMessage);
+
+      // Also send confirmation back to the sender
+      socket.emit('message_sent', agentMessage);
+
+      console.log(`✅ Agent message broadcasted to room: ${data.conversationId}`);
+    } else {
+      console.warn(`⚠️ Unknown sender type for message`);
+      socket.emit('error', { message: 'Could not process message' });
     }
   });
 

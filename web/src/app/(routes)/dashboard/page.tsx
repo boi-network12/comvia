@@ -488,10 +488,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Messages Preview */}
-      <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6">
+      <div className="bg-background border border-gray-200/50 dark:border-gray-800/50 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 min-w-0 overflow-hidden">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <h3 className="text-sm sm:text-base font-semibold">Recent Messages</h3>
-          <Link href="/dashboard/conversations" className="text-[10px] sm:text-xs text-primary hover:underline whitespace-nowrap">
+          <Link href="/dashboard/conversations" className="text-[10px] sm:text-xs text-primary hover:underline whitespace-nowrap flex-shrink-0">
             View All →
           </Link>
         </div>
@@ -500,32 +500,37 @@ export default function DashboardPage() {
             <Link
               key={conv._id || index}
               href={`/dashboard/conversations/${conv._id}`}
-              className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors ${
-                conv.unreadCount > 0 ? "bg-primary/5 border border-primary/10" : ""
+              className={`grid grid-cols-[auto,1fr,auto] items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors ${
+                conv.unreadCount > 0 ? "bg-primary/5 border border-primary/10" : "border border-transparent"
               }`}
             >
+              {/* Avatar - Column 1 */}
               <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full gradient-primary flex items-center justify-center text-white font-medium text-xs sm:text-sm flex-shrink-0">
-                {conv.metadata?.visitorName?.charAt(0) || 'V'}
+                {conv.metadata?.visitorName?.charAt(0)?.toUpperCase() || 'V'}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1 sm:gap-2">
+              
+              {/* Content - Column 2 (takes remaining space) */}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
                   <p className="text-xs sm:text-sm font-medium truncate">
                     {conv.metadata?.visitorName || 'Anonymous'}
                   </p>
                   {conv.unreadCount > 0 && (
-                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full flex-shrink-0" />
-                  )}
-                  {conv.unreadCount > 0 && (
-                    <span className="text-[8px] sm:text-[10px] px-1.5 py-0.5 bg-primary/20 text-primary rounded-full">
-                      {conv.unreadCount}
-                    </span>
+                    <>
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full flex-shrink-0" />
+                      <span className="text-[8px] sm:text-[10px] px-1.5 py-0.5 bg-primary/20 text-primary rounded-full flex-shrink-0">
+                        {conv.unreadCount}
+                      </span>
+                    </>
                   )}
                 </div>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
                   {conv.lastMessagePreview || 'No messages yet'}
                 </p>
               </div>
-              <span className="text-[8px] sm:text-[10px] md:text-xs text-gray-400 flex-shrink-0">
+              
+              {/* Time - Column 3 (fixed width) */}
+              <span className="text-[8px] sm:text-[10px] md:text-xs text-gray-400 flex-shrink-0 whitespace-nowrap">
                 {formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: true })}
               </span>
             </Link>

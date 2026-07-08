@@ -8,63 +8,6 @@ import Message from '../models/Message';
 // @desc    Get all conversations
 // @route   GET /api/conversations
 // @access  Private
-// export const getConversations = async (req: Request, res: Response, next: NextFunction) => {
-//   try {
-//     const userId = req.user?.id;
-//     const { status, assignedTo, page = 1, limit = 20, search } = req.query;
-
-//      const query: any = {};
-    
-//     // ✅ Find conversations assigned to this user OR where user is the company
-//     query.$or = [
-//       { assignedTo: userId },
-//       { companyId: req.user?.companyId } // If we store companyId on user
-//     ];
-
-//     if (status) query.status = status;
-//     if (assignedTo) query.assignedTo = assignedTo;
-//     if (search) {
-//       query.$or = [
-//         { title: { $regex: search, $options: 'i' } },
-//         { 'metadata.visitorName': { $regex: search, $options: 'i' } },
-//         { 'metadata.visitorEmail': { $regex: search, $options: 'i' } },
-//       ];
-//     }
-
-//     const skip = (Number(page) - 1) * Number(limit);
-
-//     const [conversations, total] = await Promise.all([
-//       Conversation.find(query)
-//         .sort({ lastMessageAt: -1 })
-//         .skip(skip)
-//         .limit(Number(limit))
-//         .lean(),
-//       Conversation.countDocuments(query),
-//     ]);
-
-//     // Get unread count
-//     const unreadCount = await Conversation.countDocuments({
-//       ...query,
-//       unreadCount: { $gt: 0 },
-//     });
-
-//     res.status(200).json({
-//       success: true,
-//       data: {
-//         conversations,
-//         pagination: {
-//           page: Number(page),
-//           limit: Number(limit),
-//           total,
-//           pages: Math.ceil(total / Number(limit)),
-//         },
-//         unreadCount,
-//       },
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
 
 export const getConversations = async (req: Request, res: Response, next: NextFunction) => {
   try {
