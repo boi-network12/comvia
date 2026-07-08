@@ -30,11 +30,16 @@ export const sendMessage = async (req: Request, res: Response, next: NextFunctio
 
     // ✅ Check if user has access to this conversation
     const hasAccess = 
-      conversation.userId === userId ||
-      conversation.assignedTo === userId ||
-      conversation.participants?.some((p: any) => p.userId === userId);
+      conversation.userId === userId || 
+      conversation.assignedTo === userId || 
+      conversation.assignedToName === req.user?.name || 
+      conversation.participants?.some((p: any) => p.userId === userId) ||
+      req.user?.role === 'admin' || 
+      req.user?.role === 'agent'; 
 
     if (!hasAccess) {
+      console.log(`❌ Access denied for user ${userId} on conversation ${conversationId}`);
+      console.log(`Conversation: userId=${conversation.userId}, assignedTo=${conversation.assignedTo}`);
       throw new BadRequestError('You do not have access to this conversation');
     }
 

@@ -204,6 +204,13 @@ export function setupSocketHandlers(
 
       // ✅ SAVE TO DATABASE
       try {
+         console.log(`📤 [SOCKET] Saving agent message to API:`, {
+          conversationId: data.conversationId,
+          content: data.content,
+          userId: socket.data.userId,
+          token: socket.handshake.auth.token ? 'present' : 'missing'
+        });
+
         const response = await axios.post(`${API_URL}/messages`, {
           conversationId: data.conversationId,
           content: data.content,
@@ -211,15 +218,39 @@ export function setupSocketHandlers(
         }, {
           headers: {
             'Authorization': `Bearer ${socket.handshake.auth.token}`
-          }
+          },
+          timeout: 10000
         });
+
+        console.log(`📥 [SOCKET] API Response:`, response.data);
         
         if (response.data?.success) {
           savedMessage = response.data.data;
           console.log('✅ Agent message saved to DB');
         }
-      } catch (error) {
+
+        if (savedMessage) {
+          try {
+            await axios.put(`${API_URL}/conversations/${data.conversationId}`, {
+              assignedTo: socket.data.userId,
+              assignedToName: socket.data.user.name
+            }, {
+              headers: {
+                'Authorization': `Bearer ${socket.handshake.auth.token}`
+              }
+            });
+            console.log(`✅ Assigned conversation to ${socket.data.user.name}`);
+          } catch (assignError) {
+            console.log('⚠️ Could not assign conversation:', assignError);
+          }
+        }
+      } catch (err : unknown) {
+        const error = err as any;
         console.error('❌ Failed to save agent message:', error);
+        if (error.response) {
+          console.error('Response status:', error.response.status);
+          console.error('Response data:', error.response.data);
+        }
         // Continue even if DB fails - we'll use a fallback ID
       }
 

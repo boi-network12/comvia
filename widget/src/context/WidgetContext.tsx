@@ -71,7 +71,24 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     sendTyping: sendSocketTyping,
     connect: connectSocket,
     disconnect: disconnectSocket,
-  } = useSocket();
+  } = useSocket({
+    visitorId: localStorage.getItem('comvia_visitor_id') || undefined,
+      companyId: companyId || undefined,
+      onMessage: (message) => {
+        console.log('📨 [WIDGET] New message from socket:', message);
+        addMessage({
+          content: message.content,
+          sender: 'bot',
+        });
+      },
+      onAgentMessage: (data) => {
+        console.log('📨 [WIDGET] Agent message from socket:', data);
+        addMessage({
+          content: data.content,
+          sender: 'bot',
+        });
+      },
+  });
 
   useEffect(() => {
     const loadConfig = async () => {
