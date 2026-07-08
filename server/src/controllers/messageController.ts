@@ -8,174 +8,55 @@ import { logger } from '../utils/logger';
 // @desc    Send message
 // @route   POST /api/messages
 // @access  Private
-// export const sendMessage = async (req: Request, res: Response, next: NextFunction) => {
-//   try {
-//     const userId = req.user?.id;
-//     const userRole = req.user?.role || 'agent' || 'user' || 'admin';
-//     const { conversationId, content, type, replyTo } = req.body;
-
-//     console.log(`📤 [MESSAGE] Agent trying to send:`, { 
-//       userId, 
-//       userRole, 
-//       conversationId, 
-//       contentLength: content?.length 
-//     });
-
-//     if (!content) {
-//       throw new BadRequestError('Message content is required');
-//     }
-
-//     if (!conversationId) {
-//       throw new BadRequestError('Conversation ID is required');
-//     }
-
-//     // ✅ DON'T auto-create - just find existing conversation
-//     const conversation = await Conversation.findById(conversationId);
-//     if (!conversation) {
-//       throw new NotFoundError('Conversation not found');
-//     }
-
-//     // ✅ Check if user has access to this conversation
-//     const hasAccess = 
-//       conversation.userId === userId || 
-//       conversation.assignedTo === userId || 
-//       conversation.assignedToName === req.user?.name || 
-//       conversation.participants?.some((p: any) => p.userId === userId) ||
-//       ['admin', 'agent'].includes(req.user?.role || '') ||
-//       req.user?.role === 'admin' || 
-//       req.user?.role === 'agent' ||
-//       req.user?.role === 'user';
-
-//     if (!hasAccess) {
-//       console.log(`❌ Access denied for user ${userId} on conversation ${conversationId}`);
-//       console.log(`Conversation: userId=${conversation.userId}, assignedTo=${conversation.assignedTo}`);
-//       throw new BadRequestError('You do not have access to this conversation');
-//     }
-
-//     // Create message
-//     const message = await Message.create({
-//       conversationId: conversation._id,
-//       senderId: userId,
-//       senderType: userRole,
-//       senderName: req.user?.name,
-//       content,
-//       type: type || 'text',
-//       replyTo,
-//       status: 'sent',
-//       readBy: [userId]
-//     });
-
-//     // Update conversation last message
-//     conversation.lastMessage = {
-//       content: content,
-//       senderId: userId,
-//       senderType: userRole === 'user' ? 'agent' : userRole,
-//       sentAt: new Date(),
-//     };
-//     conversation.lastMessageAt = new Date();
-//     conversation.lastMessagePreview = content.substring(0, 100);
-
-//     // ✅ If agent is sending, increment unread count for visitor
-//     if (userRole === 'agent' || userRole === 'admin') {
-//       conversation.unreadCount = (conversation.unreadCount || 0) + 1;
-//     }
-    
-//     await conversation.save();
-
-//     const realtimeUrl = 'https://comvia-realtime.fly.dev';
-
-//     try {
-//       // Broadcast to all rooms
-//       const broadcastData = {
-//         event: 'new_message',
-//         data: message
-//       };
-      
-//       const response = await fetch(`${realtimeUrl}/api/broadcast`, {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify(broadcastData)
-//       });
-      
-//       console.log(`📤 Broadcast to realtime: ${response.status}`);
-//     } catch (broadcastError) {
-//       console.error('⚠️ Could not broadcast to realtime:', broadcastError);
-//     }
-
-//     res.status(201).json({
-//       success: true,
-//       message: 'Message sent successfully',
-//       data: message,
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
-// server/src/controllers/messageController.ts
-// server/src/controllers/messageController.ts
 export const sendMessage = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id;
-    const userRole = req.user?.role;
-    const { conversationId, content } = req.body;
+    const userRole = req.user?.role || 'agent';
+    const { conversationId, content, type = 'text' } = req.body;
 
     console.log("=== SEND MESSAGE DEBUG ===");
     console.log("User ID:", userId);
-    console.log("User Role:", userRole);
+    console.log("Role:", userRole);
     console.log("Conversation ID:", conversationId);
     console.log("Content:", content);
-    console.log("Full req.user:", req.user);
 
-    if (!userId) {
-      console.error("❌ No userId in token!");
-      throw new BadRequestError("Authentication required");
-    }
-
-    if (!conversationId || !content) {
-      throw new BadRequestError("Missing conversationId or content");
-    }
+    if (!userId) throw new BadRequestError("Authentication required");
+    if (!conversationId) throw new BadRequestError("Conversation ID required");
+    if (!content?.trim()) throw new BadRequestError("Content required");
 
     const conversation = await Conversation.findById(conversationId);
-    if (!conversation) {
-      console.error("❌ Conversation not found:", conversationId);
-      throw new NotFoundError("Conversation not found");
-    }
+    if (!conversation) throw new NotFoundError("Conversation not found");
 
-    console.log("Conversation found. Owner:", conversation.userId, "AssignedTo:", conversation.assignedTo);
-
-    // Access check
     const hasAccess = 
       conversation.userId === userId || 
       conversation.assignedTo === userId ||
-      ['admin', 'agent'].includes(userRole || '');
+      ['admin', 'agent'].includes(userRole);
 
     if (!hasAccess) {
-      console.error("❌ ACCESS DENIED");
-      throw new BadRequestError("You do not have access to this conversation");
+      console.error("❌ ACCESS DENIED for user", userId);
+      throw new BadRequestError("Access denied");
     }
 
     const message = await Message.create({
       conversationId,
       senderId: userId,
-      senderType: userRole || 'agent',
+      senderType: userRole,
       senderName: req.user?.name || 'Agent',
-      content,
-      type: 'text',
+      content: content.trim(),
+      type,
       status: 'sent'
     });
 
-    console.log("✅ Message CREATED successfully:", message._id);
+    console.log("✅ Message saved:", message._id);
 
     // Update conversation
     conversation.lastMessageAt = new Date();
-    conversation.lastMessagePreview = content.substring(0, 100);
+    conversation.lastMessagePreview = content.trim().substring(0, 100);
     await conversation.save();
 
     res.status(201).json({ success: true, data: message });
-
   } catch (error: any) {
     console.error("❌ sendMessage ERROR:", error.message);
-    console.error("Stack:", error.stack);
     next(error);
   }
 };
