@@ -3,7 +3,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-// import { useWidgetContext } from '../../context/WidgetContext';
 import { WidgetButton } from './WidgetButton';
 import { WidgetHeader } from './WidgetHeader';
 import { WidgetBody } from './WidgetBody';

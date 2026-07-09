@@ -116,11 +116,11 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     }
     processedMessagesRef.current.add(key);
     
-    addMessage({
-      content: data.content,
-      sender: 'agent',
-    });
-  }, [addMessage]);
+    // addMessage({
+    //   content: data.content,
+    //   sender: 'agent',
+    // });
+  }, []);
 
   // ✅ Get socket with handlers
   const {
