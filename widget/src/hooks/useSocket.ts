@@ -259,7 +259,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
       });
 
       socket.on('message_sent', (data: { messageId: string; status: string }) => {
-        console.log('✅ [Widget] Message sent:', data);
+        // console.log('✅ [Widget] Message sent:', data);
       });
 
       socket.on('reconnect', () => {

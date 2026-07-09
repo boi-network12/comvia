@@ -80,11 +80,11 @@ export const widgetAPI = {
         localStorage.setItem('comvia_visitor_id', userId);
       }
       
-      console.log('📤 [WIDGET] Sending message:', {
-        content: data.content,
-        userId: data.userId,
-        companyId: companyId
-      });
+      // console.log('📤 [WIDGET] Sending message:', {
+      //   content: data.content,
+      //   userId: data.userId,
+      //   companyId: companyId
+      // });
 
       // Use the visitor message endpoint
       const response = await api.post('/widget/visitor/message', {
@@ -95,7 +95,7 @@ export const widgetAPI = {
         companyId: companyId // ✅ Include companyId
       });
       
-      console.log('📥 [WIDGET] Message response:', response.data);
+      // console.log('📥 [WIDGET] Message response:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ [WIDGET] Failed to send message:', error);
@@ -139,7 +139,7 @@ export const widgetAPI = {
   getCompanySettings: async (companyId: string): Promise<ApiResponse<any>> => {
     try {
       const response = await api.get(`/company/${companyId}/widget`);
-      console.log('📥 [WIDGET] Company settings response:', response.data);
+      // console.log('📥 [WIDGET] Company settings response:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Failed to get company settings:', error);

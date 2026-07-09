@@ -99,14 +99,14 @@ export default function ConversationDetailPage() {
     if (conversationId && isRealtimeConnected && !hasJoinedRef.current) {
       hasJoinedRef.current = true;
       joinConversation(conversationId);
-      console.log(`📌 Joined conversation room: ${conversationId}`);
+      // console.log(`📌 Joined conversation room: ${conversationId}`);
     }
     
     return () => {
       if (conversationId && hasJoinedRef.current) {
         hasJoinedRef.current = false;
         leaveConversation(conversationId);
-        console.log(`📌 Left conversation room: ${conversationId}`);
+        // console.log(`📌 Left conversation room: ${conversationId}`);
       }
     };
   }, [conversationId, isRealtimeConnected, joinConversation, leaveConversation]);
@@ -117,7 +117,7 @@ export default function ConversationDetailPage() {
       // Only process messages for this conversation
       if (msgConversationId !== conversationId) return;
       
-      console.log(`📨 [PAGE] New message for conversation ${conversationId}:`, message);
+      // console.log(`📨 [PAGE] New message for conversation ${conversationId}:`, message);
       
       // Append message to the conversation's messages
       setMessages(prev => {

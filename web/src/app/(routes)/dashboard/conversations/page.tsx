@@ -71,18 +71,9 @@ export default function ConversationsPage() {
     }
   }, [user, router]);
 
-   // Auto-refresh when new realtime messages arrive
-  // useEffect(() => {
-  //   if (realtimeMessages.length > 0) {
-  //     loadConversations({ 
-  //       search: search.trim() || undefined, 
-  //       status: (statusFilter || undefined) as ConversationStatus | undefined
-  //     });
-  //   }
-  // }, [realtimeMessages.length]);
   useEffect(() => {
   if (visitorMessages.length > 0) {
-    console.log('🔄 [WEB] New visitor message, refreshing conversations...');
+    // console.log('🔄 [WEB] New visitor message, refreshing conversations...');
     loadConversations({ 
       search: search.trim() || undefined, 
       status: (statusFilter || undefined) as ConversationStatus | undefined

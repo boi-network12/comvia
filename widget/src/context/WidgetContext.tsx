@@ -72,11 +72,11 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
 
   // ✅ Memoize the message handlers
   const handleMessage = useCallback((message: Message) => {
-    console.log('📨 [WIDGET] New message from socket:', message);
+    // console.log('📨 [WIDGET] New message from socket:', message);
 
     const messageKey = `${message.content}_${message.sender}_${message.timestamp?.getTime() || Date.now()}`;
     if (processedMessagesRef.current.has(messageKey)) {
-      console.log('⏭️ [WIDGET] Skipping duplicate message:', messageKey);
+      // console.log('⏭️ [WIDGET] Skipping duplicate message:', messageKey);
       return;
     }
     processedMessagesRef.current.add(messageKey);
@@ -107,19 +107,15 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
   }, [addMessage]);
 
   const handleAgentMessage = useCallback((data: { content: string; conversationId: string; senderId: string }) => {
-    console.log('📨 [WIDGET] Agent message from socket:', data);
+    // console.log('📨 [WIDGET] Agent message from socket:', data);
     
     const key = `agent_${data.conversationId}_${data.content}_${data.senderId}`;
     if (processedMessagesRef.current.has(key)) {
-      console.log('⏭️ [WIDGET] Skipping duplicate agent message:', key);
+      // console.log('⏭️ [WIDGET] Skipping duplicate agent message:', key);
       return;
     }
     processedMessagesRef.current.add(key);
     
-    // addMessage({
-    //   content: data.content,
-    //   sender: 'agent',
-    // });
   }, []);
 
   // ✅ Get socket with handlers
@@ -145,13 +141,13 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
       const windowConfig = (window as any).comviaSettings || {};
       const companyId = windowConfig.companyId;
       
-      console.log('🔍 [WIDGET] Company ID:', companyId);
+      // console.log('🔍 [WIDGET] Company ID:', companyId);
       
       if (companyId) {
         setCompanyId(companyId);
         try {
           const response = await widgetAPI.getCompanySettings(companyId);
-          console.log('📥 [WIDGET] Company settings from API:', response);
+          // console.log('📥 [WIDGET] Company settings from API:', response);
           
           if (response.success && response.data) {
             const data = response.data;
@@ -197,7 +193,7 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!connectionInitiatedRef.current && !socketConnected && companyId && !isLoading) {
       connectionInitiatedRef.current = true;
-      console.log('🔌 [WIDGET] Initiating socket connection...');
+      // console.log('🔌 [WIDGET] Initiating socket connection...');
       connectSocket();
     }
   }, [companyId, isLoading, socketConnected, connectSocket]);
@@ -225,7 +221,7 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
   const sendMessage = (content: string, sender: 'user' | 'agent' = 'user') => {
     if (!content || !content.trim()) return;
     
-    console.log(`📤 [WIDGET] Sending message: "${content}" from ${sender}`);
+    // console.log(`📤 [WIDGET] Sending message: "${content}" from ${sender}`);
     
     // Add user message immediately (optimistic)
     addMessage({ content, sender });
@@ -234,7 +230,7 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     const windowConfig = (window as any).comviaSettings || {};
     const companyId = windowConfig.companyId || windowConfig.company_id;
     
-    console.log(`📤 [WIDGET] User ID: ${userId}, Company ID: ${companyId}`);
+    // console.log(`📤 [WIDGET] User ID: ${userId}, Company ID: ${companyId}`);
 
     const conversationId = localStorage.getItem('comvia_conversation_id');
 
@@ -254,7 +250,7 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
       timestamp: new Date().toISOString(),
       companyId: companyId 
     }).then(response => {
-      console.log('📥 [WIDGET] Message response:', response);
+      // console.log('📥 [WIDGET] Message response:', response);
       
       if (response.success && response.data) {
         if (response.data.reply) {

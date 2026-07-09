@@ -48,7 +48,7 @@ export const Widget: React.FC = () => {
     }
     
     connectionAttempted.current = true;
-    console.log('🔌 Widget mounting, initiating connection...');
+    // console.log('🔌 Widget mounting, initiating connection...');
     connectSocket();
   }, [isLoading, companyId, isConnected, connectSocket]);
 
@@ -66,7 +66,7 @@ export const Widget: React.FC = () => {
   // Log company ID for debugging
   useEffect(() => {
     if (companyId) {
-      console.log(`🏢 Widget initialized for company: ${companyId}`);
+      // console.log(`🏢 Widget initialized for company: ${companyId}`);
     }
   }, [companyId]);
 
