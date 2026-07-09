@@ -440,61 +440,96 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  
   const visitorIdRef = useRef<string>(
-    options.visitorId || localStorage.getItem('comvia_visitor_id')
+    options.visitorId || localStorage.getItem('comvia_visitor_id') || ''
   );
   
   const socketRef = useRef<Socket | null>(null);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const maxReconnectAttempts = 10;
   const isConnectingRef = useRef<boolean>(false);
   const connectionAttemptedRef = useRef<boolean>(false);
+  const mountedRef = useRef<boolean>(true);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
+  // Cleanup on unmount
   useEffect(() => {
+    mountedRef.current = true;
+    
     return () => {
-      isConnectingRef.current = false;
+      mountedRef.current = false;
+      if (cleanupRef.current) {
+        cleanupRef.current();
+      }
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
       }
+      isConnectingRef.current = false;
     };
   }, []);
-  
+
+  // Validate visitor ID
   useEffect(() => {
     if (!visitorIdRef.current) {
-      console.error('❌ [Widget] No visitor ID available! Make sure widget.tsx initializes it.');
+      console.error('❌ [Widget] No visitor ID available!');
     }
+  }, []);
+
+  const disconnect = useCallback(() => {
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
+    
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+    
+    setIsConnected(false);
+    isConnectingRef.current = false;
+    console.log('🔌 [Widget] Disconnected');
   }, []);
 
   const connect = useCallback(() => {
-    // ✅ PREVENT multiple connections
-    if (isConnectingRef.current) {
-      console.log('⏳ [Widget] Connection already in progress, skipping...');
-      return;
-    }
-
     // If already connected, return
     if (socketRef.current?.connected) {
-      console.log('🟢 [Widget] Already connected to socket');
+      console.log('🟢 [Widget] Already connected');
       return;
     }
 
-    // Clean up existing socket
+    // If connection is in progress, return
+    if (isConnectingRef.current) {
+      console.log('⏳ [Widget] Connection already in progress');
+      return;
+    }
+
+    // Clean up any existing socket
     if (socketRef.current) {
       socketRef.current.disconnect();
       socketRef.current = null;
     }
 
-    isConnectingRef.current = true;
+    // Clean up any existing listeners
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
+
+    const visitorId = visitorIdRef.current;
+    if (!visitorId) {
+      console.error('❌ [Widget] Cannot connect: No visitor ID');
+      setError('No visitor ID');
+      return;
+    }
 
     const socketUrl = options.socketUrl || getSocketUrl();
-    const visitorId = visitorIdRef.current;
     const companyId = options.companyId || (window as any).comviaSettings?.companyId;
 
-    console.log(`🔌 [Widget] Connecting to socket: ${socketUrl}`);
-    console.log(`👤 [Widget] Visitor ID: ${visitorId}, Company: ${companyId}`);
+    console.log(`🔌 [Widget] Connecting to ${socketUrl} as ${visitorId}`);
+    isConnectingRef.current = true;
 
-    // ✅ Create socket connection for visitor
+    // Create socket
     const socket = io(socketUrl, {
       query: {
         visitorId: visitorId,
@@ -503,89 +538,88 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
       },
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: maxReconnectAttempts,
+      reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      timeout: 20000,
+      timeout: 10000,
     });
 
     socketRef.current = socket;
 
-    // ✅ Connection events
-    socket.on('connect', () => {
-      console.log('🟢 [Widget] Socket connected successfully!');
+    // Set up event listeners
+    const onConnect = () => {
+      if (!mountedRef.current) return;
+      
+      console.log('🟢 [Widget] Socket connected!');
       setIsConnected(true);
       isConnectingRef.current = false;
       setError(null);
       setReconnectAttempts(0);
       
-      // ✅ Identify as visitor
+      // Identify as visitor
       socket.emit('identify_visitor', {
         visitorId: visitorId,
         companyId: companyId,
         userAgent: navigator.userAgent,
         url: window.location.href,
       });
-
-      // ✅ Join the conversation room if we have one
+      
+      // Join conversation if we have one
       const conversationId = localStorage.getItem('comvia_conversation_id');
       if (conversationId) {
         socket.emit('join_conversation', conversationId);
         console.log(`📌 [Widget] Joined conversation: ${conversationId}`);
       }
-
+      
       if (options.onConnect) options.onConnect();
-    });
+    };
 
-    socket.on('connect_error', (err) => {
-      console.error('❌ [Widget] Socket connection error:', err.message);
+    const onConnectError = (err: Error) => {
+      if (!mountedRef.current) return;
+      
+      console.error('❌ [Widget] Connection error:', err.message);
       setError(err.message);
       isConnectingRef.current = false;
       setReconnectAttempts(prev => prev + 1);
-    });
+    };
 
-    socket.on('disconnect', (reason) => {
-      console.log(`🔴 [Widget] Socket disconnected: ${reason}`);
+    const onDisconnect = (reason: string) => {
+      if (!mountedRef.current) return;
+      
+      console.log(`🔴 [Widget] Disconnected: ${reason}`);
       setIsConnected(false);
       isConnectingRef.current = false;
       
       if (options.onDisconnect) options.onDisconnect();
-    });
+    };
 
-    // ✅ Listen for agent replies
-    socket.on('agent_message', (data: { content: string; conversationId: string; senderId: string }) => {
-      console.log('📨 [Widget] Agent message received:', data);
-      
-      if (options.onAgentMessage) {
-        options.onAgentMessage(data);
-      }
-    });
+    const onAgentMessage = (data: { content: string; conversationId: string; senderId: string }) => {
+      if (!mountedRef.current) return;
+      console.log('📨 [Widget] Agent message:', data);
+      if (options.onAgentMessage) options.onAgentMessage(data);
+    };
 
-    // ✅ Listen for new messages (from agents or system)
-    socket.on('new_message', (message: any) => {
-      console.log('📨 [Widget] New message received:', message);
+    const onNewMessage = (message: any) => {
+      if (!mountedRef.current) return;
+      console.log('📨 [Widget] New message:', message);
       
       const isAgent = message.senderType === 'agent' || 
                     message.senderType === 'admin' ||
                     message.sender === 'agent' || 
                     message.sender === 'admin';
-
+      
       const isSystem = message.senderType === 'system' || message.sender === 'system';
-
-      // ✅ If sender is agent, also trigger agent message handler
-      if (isAgent) {
-        if (options.onAgentMessage) {
-          options.onAgentMessage({
-            content: message.content,
-            conversationId: message.conversationId || message.id,
-            senderId: message.senderId || message._id || 'agent'
-          });
-        }
+      
+      if (isAgent && options.onAgentMessage) {
+        options.onAgentMessage({
+          content: message.content,
+          conversationId: message.conversationId || message.id,
+          senderId: message.senderId || message._id || 'agent'
+        });
       }
       
-      // ✅ Convert database message to widget message format
       if (options.onMessage) {
-        const widgetMessage = {
+        options.onMessage({
           id: message._id || message.id || Date.now().toString(),
           content: message.content || message.message || '',
           sender: isAgent ? 'agent' : 
@@ -594,36 +628,23 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
                   message.sender || 'bot',
           timestamp: new Date(message.createdAt || message.timestamp || Date.now()),
           status: message.status || 'delivered'
-        };
-        options.onMessage(widgetMessage);
+        });
       }
-    });
+    };
 
-    // ✅ Listen for visitor message confirmation
-    socket.on('message_sent', (data: { messageId: string; status: string }) => {
-      console.log('✅ [Widget] Message sent confirmation:', data);
-    });
+    const onMessageSent = (data: { messageId: string; status: string }) => {
+      if (!mountedRef.current) return;
+      console.log('✅ [Widget] Message sent:', data);
+    };
 
-    // ✅ Listen for typing indicator
-    socket.on('agent_typing', (data: { conversationId: string; isTyping: boolean }) => {
-      console.log('✏️ [Widget] Agent typing:', data);
-    });
-
-    socket.on('user_typing', (data: { userId: string; isTyping: boolean }) => {
-      console.log('✏️ [Widget] User typing:', data);
-    });
-
-    // Auto-reconnect and rejoin rooms
-    socket.on('reconnect', () => {
-      console.log('🔄 [Widget] Reconnected to socket');
+    const onReconnect = () => {
+      if (!mountedRef.current) return;
+      console.log('🔄 [Widget] Reconnected');
       setIsConnected(true);
       setError(null);
       isConnectingRef.current = false;
       
-      // ✅ Re-identify as visitor
-      const visitorId = visitorIdRef.current;
-      const companyId = options.companyId || (window as any).comviaSettings?.companyId;
-      
+      // Re-identify
       socket.emit('identify_visitor', {
         visitorId: visitorId,
         companyId: companyId,
@@ -631,63 +652,69 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
         url: window.location.href,
       });
       
-      // ✅ Rejoin conversation if we have one
       const conversationId = localStorage.getItem('comvia_conversation_id');
       if (conversationId) {
         socket.emit('join_conversation', conversationId);
-        console.log(`📌 [Widget] Rejoined conversation: ${conversationId}`);
       }
-    });
+    };
 
-    // Error handling
-    socket.on('error', (err) => {
-      console.error('❌ [Widget] Socket error:', err);
-      setError(typeof err === 'string' ? err : err.message || 'Socket error');
+    // Register all listeners
+    socket.on('connect', onConnect);
+    socket.on('connect_error', onConnectError);
+    socket.on('disconnect', onDisconnect);
+    socket.on('agent_message', onAgentMessage);
+    socket.on('new_message', onNewMessage);
+    socket.on('message_sent', onMessageSent);
+    socket.on('reconnect', onReconnect);
+
+    // Store cleanup function
+    cleanupRef.current = () => {
+      socket.off('connect', onConnect);
+      socket.off('connect_error', onConnectError);
+      socket.off('disconnect', onDisconnect);
+      socket.off('agent_message', onAgentMessage);
+      socket.off('new_message', onNewMessage);
+      socket.off('message_sent', onMessageSent);
+      socket.off('reconnect', onReconnect);
+    };
+
+    // Connection timeout
+    const timeoutId = setTimeout(() => {
+      if (isConnectingRef.current && mountedRef.current) {
+        console.log('⏰ [Widget] Connection timeout');
+        isConnectingRef.current = false;
+        setError('Connection timeout');
+        socket.disconnect();
+      }
+    }, 15000);
+
+    // Clean up timeout on connect
+    const origOnConnect = onConnect;
+    socket.once('connect', () => {
+      clearTimeout(timeoutId);
     });
 
   }, [options]);
 
-  const disconnect = useCallback(() => {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = null;
-    }
-
-    if (!socketRef.current) {
-      return;
-    }
-
-    const socket = socketRef.current;
-    socket.disconnect();
-    socketRef.current = null;
-    setIsConnected(false);
-    isConnectingRef.current = false;
-    
-  }, []);
-
   const sendMessage = useCallback((conversationId: string, content: string): boolean => {
     if (!socketRef.current?.connected) {
-      console.warn('⚠️ [Widget] Cannot send message: socket not connected');
+      console.warn('⚠️ [Widget] Cannot send message: not connected');
       return false;
     }
-
-    const visitorId = visitorIdRef.current;
     
     socketRef.current.emit('send_message', {
       conversationId,
       content,
       sender: 'visitor',
-      visitorId: visitorId,
+      visitorId: visitorIdRef.current,
       timestamp: new Date().toISOString(),
     });
     
-    console.log(`📤 [Widget] Message sent via socket: "${content}"`);
     return true;
   }, []);
 
   const sendTyping = useCallback((conversationId: string, isTyping: boolean) => {
     if (!socketRef.current?.connected) return;
-    
     socketRef.current.emit('typing', {
       conversationId,
       isTyping,
@@ -695,40 +722,20 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     });
   }, []);
 
-  // ✅ Auto-connect on mount - ONLY ONCE, with proper cleanup
+  // Auto-connect once on mount
   useEffect(() => {
-    let mounted = true;
-    
-    // Only connect if not already connected and no connection in progress
-    if (!socketRef.current && !isConnectingRef.current && !connectionAttemptedRef.current) {
+    if (!connectionAttemptedRef.current && visitorIdRef.current) {
       connectionAttemptedRef.current = true;
-      isConnectingRef.current = true;
-      console.log('🔌 [Widget] Initial connection attempt...');
       
-      // Small delay to ensure everything is initialized
+      // Small delay to ensure everything is ready
       const timer = setTimeout(() => {
-        if (mounted && !socketRef.current?.connected) {
+        if (mountedRef.current) {
           connect();
-          // Reset connecting state after connection attempt
-          setTimeout(() => {
-            if (mounted && isConnectingRef.current) {
-              isConnectingRef.current = false;
-            }
-          }, 5000);
         }
       }, 500);
-
-      return () => {
-        mounted = false;
-        clearTimeout(timer);
-        isConnectingRef.current = false;
-        connectionAttemptedRef.current = false;
-      };
+      
+      return () => clearTimeout(timer);
     }
-    
-    return () => {
-      mounted = false;
-    };
   }, [connect]);
 
   return {
