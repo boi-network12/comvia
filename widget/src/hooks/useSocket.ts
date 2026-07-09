@@ -510,22 +510,22 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     socketRef.current = socket;
 
     // ✅ Helper to process message with deduplication
-    const processMessage = (message: any) => {
-      const messageId = message._id || message.id;
+    // const processMessage = (message: any) => {
+    //   const messageId = message._id || message.id;
       
-      // ✅ Skip if already processed
-      if (messageId && processedMessagesRef.current.has(messageId)) {
-        console.log(`⏭️ [Widget] Skipping duplicate message: ${messageId}`);
-        return false;
-      }
+    //   // ✅ Skip if already processed
+    //   if (messageId && processedMessagesRef.current.has(messageId)) {
+    //     console.log(`⏭️ [Widget] Skipping duplicate message: ${messageId}`);
+    //     return false;
+    //   }
       
-      // ✅ Add to processed set
-      if (messageId) {
-        processedMessagesRef.current.add(messageId);
-      }
+    //   // ✅ Add to processed set
+    //   if (messageId) {
+    //     processedMessagesRef.current.add(messageId);
+    //   }
       
-      return true;
-    };
+    //   return true;
+    // };
 
     // Set up event listeners
     const onConnect = () => {
