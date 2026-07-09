@@ -369,7 +369,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
       const timer = setTimeout(() => {
         if (mounted) {
           connect();
-          isConnectingRef.current = false;
+          // isConnectingRef.current = false;
         }
       }, 500);
 
