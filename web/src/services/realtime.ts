@@ -151,7 +151,7 @@ class RealtimeService {
     this.connectionCallbacks.forEach(cb => cb(connected));
   }
 
-  sendMessage(conversationId: string, content: string) {
+  sendMessage(conversationId: string, content: string, visitorId?: string) {
     if (!this.socket?.connected) {
       console.warn('⚠️ Cannot send message: socket not connected');
       return false;
@@ -160,7 +160,8 @@ class RealtimeService {
       conversationId, 
       content, 
       sender: 'agent',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      visitorId: visitorId
     });
     return true;
   }

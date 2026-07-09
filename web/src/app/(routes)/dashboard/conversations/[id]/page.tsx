@@ -84,7 +84,6 @@ export default function ConversationDetailPage() {
   // Refs to prevent infinite loops
   const hasLoadedRef = useRef(false);
   const hasJoinedRef = useRef(false);
-  const isRealtimeMessageRef = useRef(false);
 
   // Join conversation room when connected
   // Load conversation on mount - ONLY ONCE
@@ -179,13 +178,16 @@ export default function ConversationDetailPage() {
     setMessages(prev => [...prev, optimisticMessage ]);
 
     try {
-      // Try sending via WebSocket first
+      // ✅ Get visitorId from the conversation (top-level field)
+      const visitorId = currentConversation?.visitorId;
       let sent = false;
+
       if (isRealtimeConnected) {
-        sent = sendRealtimeMessage(conversationId, messageContent);
+        // ✅ Pass visitorId to WebSocket only
+        sent = sendRealtimeMessage(conversationId, messageContent, visitorId);
       }
       
-      // Fallback to REST API if WebSocket fails
+      // ❌ Don't pass visitorId to REST fallback - remove the third argument
       if (!sent) {
         await sendMessageRest(conversationId, messageContent);
       }

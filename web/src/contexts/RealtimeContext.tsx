@@ -24,7 +24,7 @@ interface RealtimeContextType {
   isConnected: boolean;
   messages: Message[];
   visitorMessages: VisitorMessageData[];
-  sendMessage: (conversationId: string, content: string) => boolean;
+  sendMessage: (conversationId: string, content: string, visitorId?: string) => boolean;
   joinConversation: (conversationId: string) => void;
   leaveConversation: (conversationId: string) => void;
   connect: (token: string) => void;
@@ -160,8 +160,8 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       realtimeService.disconnect();
     }, []);
 
-    const sendMessage = useCallback((conversationId: string, content: string) => {
-      return realtimeService.sendMessage(conversationId, content);
+    const sendMessage = useCallback((conversationId: string, content: string, visitorId?: string) => {
+      return realtimeService.sendMessage(conversationId, content, visitorId);
     }, []);
 
     const joinConversation = useCallback((conversationId: string) => {
