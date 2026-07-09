@@ -258,9 +258,9 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
         }
       });
 
-      socket.on('message_sent', (_: { messageId: string; status: string }) => {
-          // intentionally unused
-        });
+      socket.on('message_sent', (data: { messageId: string; status: string }) => {
+        console.log('✅ [Widget] Message sent:', data);
+      });
 
       socket.on('reconnect', () => {
         console.log('🔄 [Widget] Reconnected');
