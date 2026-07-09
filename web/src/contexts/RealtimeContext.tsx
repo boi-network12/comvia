@@ -47,18 +47,18 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isAuthenticated && user) {
       const token = localStorage.getItem('accessToken');
-      console.log('🔑 [CONTEXT] Token found:', !!token);
+      // console.log('🔑 [CONTEXT] Token found:', !!token);
       
       if (token) {
         // ✅ Connect to realtime service using realtimeService (which returns Socket)
         const socket = realtimeService.connect(token);
-        console.log('🔑 [CONTEXT] Socket connected:', !!socket);
+        // console.log('🔑 [CONTEXT] Socket connected:', !!socket);
         
         // ✅ Join agents room after connection
         if (socket) {
           // Handle connect event
           const onConnect = () => {
-            console.log('🟢 [CONTEXT] Connected to realtime, joining agents room...');
+            // console.log('🟢 [CONTEXT] Connected to realtime, joining agents room...');
             socket.emit('join_agents');
           };
           
@@ -82,7 +82,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   // ✅ Listen for connection status changes
   useEffect(() => {
     const unsubscribe = realtimeService.onConnectionChange((connected) => {
-      console.log(`🔄 [CONTEXT] Connection status changed: ${connected}`);
+      // console.log(`🔄 [CONTEXT] Connection status changed: ${connected}`);
       setIsConnected(connected);
       
       // If reconnected, re-join agents room
@@ -109,7 +109,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   // 🔥 Listen for visitor messages
   useEffect(() => {
     const unsubscribe = realtimeService.onVisitorMessage((data) => {
-      console.log('📨 [CONTEXT] New visitor message:', data);
+      // console.log('📨 [CONTEXT] New visitor message:', data);
       setVisitorMessages(prev => [...prev, data]);
       
       if (data.message) {
@@ -132,7 +132,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
 
    useEffect(() => {
     const unsubscribe = realtimeService.onMessage((message) => {
-      console.log('📨 [CONTEXT] New message:', message);
+      // console.log('📨 [CONTEXT] New message:', message);
       setMessages(prev => {
         // Avoid duplicates
         if (prev.some(m => m._id === message._id)) return prev;
@@ -167,7 +167,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     const joinConversation = useCallback((conversationId: string) => {
       if (!conversationId) return;
       if (joinedConversationsRef.current.has(conversationId)) {
-        console.log(`Already joined conversation ${conversationId}`);
+        // console.log(`Already joined conversation ${conversationId}`);
         return;
       }
       joinedConversationsRef.current.add(conversationId);
