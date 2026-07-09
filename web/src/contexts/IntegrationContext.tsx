@@ -1,9 +1,10 @@
 // web/contexts/IntegrationContext.tsx
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { authAPI } from '@/services/auth';
 import { integrationAPI } from '@/services/integrations';
+import { useAuth } from './AuthContext';
 
 interface IntegrationStatus {
   slack: {
@@ -56,6 +57,7 @@ interface IntegrationContextType {
 const IntegrationContext = createContext<IntegrationContextType | undefined>(undefined);
 
 export function IntegrationProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [integrations, setIntegrations] = useState<IntegrationStatus>({
     slack: { enabled: false },
     facebook: { enabled: false },
@@ -71,24 +73,31 @@ export function IntegrationProvider({ children }: { children: ReactNode }) {
     zapier: { enabled: false },
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   const refreshStatus = async () => {
+     // Only fetch if user is authenticated
+    if (!user) return;
+
     setIsLoading(true);
     try {
+      // Use the bulk API to get all statuses at once
+      const status = await integrationAPI.getAllIntegrationStatus();
+
       // Fetch all integration statuses in parallel
-      const [slack, facebook, github, email, zapier] = await Promise.all([
-        integrationAPI.getSlackStatus(),
-        integrationAPI.getFacebookStatus(),
-        integrationAPI.getGitHubStatus(),
-        integrationAPI.getEmailSettings(),
-        integrationAPI.getZapierStatus(),
-      ]);
+      // const [slack, facebook, github, email, zapier] = await Promise.all([
+      //   integrationAPI.getSlackStatus(),
+      //   integrationAPI.getFacebookStatus(),
+      //   integrationAPI.getGitHubStatus(),
+      //   integrationAPI.getEmailSettings(),
+      //   integrationAPI.getZapierStatus(),
+      // ]);
 
       setIntegrations({
-        slack: slack.data.slack || { enabled: false },
-        facebook: facebook.data.facebook || { enabled: false },
-        github: github.data.github || { enabled: false },
-        email: email.data.email || {
+        slack: status.slack || { enabled: false },
+        facebook: status.facebook || { enabled: false },
+        github: status.github || { enabled: false },
+        email: status.email || {
           enabled: true,
           notifications: {
             newMessage: true,
@@ -96,7 +105,7 @@ export function IntegrationProvider({ children }: { children: ReactNode }) {
             teamInvite: true,
           },
         },
-        zapier: zapier.data.zapier || { enabled: false },
+        zapier: status.zapier || { enabled: false },
       });
     } catch (error) {
       console.error('Failed to fetch integration status:', error);
@@ -104,6 +113,23 @@ export function IntegrationProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   };
+
+  // ✅ Load integration status when user changes (login/refresh)
+  useEffect(() => {
+    if (user && !hasLoaded) {
+      // eslint-disable-next-line
+      refreshStatus();
+      setHasLoaded(true);
+    }
+  }, [user, hasLoaded]);
+
+  // ✅ Re-fetch when user changes (e.g., after token refresh)
+  // useEffect(() => {
+  //   if (user) {
+  //     // eslint-disable-next-line
+  //     refreshStatus();
+  //   }
+  // }, [user?._id]); // Re-fetch when user ID changes
 
   const connectSlack = async (webhookUrl: string, channel: string) => {
     setIsLoading(true);

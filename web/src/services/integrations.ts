@@ -1,4 +1,5 @@
 // web/services/integrations.ts
+
 import { API_ENDPOINT } from '@/config/base_url';
 import axios, { AxiosInstance } from 'axios';
 
@@ -65,14 +66,18 @@ export interface EmailIntegration {
   };
 }
 
+// ✅ Define a type for disabled state
+export type DisabledIntegration = { enabled: false };
+
+// ✅ Update the IntegrationStatus type to use the DisabledIntegration type
 export type IntegrationStatus = {
-  slack: SlackIntegration | { enabled: false };
-  facebook: FacebookIntegration | { enabled: false };
-  instagram: InstagramIntegration | { enabled: false };
-  twitter: TwitterIntegration | { enabled: false };
-  github: GitHubIntegration | { enabled: false };
-  zoom: ZoomIntegration | { enabled: false };
-  zapier: ZapierIntegration | { enabled: false };
+  slack: SlackIntegration | DisabledIntegration;
+  facebook: FacebookIntegration | DisabledIntegration;
+  instagram: InstagramIntegration | DisabledIntegration;
+  twitter: TwitterIntegration | DisabledIntegration;
+  github: GitHubIntegration | DisabledIntegration;
+  zoom: ZoomIntegration | DisabledIntegration;
+  zapier: ZapierIntegration | DisabledIntegration;
   email: EmailIntegration;
 };
 
@@ -84,19 +89,19 @@ export interface ApiResponse<T = unknown> {
 }
 
 export interface SlackStatusResponse {
-  slack: SlackIntegration | { enabled: false };
+  slack: SlackIntegration | DisabledIntegration;
 }
 
 export interface FacebookStatusResponse {
-  facebook: FacebookIntegration | { enabled: false };
+  facebook: FacebookIntegration | DisabledIntegration;
 }
 
 export interface GitHubStatusResponse {
-  github: GitHubIntegration | { enabled: false };
+  github: GitHubIntegration | DisabledIntegration;
 }
 
 export interface ZapierStatusResponse {
-  zapier: ZapierIntegration | { enabled: false };
+  zapier: ZapierIntegration | DisabledIntegration;
 }
 
 export interface EmailSettingsResponse {
@@ -253,25 +258,77 @@ class IntegrationService {
   // ============================================
 
   async getAllIntegrationStatus(): Promise<IntegrationStatus> {
-    const [slack, facebook, github, zapier, email] =
-      await Promise.all([
-        this.getSlackStatus(),
-        this.getFacebookStatus(),
-        this.getGitHubStatus(),
-        this.getZapierStatus(),
-        this.getEmailSettings(),
+    try {
+      const [slack, facebook, github, zapier, email] = await Promise.all([
+        this.getSlackStatus().catch(() => ({ 
+          success: false, 
+          data: { slack: { enabled: false } as DisabledIntegration } 
+        })),
+        this.getFacebookStatus().catch(() => ({ 
+          success: false, 
+          data: { facebook: { enabled: false } as DisabledIntegration } 
+        })),
+        this.getGitHubStatus().catch(() => ({ 
+          success: false, 
+          data: { github: { enabled: false } as DisabledIntegration } 
+        })),
+        this.getZapierStatus().catch(() => ({ 
+          success: false, 
+          data: { zapier: { enabled: false } as DisabledIntegration } 
+        })),
+        this.getEmailSettings().catch(() => ({ 
+          success: false, 
+          data: { 
+            email: { 
+              enabled: true, 
+              notifications: { 
+                newMessage: true, 
+                newTicket: true, 
+                teamInvite: true 
+              } 
+            } 
+          } 
+        })),
       ]);
 
-    return {
-      slack: slack.data.slack,
-      facebook: facebook.data.facebook,
-      instagram: { enabled: false },
-      twitter: { enabled: false },
-      github: github.data.github,
-      zoom: { enabled: false },
-      zapier: zapier.data.zapier,
-      email: email.data.email,
-    };
+      return {
+        slack: slack.success ? slack.data.slack : { enabled: false },
+        facebook: facebook.success ? facebook.data.facebook : { enabled: false },
+        instagram: { enabled: false },
+        twitter: { enabled: false },
+        github: github.success ? github.data.github : { enabled: false },
+        zoom: { enabled: false },
+        zapier: zapier.success ? zapier.data.zapier : { enabled: false },
+        email: email.success ? email.data.email : {
+          enabled: true,
+          notifications: {
+            newMessage: true,
+            newTicket: true,
+            teamInvite: true,
+          },
+        },
+      };
+    } catch (error) {
+      console.error('Failed to get integration status:', error);
+      // Return default empty state
+      return {
+        slack: { enabled: false },
+        facebook: { enabled: false },
+        instagram: { enabled: false },
+        twitter: { enabled: false },
+        github: { enabled: false },
+        zoom: { enabled: false },
+        zapier: { enabled: false },
+        email: {
+          enabled: true,
+          notifications: {
+            newMessage: true,
+            newTicket: true,
+            teamInvite: true,
+          },
+        },
+      };
+    }
   }
 }
 

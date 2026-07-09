@@ -7,9 +7,6 @@ import { useIntegration } from "@/contexts/IntegrationContext";
 import { useRouter } from "next/navigation";
 import {
   Plug,
-//   Slack,
-//   Facebook,
-//   Github,
   Zap as ZapIcon,
   Mail,
   Check,
