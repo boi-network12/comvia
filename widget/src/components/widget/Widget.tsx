@@ -3,7 +3,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useWidgetContext } from '../../context/WidgetContext';
+// import { useWidgetContext } from '../../context/WidgetContext';
 import { WidgetButton } from './WidgetButton';
 import { WidgetHeader } from './WidgetHeader';
 import { WidgetBody } from './WidgetBody';
@@ -12,6 +12,7 @@ import { WidgetFooter } from './WidgetFooter';
 import { WidgetQuickReplies } from './WidgetQuickReplies';
 import { cn } from '../../utils/helpers';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useWidget } from '../../hooks/useWidget';
 
 export const Widget: React.FC = () => {
   const {
@@ -28,7 +29,7 @@ export const Widget: React.FC = () => {
     connectSocket,
     companyId, 
     isConnected,
-  } = useWidgetContext();
+  } = useWidget();
   
   const [unreadCount] = useState(0);
   const isMobile = useIsMobile();

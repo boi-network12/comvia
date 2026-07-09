@@ -319,8 +319,8 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useWidgetStore } from '../store/widgetStore';
-// import { useSocket } from './useSocket';
-import type {  WidgetConfig, WidgetSettings } from '../types';
+import { useWidgetContext } from '../context/WidgetContext';
+import type { WidgetConfig, WidgetSettings } from '../types';
 import { widgetAPI } from '../utils/api';
 import { WIDGET_CONFIG } from '../config';
 
@@ -347,6 +347,9 @@ export function useWidget() {
     clearUnread,
   } = useWidgetStore();
 
+  // ✅ Get the context for socket operations
+  const context = useWidgetContext();
+  
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error] = useState<string | null>(null);
@@ -441,54 +444,22 @@ export function useWidget() {
     loadConfig();
   }, [setSettings, setUser, user, visitorId]);
 
-  // ✅ Send message using context's socket
+  // ✅ Use context's socket connection status
+  const socketConnected = context.isConnected;
+
+  // ✅ Send message using context's sendMessage
   const sendMessage = useCallback((content: string, sender: 'user' | 'agent' = 'user') => {
     if (!content || !content.trim()) return;
     
     console.log(`📤 [WIDGET] Sending message: "${content}" from ${sender}`);
     
-    // Add user message immediately
+    // Add user message immediately (optimistic)
     addMessage({ content, sender });
     
-    const userId = visitorId;
+    // ✅ Use context's sendMessage which handles socket + REST
+    context.sendMessage(content, sender);
     
-    // ✅ Try WebSocket first - but we need the socket from context
-    // This will be handled by WidgetContext's sendMessage
-    // We just add the message to UI and let context handle sending
-    
-    // ✅ Fallback to REST API if needed
-    widgetAPI.sendMessage({
-      content,
-      sender,
-      userId: userId,
-      timestamp: new Date().toISOString(),
-    }).then(response => {
-      console.log('📥 [WIDGET] Message response:', response);
-      
-      if (response.success && response.data) {
-        if (response.data.reply) {
-          addMessage({
-            content: response.data.reply,
-            sender: 'bot',
-          });
-        }
-        if (response.data.conversationId) {
-          localStorage.setItem('comvia_conversation_id', response.data.conversationId);
-        }
-      } else {
-        addMessage({
-          content: '⚠️ Sorry, I couldn\'t process your message. Please try again.',
-          sender: 'bot',
-        });
-      }
-    }).catch(err => {
-      console.error('❌ [WIDGET] Error sending message:', err);
-      addMessage({
-        content: '⚠️ Connection error. Please try again later.',
-        sender: 'bot',
-      });
-    });
-  }, [addMessage, visitorId]);
+  }, [addMessage, context]);
 
   // Load chat history
   const loadChatHistory = useCallback(async () => {
@@ -509,11 +480,20 @@ export function useWidget() {
     }
   }, [visitorId, setMessages]);
 
-  // Send typing indicator
+  // Send typing indicator using context
   const sendTyping = useCallback((isTyping: boolean) => {
     setTyping(isTyping);
-    // This will be handled by the context
-  }, [setTyping]);
+    context.sendTyping(isTyping);
+  }, [setTyping, context]);
+
+  // Connect socket using context
+  const connectSocket = useCallback(() => {
+    context.connectSocket();
+  }, [context]);
+
+  const disconnectSocket = useCallback(() => {
+    context.disconnectSocket();
+  }, [context]);
 
   return {
     isOpen,
@@ -523,10 +503,10 @@ export function useWidget() {
     unreadCount,
     settings,
     user,
-    isConnected: false, // This will be overridden by context
+    isConnected: socketConnected,
     config,
     isLoading,
-    error,
+    error: error || context.error,
     companyId,
     toggleWidget,
     openWidget,
@@ -538,7 +518,7 @@ export function useWidget() {
     setConnected,
     clearUnread,
     loadChatHistory,
-    connectSocket: () => {}, // No-op, handled by context
-    disconnectSocket: () => {}, // No-op, handled by context
+    connectSocket,
+    disconnectSocket,
   };
 }
