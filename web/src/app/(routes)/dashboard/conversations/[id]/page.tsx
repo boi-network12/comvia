@@ -1,4 +1,5 @@
 // app/(routes)/dashboard/conversations/[id]/page.tsx
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -70,7 +71,6 @@ export default function ConversationDetailPage() {
     joinConversation,
     leaveConversation,
     onNewMessage,
-    // messages: realtimeMessages,
   } = useRealtimeContext();
 
   const [newMessage, setNewMessage] = useState("");
@@ -79,13 +79,39 @@ export default function ConversationDetailPage() {
   const [noteContent, setNoteContent] = useState("");
   const [showActions, setShowActions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Refs to prevent infinite loops
   const hasLoadedRef = useRef(false);
   const hasJoinedRef = useRef(false);
 
-  // Join conversation room when connected
+  // ============================================================
+  // SCROLL TO BOTTOM - AUTO SCROLL
+  // ============================================================
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior });
+    }
+  }, []);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom("smooth");
+  }, [messages, scrollToBottom]);
+
+  // Scroll to bottom on initial load
+  useEffect(() => {
+    if (!isLoading && messages.length > 0) {
+      setTimeout(() => scrollToBottom("auto"), 100);
+    }
+  }, [isLoading, messages.length, scrollToBottom]);
+
+  // ============================================================
+  // LOAD CONVERSATION
+  // ============================================================
+
   // Load conversation on mount - ONLY ONCE
   useEffect(() => {
     if (conversationId && !hasLoadedRef.current) {
@@ -99,29 +125,25 @@ export default function ConversationDetailPage() {
     if (conversationId && isRealtimeConnected && !hasJoinedRef.current) {
       hasJoinedRef.current = true;
       joinConversation(conversationId);
-      // console.log(`📌 Joined conversation room: ${conversationId}`);
     }
     
     return () => {
       if (conversationId && hasJoinedRef.current) {
         hasJoinedRef.current = false;
         leaveConversation(conversationId);
-        // console.log(`📌 Left conversation room: ${conversationId}`);
       }
     };
   }, [conversationId, isRealtimeConnected, joinConversation, leaveConversation]);
 
-   // 🔥 NEW: Handle realtime messages by appending them
+  // Handle realtime messages by appending them
   useEffect(() => {
     const unsubscribe = onNewMessage((message, msgConversationId) => {
       // Only process messages for this conversation
       if (msgConversationId !== conversationId) return;
       
-      // console.log(`📨 [PAGE] New message for conversation ${conversationId}:`, message);
-      
       // Append message to the conversation's messages
       setMessages(prev => {
-      // ✅ Check if message already exists (by _id or temp id)
+        // Check if message already exists (by _id or temp id)
         const exists = prev.some(m => 
           m._id === message._id || 
           (m._id.startsWith('temp_') && m.content === message.content && m.senderId === message.senderId)
@@ -143,11 +165,9 @@ export default function ConversationDetailPage() {
     };
   }, [conversationId, onNewMessage, setMessages, setCurrentConversation]);
 
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  // ============================================================
+  // SEND MESSAGE
+  // ============================================================
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,7 +177,7 @@ export default function ConversationDetailPage() {
     setNewMessage("");
     setIsSending(true);
 
-    // ✅ OPTIMISTIC UPDATE - Show message immediately
+    // Optimistic update - Show message immediately
     const tempId = `temp_${Date.now()}`;
     const now = new Date().toISOString();
     const optimisticMessage = {
@@ -175,39 +195,41 @@ export default function ConversationDetailPage() {
       readBy: [],
     };
     
-    setMessages(prev => [...prev, optimisticMessage ]);
+    setMessages(prev => [...prev, optimisticMessage]);
 
     try {
-      // ✅ Get visitorId from the conversation (top-level field)
       const visitorId = currentConversation?.visitorId;
       let sent = false;
 
       if (isRealtimeConnected) {
-        // ✅ Pass visitorId to WebSocket only
         sent = sendRealtimeMessage(conversationId, messageContent, visitorId);
       }
       
-      // ❌ Don't pass visitorId to REST fallback - remove the third argument
       if (!sent) {
         await sendMessageRest(conversationId, messageContent);
       }
       
-      // ✅ Update the optimistic message status to 'sent'
+      // Update the optimistic message status to 'sent'
       setMessages(prev => prev.map(msg => 
         msg._id === tempId ? { ...msg, status: 'sent' as const } : msg
       ));
       
     } catch (error) {
       console.error("Failed to send message:", error);
-      // ✅ Mark as failed
       setMessages(prev => prev.map(msg => 
         msg._id === tempId ? { ...msg, status: 'failed' as const } : msg
       ));
     } finally {
       setIsSending(false);
       inputRef.current?.focus();
+      // Scroll to bottom after sending
+      setTimeout(() => scrollToBottom("smooth"), 50);
     }
   };
+
+  // ============================================================
+  // OTHER HANDLERS
+  // ============================================================
 
   const handleAddNote = async () => {
     if (!noteContent.trim()) return;
@@ -215,7 +237,6 @@ export default function ConversationDetailPage() {
       await addInternalNote(conversationId, noteContent);
       setNoteContent("");
       setShowNoteInput(false);
-      // Refresh to show the new note
       await loadConversation(conversationId);
     } catch (error) {
       console.error("Failed to add note:", error);
@@ -226,7 +247,6 @@ export default function ConversationDetailPage() {
     try {
       await updateConversation(conversationId, { status });
       setShowActions(false);
-      // Refresh to show updated status
       await loadConversation(conversationId);
     } catch (error) {
       console.error("Failed to update status:", error);
@@ -250,6 +270,10 @@ export default function ConversationDetailPage() {
   // Check if current user is assigned
   const isAssignedToMe = currentConversation?.assignedTo === user?._id;
 
+  // ============================================================
+  // RENDER
+  // ============================================================
+
   if (isLoading || !currentConversation) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -268,7 +292,7 @@ export default function ConversationDetailPage() {
   return (
     <div className="flex flex-col min-h-screen md:h-[calc(100vh-180px)]">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-background border border-gray-200/50 dark:border-gray-800/50 ">
+      <div className="flex items-center justify-between p-4 bg-background border border-gray-200/50 dark:border-gray-800/50">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/dashboard/conversations"
@@ -302,7 +326,6 @@ export default function ConversationDetailPage() {
                   addSuffix: true,
                 })}
               </span>
-              {/* Realtime connection status */}
               <span className={`flex items-center gap-1 text-xs ${
                 isRealtimeConnected ? "text-emerald-500" : "text-amber-500"
               }`}>
@@ -318,7 +341,6 @@ export default function ConversationDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Assign to me button */}
           {!isAssignedToMe && currentConversation.status !== "closed" && currentConversation.status !== "resolved" && (
             <button
               onClick={handleAssignToMe}
@@ -378,7 +400,10 @@ export default function ConversationDetailPage() {
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50 dark:bg-gray-900/20">
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50 dark:bg-gray-900/20"
+      >
         {messages.length === 0 ? (
           <div className="text-center py-12">
             <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -393,14 +418,17 @@ export default function ConversationDetailPage() {
             return (
               <div
                 key={message._id}
-                className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+                className={`flex ${
+                  isSystem ? "justify-center" :
+                  isUser ? "justify-end" : "justify-start"
+                }`}
               >
                 <div
                   className={`max-w-[80%] ${
-                    isUser
+                    isSystem
+                      ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-2xl text-sm text-center px-6 py-2.5 border border-gray-200 dark:border-gray-700"
+                      : isUser
                       ? "bg-primary text-white rounded-2xl rounded-br-none"
-                      : isSystem
-                      ? "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-2xl text-sm"
                       : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl rounded-bl-none"
                   } p-3`}
                 >
@@ -413,8 +441,19 @@ export default function ConversationDetailPage() {
                       <span>{formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}</span>
                     </div>
                   )}
-                  <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                  {/* Message status indicator */}
+                  {isSystem && (
+                    <div className="flex items-center justify-center gap-2 mb-1 text-xs text-gray-400">
+                      <span>🤖</span>
+                      <span>System</span>
+                      <span>•</span>
+                      <span>{formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}</span>
+                    </div>
+                  )}
+                  <p className={`whitespace-pre-wrap break-words ${
+                    isSystem ? "text-center" : ""
+                  }`}>
+                    {message.content}
+                  </p>
                   {isUser && message.status && (
                     <span className="text-[10px] mt-1 block text-white/60">
                       {message.status === "sending" && "Sending..."}
@@ -473,7 +512,7 @@ export default function ConversationDetailPage() {
           type="button"
           className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors text-gray-400"
           disabled={!isRealtimeConnected}
-          aria-label="send message"
+          aria-label="attach file"
         >
           <Paperclip className="w-5 h-5" />
         </button>
@@ -491,7 +530,7 @@ export default function ConversationDetailPage() {
         <button
           type="button"
           className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors text-gray-400"
-          aria-label="file btn"
+          aria-label="emoji"
         >
           <Smile className="w-5 h-5" />
         </button>
