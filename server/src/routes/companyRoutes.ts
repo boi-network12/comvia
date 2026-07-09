@@ -45,7 +45,7 @@ router.get('/:companyId/widget', async (req, res) => {
 // PRIVATE - user gets their own company ID
 router.get('/me', protect, async (req, res) => {
   const user = await User.findById(req.user.id)
-    .select('companyId companyName');
+    .select('companyId companyName companyLogo');
 
   if (!user) {
     return res.status(404).json({ success: false, message: 'User not found' });
