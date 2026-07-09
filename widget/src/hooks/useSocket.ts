@@ -1,4 +1,4 @@
-// // widget/src/hooks/useSocket.ts
+// // widget/src/hooks/useSocket
 
 // import { useEffect, useState, useRef, useCallback } from 'react';
 // import { io, Socket } from 'socket.io-client';
@@ -42,73 +42,96 @@
 //   const [isConnected, setIsConnected] = useState(false);
 //   const [error, setError] = useState<string | null>(null);
 //   const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  
 //   const visitorIdRef = useRef<string>(
-//     options.visitorId || localStorage.getItem('comvia_visitor_id')
+//     options.visitorId || localStorage.getItem('comvia_visitor_id') || ''
 //   );
   
 //   const socketRef = useRef<Socket | null>(null);
-//   // const isMounted = useRef<boolean>(true);
-//   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-//   const maxReconnectAttempts = 10;
 //   const isConnectingRef = useRef<boolean>(false);
+//   const connectionAttemptedRef = useRef<boolean>(false);
+//   const mountedRef = useRef<boolean>(true);
+//   const cleanupRef = useRef<(() => void) | null>(null);
 
+//   // Cleanup on unmount
 //   useEffect(() => {
+//     mountedRef.current = true;
+    
 //     return () => {
-//       // Reset connecting state on unmount
-//       isConnectingRef.current = false;
+//       mountedRef.current = false;
+//       if (cleanupRef.current) {
+//         cleanupRef.current();
+//       }
 //       if (socketRef.current) {
 //         socketRef.current.disconnect();
 //         socketRef.current = null;
 //       }
+//       isConnectingRef.current = false;
 //     };
 //   }, []);
-  
+
+//   // Validate visitor ID
 //   useEffect(() => {
 //     if (!visitorIdRef.current) {
-//       console.error('❌ [Widget] No visitor ID available! Make sure widget.tsx initializes it.');
+//       console.error('❌ [Widget] No visitor ID available!');
 //     }
+//   }, []);
+
+//   const disconnect = useCallback(() => {
+//     if (cleanupRef.current) {
+//       cleanupRef.current();
+//       cleanupRef.current = null;
+//     }
+    
+//     if (socketRef.current) {
+//       socketRef.current.disconnect();
+//       socketRef.current = null;
+//     }
+    
+//     setIsConnected(false);
+//     isConnectingRef.current = false;
+//     console.log('🔌 [Widget] Disconnected');
 //   }, []);
 
 //   const connect = useCallback(() => {
-//     // ✅ PREVENT multiple connections
-//     if (isConnectingRef.current) {
-//       console.log('⏳ [Widget] Connection already in progress, skipping...');
-//       return;
-//     }
-
-
-//     // If already connected or connecting, return
+//     // If already connected, return
 //     if (socketRef.current?.connected) {
-//       console.log('🟢 [Widget] Already connected to socket');
+//       console.log('🟢 [Widget] Already connected');
 //       return;
 //     }
 
-//      isConnectingRef.current = true;
+//     // If connection is in progress, return
+//     if (isConnectingRef.current) {
+//       console.log('⏳ [Widget] Connection already in progress');
+//       return;
+//     }
 
-//      // ✅ Add a timeout to prevent getting stuck
-//       const connectionTimeout = setTimeout(() => {
-//         if (isConnectingRef.current) {
-//           console.log('⏰ [Widget] Connection timeout, resetting state...');
-//           isConnectingRef.current = false;
-//           setError('Connection timeout');
-//         }
-//       }, 15000);
-
-//     // Clean up existing socket
+//     // Clean up any existing socket
 //     if (socketRef.current) {
 //       socketRef.current.disconnect();
 //       socketRef.current = null;
 //     }
 
-//     const socketUrl = options.socketUrl || getSocketUrl();
-//     const visitorId = visitorIdRef.current;
+//     // Clean up any existing listeners
+//     if (cleanupRef.current) {
+//       cleanupRef.current();
+//       cleanupRef.current = null;
+//     }
 
+//     const visitorId = visitorIdRef.current;
+//     if (!visitorId) {
+//       console.error('❌ [Widget] Cannot connect: No visitor ID');
+//       setError('No visitor ID');
+//       return;
+//     }
+
+//     const socketUrl = options.socketUrl || getSocketUrl();
 //     const companyId = options.companyId || (window as any).comviaSettings?.companyId;
 
-//     console.log(`🔌 [Widget] Connecting to socket: ${socketUrl}`);
-//     console.log(`👤 [Widget] Visitor ID: ${visitorId}, Company: ${companyId}`);
+//     console.log(`🔌 [Widget] Connecting to ${socketUrl} as ${visitorId}`);
+//     isConnectingRef.current = true;
 
-//     // ✅ Create socket connection for visitor
+//     // Create socket
 //     const socket = io(socketUrl, {
 //       query: {
 //         visitorId: visitorId,
@@ -117,237 +140,182 @@
 //       },
 //       transports: ['websocket', 'polling'],
 //       reconnection: true,
-//       reconnectionAttempts: maxReconnectAttempts,
+//       reconnectionAttempts: 5,
 //       reconnectionDelay: 1000,
 //       reconnectionDelayMax: 5000,
-//       timeout: 20000,
+//       timeout: 10000,
 //     });
 
 //     socketRef.current = socket;
 
-//     // ✅ Connection events
-//     socket.on('connect', () => {
-//       clearTimeout(connectionTimeout);
-//       console.log('🟢 [Widget] Socket connected successfully!');
+//     // Set up event listeners
+//     const onConnect = () => {
+//       if (!mountedRef.current) return;
+      
+//       console.log('🟢 [Widget] Socket connected!');
 //       setIsConnected(true);
-//       isConnectingRef.current = false; 
+//       isConnectingRef.current = false;
 //       setError(null);
 //       setReconnectAttempts(0);
       
-//       // ✅ Identify as visitor
+//       // Identify as visitor
 //       socket.emit('identify_visitor', {
 //         visitorId: visitorId,
 //         companyId: companyId,
 //         userAgent: navigator.userAgent,
 //         url: window.location.href,
 //       });
-
-//       // Callback
+      
+//       // Join conversation if we have one
+//       const conversationId = localStorage.getItem('comvia_conversation_id');
+//       if (conversationId) {
+//         socket.emit('join_conversation', conversationId);
+//         console.log(`📌 [Widget] Joined conversation: ${conversationId}`);
+//       }
+      
 //       if (options.onConnect) options.onConnect();
-//     });
+//     };
 
-//     socket.on('connect_error', (err) => {
-//       clearTimeout(connectionTimeout); 
-//       console.error('❌ [Widget] Socket connection error:', err.message);
+//     const onConnectError = (err: Error) => {
+//       if (!mountedRef.current) return;
+      
+//       console.error('❌ [Widget] Connection error:', err.message);
 //       setError(err.message);
-//       isConnectingRef.current = false; 
+//       isConnectingRef.current = false;
 //       setReconnectAttempts(prev => prev + 1);
-//     });
+//     };
 
-//     socket.on('disconnect', (reason) => {
-//       console.log(`🔴 [Widget] Socket disconnected: ${reason}`);
+//     const onDisconnect = (reason: string) => {
+//       if (!mountedRef.current) return;
+      
+//       console.log(`🔴 [Widget] Disconnected: ${reason}`);
 //       setIsConnected(false);
+//       isConnectingRef.current = false;
       
 //       if (options.onDisconnect) options.onDisconnect();
-//     });
+//     };
 
+//     const onAgentMessage = (data: { content: string; conversationId: string; senderId: string }) => {
+//       if (!mountedRef.current) return;
+//       console.log('📨 [Widget] Agent message:', data);
+//       if (options.onAgentMessage) options.onAgentMessage(data);
+//     };
 
-//     // ✅ Listen for agent replies
-//     socket.on('agent_message', (data: { content: string; conversationId: string; senderId: string }) => {
-//       console.log('📨 [Widget] Agent message received:', data);
+//     const onNewMessage = (message: any) => {
+//       if (!mountedRef.current) return;
+//       console.log('📨 [Widget] New message:', message);
       
-//       if (options.onAgentMessage) {
-//         options.onAgentMessage(data);
-//       }
-//     });
-
-//     // ✅ Listen for new messages (from agents or system)
-//     socket.on('new_message', (message: any) => {
-//       console.log('📨 [Widget] New message received:', message);
-//       // ✅ CHECK BOTH sender AND senderType
-//      const isAgent = message.senderType === 'agent' || 
-//                   message.senderType === 'admin' ||
-//                   message.sender === 'agent' || 
-//                   message.sender === 'admin';
-
-//        const isSystem = message.senderType === 'system' || message.sender === 'system';
-
-//        // ✅ If sender is agent, also trigger agent message handler
-//       if (isAgent) {
-//         if (options.onAgentMessage) {
-//           options.onAgentMessage({
-//             content: message.content,
-//             conversationId: message.conversationId || message.id,
-//             senderId: message.senderId || message._id || 'agent'
-//           });
-//         }
+//       const isAgent = message.senderType === 'agent' || 
+//                     message.senderType === 'admin' ||
+//                     message.sender === 'agent' || 
+//                     message.sender === 'admin';
+      
+//       const isSystem = message.senderType === 'system' || message.sender === 'system';
+      
+//       if (isAgent && options.onAgentMessage) {
+//         options.onAgentMessage({
+//           content: message.content,
+//           conversationId: message.conversationId || message.id,
+//           senderId: message.senderId || message._id || 'agent'
+//         });
 //       }
       
-//       // ✅ Convert database message to widget message format
 //       if (options.onMessage) {
-//         // Map DB fields to widget fields
-//         const widgetMessage = {
+//         options.onMessage({
 //           id: message._id || message.id || Date.now().toString(),
 //           content: message.content || message.message || '',
-//           // ✅ Determine sender based on senderType
 //           sender: isAgent ? 'agent' : 
 //                   isSystem ? 'bot' : 
 //                   message.senderType === 'visitor' ? 'user' : 
 //                   message.sender || 'bot',
 //           timestamp: new Date(message.createdAt || message.timestamp || Date.now()),
 //           status: message.status || 'delivered'
-//         };
-//         options.onMessage(widgetMessage);
+//         });
 //       }
-//     });
+//     };
 
-//     // ✅ Listen for visitor message confirmation
-//     socket.on('message_sent', (data: { messageId: string; status: string }) => {
-//       console.log('✅ [Widget] Message sent confirmation:', data);
-//     });
+//     const onMessageSent = (data: { messageId: string; status: string }) => {
+//       if (!mountedRef.current) return;
+//       console.log('✅ [Widget] Message sent:', data);
+//     };
 
-//     // ✅ Listen for typing indicator
-//     socket.on('agent_typing', (data: { conversationId: string; isTyping: boolean }) => {
-//       // You can use this to show typing indicator
-//       console.log('✏️ [Widget] Agent typing:', data);
-//     });
+//     const onReconnect = () => {
+//       if (!mountedRef.current) return;
+//       console.log('🔄 [Widget] Reconnected');
+//       setIsConnected(true);
+//       setError(null);
+//       isConnectingRef.current = false;
+      
+//       // Re-identify
+//       socket.emit('identify_visitor', {
+//         visitorId: visitorId,
+//         companyId: companyId,
+//         userAgent: navigator.userAgent,
+//         url: window.location.href,
+//       });
+      
+//       const conversationId = localStorage.getItem('comvia_conversation_id');
+//       if (conversationId) {
+//         socket.emit('join_conversation', conversationId);
+//       }
+//     };
 
-//     socket.on('user_typing', (data: { userId: string; isTyping: boolean }) => {
-//     // You can use this to show typing indicator
-//     console.log('✏️ [Widget] User typing:', data);
-//     // If you want to show typing indicator in UI, you can add it here
-//   });
+//     // Register all listeners
+//     socket.on('connect', onConnect);
+//     socket.on('connect_error', onConnectError);
+//     socket.on('disconnect', onDisconnect);
+//     socket.on('agent_message', onAgentMessage);
+//     socket.on('new_message', onNewMessage);
+//     socket.on('message_sent', onMessageSent);
+//     socket.on('reconnect', onReconnect);
 
-//   // Auto-reconnect and rejoin rooms
-//   socket.on('reconnect', () => {
-//     console.log('🔄 [Widget] Reconnected to socket');
-//     setIsConnected(true);
-//     setError(null);
-    
-//     // ✅ Re-identify as visitor
-//     const visitorId = visitorIdRef.current;
-//     const companyId = options.companyId || (window as any).comviaSettings?.companyId;
-    
-//     socket.emit('identify_visitor', {
-//       visitorId: visitorId,
-//       companyId: companyId,
-//       userAgent: navigator.userAgent,
-//       url: window.location.href,
-//     });
-    
-//     // ✅ Rejoin conversation if we have one
-//     const conversationId = localStorage.getItem('comvia_conversation_id');
-//     if (conversationId) {
-//       socket.emit('join_conversation', conversationId);
-//       console.log(`📌 [Widget] Rejoined conversation: ${conversationId}`);
-//     }
-//   });
+//     // Store cleanup function
+//     cleanupRef.current = () => {
+//       socket.off('connect', onConnect);
+//       socket.off('connect_error', onConnectError);
+//       socket.off('disconnect', onDisconnect);
+//       socket.off('agent_message', onAgentMessage);
+//       socket.off('new_message', onNewMessage);
+//       socket.off('message_sent', onMessageSent);
+//       socket.off('reconnect', onReconnect);
+//     };
 
-//     // Error handling
-//     socket.on('error', (err) => {
-//       console.error('❌ [Widget] Socket error:', err);
-//       setError(typeof err === 'string' ? err : err.message || 'Socket error');
+//     // Connection timeout
+//     const timeoutId = setTimeout(() => {
+//       if (isConnectingRef.current && mountedRef.current) {
+//         console.log('⏰ [Widget] Connection timeout');
+//         isConnectingRef.current = false;
+//         setError('Connection timeout');
+//         socket.disconnect();
+//       }
+//     }, 15000);
+
+//     // Clean up timeout on connect
+//     socket.once('connect', () => {
+//       clearTimeout(timeoutId);
 //     });
 
 //   }, [options]);
 
-//   const disconnect = useCallback(() => {
-//     // Clear reconnect timer
-//     if (reconnectTimerRef.current) {
-//       clearTimeout(reconnectTimerRef.current);
-//       reconnectTimerRef.current = null;
-//     }
-
-//     if (!socketRef.current) {
-//       return;
-//     }
-
-//     const socket = socketRef.current;
-
-//     // ✅ Check if the underlying transport exists and its readyState
-//     const transport = (socket as any)?.io?.engine?.transport;
-//     const isConnecting = transport?.readyState === 'connecting' || 
-//                           transport?.readyState === 0 ||
-//                           !transport;
-    
-//     // ✅ FIX: Check the readyState before trying to close
-//     // 0 = CONNECTING, 1 = OPEN, 2 = CLOSING, 3 = CLOSED
-//     if (isConnecting) {
-//       // Socket is still connecting - wait for it to open then close
-//       console.log('⏳ [Widget] Socket is connecting, waiting to close...');
-      
-//       // Remove existing listeners to prevent duplicates
-//       socket.off('connect');
-//       socket.off('disconnect');
-      
-//       // When it connects, immediately disconnect
-//       socket.once('connect', () => {
-//         console.log('🔌 [Widget] Socket connected, now disconnecting...');
-//         socket.disconnect();
-//       });
-      
-//       // If it fails to connect, clean up
-//       socket.once('connect_error', () => {
-//         console.log('❌ [Widget] Socket connection failed, cleaning up...');
-//         socket.disconnect();
-//       });
-      
-//       // Set a timeout to force disconnect if connection takes too long
-//       setTimeout(() => {
-//         if (socket.connected === false) {
-//           console.log('⏰ [Widget] Connection timeout, forcing disconnect...');
-//           socket.disconnect();
-//         }
-//       }, 5000);
-      
-//     } else if (socket.connected) {
-//       // Socket is open - disconnect normally
-//       console.log('🔌 [Widget] Disconnecting open socket...');
-//       socket.disconnect();
-//     } else {
-//       // Socket is already closing or closed
-//       console.log('ℹ️ [Widget] Socket already closed or closing');
-//     }
-    
-//     socketRef.current = null;
-//     setIsConnected(false);
-//     isConnectingRef.current = false;
-    
-//   }, []);
-
 //   const sendMessage = useCallback((conversationId: string, content: string): boolean => {
 //     if (!socketRef.current?.connected) {
-//       console.warn('⚠️ [Widget] Cannot send message: socket not connected');
+//       console.warn('⚠️ [Widget] Cannot send message: not connected');
 //       return false;
 //     }
-
-//     const visitorId = visitorIdRef.current;
     
 //     socketRef.current.emit('send_message', {
 //       conversationId,
 //       content,
 //       sender: 'visitor',
-//       visitorId: visitorId,
+//       visitorId: visitorIdRef.current,
 //       timestamp: new Date().toISOString(),
 //     });
     
-//     console.log(`📤 [Widget] Message sent via socket: "${content}"`);
 //     return true;
-//   }, [options.visitorId]);
+//   }, []);
 
 //   const sendTyping = useCallback((conversationId: string, isTyping: boolean) => {
 //     if (!socketRef.current?.connected) return;
-    
 //     socketRef.current.emit('typing', {
 //       conversationId,
 //       isTyping,
@@ -355,35 +323,21 @@
 //     });
 //   }, []);
 
-//   // Auto-connect on mount
-//   // Auto-connect on mount - ONLY ONCE
+//   // Auto-connect once on mount
 //   useEffect(() => {
-//     let mounted = true;
-    
-//     // Only connect if not already connected and no connection in progress
-//     if (!socketRef.current && !isConnectingRef.current) {
-//       isConnectingRef.current = true;
-//       console.log('🔌 [Widget] Initial connection attempt...');
+//     if (!connectionAttemptedRef.current && visitorIdRef.current) {
+//       connectionAttemptedRef.current = true;
       
-//       // Small delay to ensure everything is initialized
+//       // Small delay to ensure everything is ready
 //       const timer = setTimeout(() => {
-//         if (mounted) {
+//         if (mountedRef.current) {
 //           connect();
-//           // isConnectingRef.current = false;
 //         }
 //       }, 500);
-
-//       return () => {
-//         mounted = false;
-//         clearTimeout(timer);
-//         isConnectingRef.current = false;
-//       };
+      
+//       return () => clearTimeout(timer);
 //     }
-    
-//     return () => {
-//       mounted = false;
-//     };
-//   }, []); 
+//   }, [connect]);
 
 //   return {
 //     socket: socketRef.current,
@@ -440,6 +394,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const messageCacheRef = useRef<Set<string>>(new Set());
   
   const visitorIdRef = useRef<string>(
     options.visitorId || localStorage.getItem('comvia_visitor_id') || ''
@@ -450,6 +405,9 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
   const connectionAttemptedRef = useRef<boolean>(false);
   const mountedRef = useRef<boolean>(true);
   const cleanupRef = useRef<(() => void) | null>(null);
+  
+  // ✅ ADD: Message cache to prevent duplicates
+  const processedMessagesRef = useRef<Set<string>>(new Set());
 
   // Cleanup on unmount
   useEffect(() => {
@@ -465,6 +423,8 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
         socketRef.current = null;
       }
       isConnectingRef.current = false;
+      // Clear message cache on unmount
+      processedMessagesRef.current.clear();
     };
   }, []);
 
@@ -516,6 +476,9 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
       cleanupRef.current = null;
     }
 
+    // ✅ Clear message cache on new connection
+    processedMessagesRef.current.clear();
+
     const visitorId = visitorIdRef.current;
     if (!visitorId) {
       console.error('❌ [Widget] Cannot connect: No visitor ID');
@@ -545,6 +508,24 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     });
 
     socketRef.current = socket;
+
+    // ✅ Helper to process message with deduplication
+    const processMessage = (message: any) => {
+      const messageId = message._id || message.id;
+      
+      // ✅ Skip if already processed
+      if (messageId && processedMessagesRef.current.has(messageId)) {
+        console.log(`⏭️ [Widget] Skipping duplicate message: ${messageId}`);
+        return false;
+      }
+      
+      // ✅ Add to processed set
+      if (messageId) {
+        processedMessagesRef.current.add(messageId);
+      }
+      
+      return true;
+    };
 
     // Set up event listeners
     const onConnect = () => {
@@ -595,12 +576,36 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
 
     const onAgentMessage = (data: { content: string; conversationId: string; senderId: string }) => {
       if (!mountedRef.current) return;
+      
+      // ✅ Use a composite key for agent messages (content + conversationId)
+      const key = `agent_${data.conversationId}_${data.content}_${data.senderId}`;
+      if (processedMessagesRef.current.has(key)) {
+        console.log(`⏭️ [Widget] Skipping duplicate agent message: ${key}`);
+        return;
+      }
+      processedMessagesRef.current.add(key);
+      
       console.log('📨 [Widget] Agent message:', data);
       if (options.onAgentMessage) options.onAgentMessage(data);
     };
 
     const onNewMessage = (message: any) => {
       if (!mountedRef.current) return;
+
+      // ✅ Create a unique key for this message
+      const messageKey = `${message._id || message.id || ''}_${message.content}_${message.createdAt || message.timestamp || ''}`;
+      
+      // ✅ Skip if already processed
+      if (messageKey && messageCacheRef.current.has(messageKey)) {
+        console.log(`⏭️ [Widget] Skipping duplicate message (cache): ${messageKey}`);
+        return;
+      }
+      
+      // ✅ Add to cache
+      if (messageKey) {
+        messageCacheRef.current.add(messageKey);
+      }
+      
       console.log('📨 [Widget] New message:', message);
       
       const isAgent = message.senderType === 'agent' || 
@@ -610,6 +615,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
       
       const isSystem = message.senderType === 'system' || message.sender === 'system';
       
+      // ✅ Only trigger agent message if it's actually from an agent
       if (isAgent && options.onAgentMessage) {
         options.onAgentMessage({
           content: message.content,
