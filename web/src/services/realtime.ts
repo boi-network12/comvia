@@ -29,7 +29,7 @@ class RealtimeService {
 
   connect(token: string): Socket | null {
     if (this.socket?.connected) {
-      console.log('🟢 Already connected to realtime');
+      // console.log('🟢 Already connected to realtime');
       return this.socket;
     }
 
@@ -38,7 +38,7 @@ class RealtimeService {
       this.socket = null;
     }
 
-    console.log('🔄 Connecting to realtime server...');
+    // console.log('🔄 Connecting to realtime server...');
 
     this.socket = io(SOCKET_URL, {
       auth: { token },
@@ -50,7 +50,7 @@ class RealtimeService {
     });
 
     this.socket.on('connect', () => {
-      console.log('🟢 Realtime connected');
+      // console.log('🟢 Realtime connected');
       this.reconnectAttempts = 0;
       this.notifyConnectionCallbacks(true);
 
@@ -60,12 +60,12 @@ class RealtimeService {
 
     // 2. When reconnected after disconnect - join agents again
     this.socket.on('reconnect', (attemptNumber) => {
-      console.log(`🔄 Reconnected after ${attemptNumber} attempts`);
+      // console.log(`🔄 Reconnected after ${attemptNumber} attempts`);
       this.socket?.emit('join_agents');
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('🔴 Realtime disconnected:', reason);
+      // console.log('🔴 Realtime disconnected:', reason);
       this.notifyConnectionCallbacks(false);
 
       // If server kicked us, try to reconnect
@@ -78,17 +78,17 @@ class RealtimeService {
       console.error('❌ Realtime connection error:', error.message);
       this.reconnectAttempts++;
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        console.log('⚠️ Max reconnect attempts reached');
+        // console.log('⚠️ Max reconnect attempts reached');
       }
     });
 
     // this.socket.on('visitor_message', (data: Message) => {
-    //   console.log('📨 Visitor message received:', data);
+    //   // console.log('📨 Visitor message received:', data);
     //   this.messageHandlers.forEach(handler => handler(data));
     // });
      // 🔥 Listen for visitor messages
     this.socket.on('visitor_message', (data: VisitorMessageData) => {
-      console.log('📨 [WEB] Visitor message received:', data);
+      // console.log('📨 [WEB] Visitor message received:', data);
       this.visitorMessageHandlers.forEach(handler => handler(data));
       
       if (data.message) {
@@ -98,17 +98,17 @@ class RealtimeService {
 
      // 🔥 Listen for new visitor message event
     this.socket.on('new_visitor_message', (data: VisitorMessageData) => {
-      console.log('📨 [WEB] New visitor message event:', data);
+      // console.log('📨 [WEB] New visitor message event:', data);
       this.visitorMessageHandlers.forEach(handler => handler(data));
     });
 
     this.socket.on('new_message', (data: Message) => {
-      console.log('📨 New message received:', data);
+      // console.log('📨 New message received:', data);
       this.messageHandlers.forEach(handler => handler(data));
     });
 
     this.socket.on('message_sent', (data: Message) => {
-      console.log('✅ Message sent confirmation:', data);
+      // console.log('✅ Message sent confirmation:', data);
     });
 
     return this.socket;
@@ -121,7 +121,7 @@ class RealtimeService {
       this.messageHandlers = [];
       this.visitorMessageHandlers = [];
       this.connectionCallbacks = [];
-      console.log('🔌 Realtime disconnected manually');
+      // console.log('🔌 Realtime disconnected manually');
     }
   }
 
