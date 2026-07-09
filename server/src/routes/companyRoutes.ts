@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { protect } from '../middlewares/auth';
 import User from '../models/User';
+import { getAutoReplySettings, getCompanySettings, getOnlineAgents, resetAutoReply, testReply, updateAgentDetectionSettings, updateAutoReplySettings, updateCompanySettings } from '../controllers/companySettingsController';
 
 const router = Router();
 
@@ -41,6 +42,32 @@ router.get('/:companyId/widget', async (req, res) => {
     });
   }
 });
+
+// Get all company settings
+router.get('/settings', protect, getCompanySettings);
+
+// Update all company settings
+router.put('/settings', protect, updateCompanySettings);
+
+// Get auto-reply settings only
+router.get('/settings/auto-reply', protect, getAutoReplySettings);
+
+// Update auto-reply settings
+router.put('/settings/auto-reply', protect, updateAutoReplySettings);
+
+// Update agent detection settings
+router.put('/settings/agent-detection', protect, updateAgentDetectionSettings);
+
+// Reset auto-reply to defaults
+router.post('/settings/auto-reply/reset', protect, resetAutoReply);
+
+
+// Test a reply
+router.post('/settings/test-reply', protect, testReply);
+
+// Get online agents
+router.get('/settings/agents/online', protect, getOnlineAgents);
+
 
 // PRIVATE - user gets their own company ID
 router.get('/me', protect, async (req, res) => {

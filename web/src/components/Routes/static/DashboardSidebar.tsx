@@ -23,6 +23,7 @@ import {
   Zap,
   Sparkles,
   Plug,
+  Brain,
 } from "lucide-react";
 
 interface NavItem {
@@ -85,6 +86,7 @@ export function DashboardSidebar({ shouldHideContent }: DashboardSidebarProps) {
       icon: Globe,
       children: [
         { label: "Customize", href: "/dashboard/widget/customize", icon: Settings },
+        { label: "Smart Reply", href: "/dashboard/widget/smart-reply", icon: Brain },
         { label: "Settings", href: "/dashboard/widget/settings", icon: Zap },
       ],
     },

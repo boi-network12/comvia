@@ -12,6 +12,7 @@ import Conversation from '../models/Conversation';
 import Message from '../models/Message';
 import { getAutoReply } from '../helper/replyHelper';
 import User from '../models/User';
+import { getSmartReply } from '../helper/smartReplyHelper';
 
 const router = Router();
 
@@ -152,11 +153,20 @@ router.post('/visitor/message', async (req, res) => {
     conversation.unreadCount = (conversation.unreadCount || 0) + 1;
     await conversation.save();
 
-    // ==================== AUTO-REPLY ====================
-    const autoReplyContent = getAutoReply(content);
-    
+    // ==================== ✅ SMART AUTO-REPLY ====================
     let autoReplyMessage = null;
-    if (autoReplyContent) {
+    let autoReplyContent = null;
+    
+    const smartReply = await getSmartReply(
+        content,
+        conversation._id.toString(),
+        userId,
+        companyId
+      );
+    
+     if (smartReply.shouldReply && smartReply.reply) {
+      autoReplyContent = smartReply.reply;
+      
       autoReplyMessage = await Message.create({
         conversationId: conversation._id,
         senderId: 'system',
@@ -223,7 +233,9 @@ router.post('/visitor/message', async (req, res) => {
         messageId: message._id,
         conversationId: conversation._id,
         reply: autoReplyContent,
-        autoReplyId: autoReplyMessage?._id || null
+        autoReplyId: autoReplyMessage?._id || null,
+        autoReplyReason: smartReply.reason || null,
+        autoReplyType: smartReply.type || 'none',
       }
     });
 
