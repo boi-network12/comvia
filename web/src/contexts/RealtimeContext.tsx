@@ -3,7 +3,6 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-import { useRealtime } from '@/hooks/useRealtime';
 import { Message } from '@/services/conversations';
 import { realtimeService } from '@/services/realtime';
 
@@ -40,7 +39,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([]);
    const [isConnected, setIsConnected] = useState<boolean>(false);
   const [visitorMessages, setVisitorMessages] = useState<VisitorMessageData[]>([]);
-  const realtime = useRealtime();
+  // const realtime = useRealtime();
   const joinedConversationsRef = useRef<Set<string>>(new Set());
   const messageCallbacksRef = useRef<((message: Message, conversationId: string) => void)[]>([]);
 
@@ -202,7 +201,6 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
 
   return (
     <RealtimeContext.Provider value={{
-      ...realtime,
       isConnected,
       messages,
       visitorMessages,

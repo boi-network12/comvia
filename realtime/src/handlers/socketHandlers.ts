@@ -197,7 +197,14 @@ socket.on('send_message', async (data: {
     
     let token = socket.data.authToken 
            || socket.handshake.auth.token 
-           || socket.handshake.headers.authorization?.replace('Bearer ', '');
+           || socket.handshake.headers.authorization 
+           || socket.handshake.headers.Authorization;
+    
+    if (token && typeof token === 'string') {
+      token = token.replace('Bearer ', '').trim();
+    }
+    console.log("🔑 Token extracted (length):", token ? token.length : 0);
+  
     const conversationId = data.conversationId;
 
     console.log("🔥🔥🔥 AGENT SENDING MESSAGE 🔥🔥🔥");
