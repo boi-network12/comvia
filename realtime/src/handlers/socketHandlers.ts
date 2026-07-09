@@ -193,80 +193,219 @@ socket.on('send_message', async (data: {
   } 
 
   // ==================== AGENT / ADMIN MESSAGE ====================
-  else if (socket.data.user && !socket.data.isVisitor) {
+  // else if (socket.data.user && !socket.data.isVisitor) {
     
-    let token = socket.data.authToken 
-           || socket.handshake.auth.token 
-           || socket.handshake.headers.authorization 
-           || socket.handshake.headers.Authorization;
+  //   let token = socket.data.authToken 
+  //          || socket.handshake.auth.token 
+  //          || socket.handshake.headers.authorization 
+  //          || socket.handshake.headers.Authorization;
     
-    if (token && typeof token === 'string') {
-      token = token.replace('Bearer ', '').trim();
-    }
-    console.log("🔑 Token extracted (length):", token ? token.length : 0);
+  //   if (token && typeof token === 'string') {
+  //     token = token.replace('Bearer ', '').trim();
+  //   }
+
+
+  //   console.log("🔑 Token extracted (length):", token ? token.length : 0);
   
-    const conversationId = data.conversationId;
+  //   const conversationId = data.conversationId;
 
-    console.log("🔥🔥🔥 AGENT SENDING MESSAGE 🔥🔥🔥");
-    console.log("Token exists:", !!token);
-    console.log("ConversationId:", conversationId);
-    console.log("Content:", data.content);
+  //   console.log("🔥🔥🔥 AGENT SENDING MESSAGE 🔥🔥🔥");
+  //   console.log("Token exists:", !!token);
+  //   console.log("ConversationId:", conversationId);
+  //   console.log("Content:", data.content);
 
-    if (!token) {
-      console.error("❌ NO TOKEN");
-      socket.emit('error', { message: 'No token' });
-      return;
-    }
+  //   if (!token) {
+  //     console.error("❌ NO TOKEN");
+  //     socket.emit('error', { message: 'No token' });
+  //     return;
+  //   }
 
-    let savedMessage = null;
+  //   let savedMessage = null;
 
-    try {
-      const response = await axios.post(`${API_URL}/messages`, {
+  //   try {
+  //     const response = await axios.post(`${API_URL}/messages`, {
+  //       conversationId,
+  //       content: data.content,
+  //       type: 'text'
+  //     }, {
+  //       headers: { 'Authorization': `Bearer ${token}` },
+  //       timeout: 15000
+  //     });
+
+  //     console.log("✅ API SUCCESS:", response.data);
+
+  //     if (response.data?.success) {
+  //       savedMessage = response.data.data;
+  //       console.log('✅ Agent message SAVED to DB:', savedMessage._id);
+  //     }
+  //   } catch (err: any) {
+  //     console.error("❌ API FAILED COMPLETELY:");
+  //     console.error("Message:", err.message);
+  //     if (err.response) {
+  //       console.error("Status:", err.response.status);
+  //       console.error("Response Data:", err.response.data);
+  //     }
+  //   }
+
+  //   const agentMessage = {
+  //     _id: savedMessage?._id || `msg_${Date.now()}`,
+  //     conversationId,
+  //     content: data.content,
+  //     senderId: socket.data.userId || socket.data.user._id,
+  //     senderType: 'agent',
+  //     senderName: socket.data.user.name || 'Agent',
+  //     createdAt: new Date().toISOString(),
+  //     status: 'sent'
+  //   };
+
+  //   io.to(conversationId).emit('new_message', agentMessage);
+  //   io.to(conversationId).emit('agent_message', {
+  //     content: data.content,
+  //     conversationId: conversationId,
+  //     senderId: socket.data.userId,
+  //     senderName: socket.data.user.name || 'Agent'
+  //   });
+  //   io.to('agents').emit('new_message', agentMessage);
+
+  //   const visitorId = data.visitorId || socket.data.visitorId;
+  //   if (visitorId) {
+  //     console.log(`📤 Broadcasting to visitor room: visitor_${visitorId}`);
+  //     io.to(`visitor_${visitorId}`).emit('new_message', agentMessage);
+  //   }
+
+  //   socket.emit('message_sent', agentMessage);
+  // } 
+  // realtime/src/handlers/socketHandlers.ts
+
+// ==================== AGENT / ADMIN MESSAGE ====================
+else if (socket.data.user && !socket.data.isVisitor) {
+  
+  let token = socket.data.authToken 
+         || socket.handshake.auth.token 
+         || socket.handshake.headers.authorization 
+         || socket.handshake.headers.Authorization;
+  
+  if (token && typeof token === 'string') {
+    token = token.replace('Bearer ', '').trim();
+  }
+  
+  console.log("🔑 Token extracted (length):", token ? token.length : 0);
+  console.log("📡 API_URL:", API_URL);
+
+  if (!token) {
+    console.error("❌ NO TOKEN");
+    socket.emit('error', { message: 'No token' });
+    return;
+  }
+
+  const conversationId = data.conversationId;
+
+  console.log("🔥🔥🔥 AGENT SENDING MESSAGE 🔥🔥🔥");
+  console.log("Token exists:", !!token);
+  console.log("ConversationId:", conversationId);
+  console.log("Content:", data.content);
+
+  let savedMessage = null;
+
+  try {
+    console.log(`📤 Sending to: ${API_URL}/messages`);
+    
+    const response = await axios.post(
+      `${API_URL}/messages`,
+      {
         conversationId,
         content: data.content,
         type: 'text'
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` },
+      },
+      {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
         timeout: 15000
-      });
-
-      console.log("✅ API SUCCESS:", response.data);
-
-      if (response.data?.success) {
-        savedMessage = response.data.data;
-        console.log('✅ Agent message SAVED to DB:', savedMessage._id);
       }
-    } catch (err: any) {
-      console.error("❌ API FAILED COMPLETELY:");
-      console.error("Message:", err.message);
-      if (err.response) {
-        console.error("Status:", err.response.status);
-        console.error("Response Data:", err.response.data);
-      }
+    );
+
+    console.log("✅ API SUCCESS:", response.status);
+
+    if (response.data?.success) {
+      savedMessage = response.data.data;
+      console.log('✅ Agent message SAVED to DB:', savedMessage._id);
     }
+  } catch (err: any) {
+    console.error("❌ API FAILED:", err.message);
+    // Continue - we still want to broadcast
+  }
 
-    const agentMessage = {
-      _id: savedMessage?._id || `msg_${Date.now()}`,
-      conversationId,
+  // ✅ BUILD MESSAGE
+  const agentMessage = {
+    _id: savedMessage?._id || `msg_${Date.now()}`,
+    conversationId,
+    content: data.content,
+    senderId: socket.data.userId || socket.data.user._id,
+    senderType: 'agent',
+    senderName: socket.data.user.name || 'Agent',
+    createdAt: new Date().toISOString(),
+    status: 'sent'
+  };
+
+  // ✅ BROADCAST TO EVERYONE
+
+  // 1. Conversation room (for agents in same room)
+  io.to(conversationId).emit('new_message', agentMessage);
+  io.to(conversationId).emit('agent_message', {
+    content: data.content,
+    conversationId: conversationId,
+    senderId: socket.data.userId,
+    senderName: socket.data.user.name || 'Agent'
+  });
+  console.log(`📤 Sent to conversation room: ${conversationId}`);
+
+  // 2. Agents room (all agents)
+  io.to('agents').emit('new_message', agentMessage);
+  io.to('agents').emit('agent_message', {
+    content: data.content,
+    conversationId: conversationId,
+    senderId: socket.data.userId,
+    senderName: socket.data.user.name || 'Agent'
+  });
+  console.log(`📤 Sent to agents room`);
+
+  // 3. 🔥🔥🔥 VISITOR'S PERSONAL ROOM - THIS IS THE FIX!
+  const visitorId = data.visitorId || socket.data.visitorId;
+  if (visitorId) {
+    const visitorRoom = `visitor_${visitorId}`;
+    console.log(`📤 Broadcasting to visitor room: ${visitorRoom}`);
+    
+    // Send both event types to ensure widget receives it
+    io.to(visitorRoom).emit('new_message', agentMessage);
+    io.to(visitorRoom).emit('agent_message', {
       content: data.content,
-      senderId: socket.data.userId || socket.data.user._id,
-      senderType: 'agent',
-      senderName: socket.data.user.name || 'Agent',
-      createdAt: new Date().toISOString(),
-      status: 'sent'
-    };
-
-    io.to(conversationId).emit('new_message', agentMessage);
-    io.to('agents').emit('new_message', agentMessage);
-
-    const visitorId = data.visitorId || socket.data.visitorId;
-    if (visitorId) {
-      console.log(`📤 Broadcasting to visitor room: visitor_${visitorId}`);
-      io.to(`visitor_${visitorId}`).emit('new_message', agentMessage);
+      conversationId: conversationId,
+      senderId: socket.data.userId,
+      senderName: socket.data.user.name || 'Agent'
+    });
+  } else {
+    console.log(`⚠️ No visitorId found - trying to find from socket rooms`);
+    // Check if socket is in any visitor room
+    const rooms = Array.from(socket.rooms);
+    const visitorRoom = rooms.find(r => r.startsWith('visitor_'));
+    if (visitorRoom) {
+      console.log(`📤 Found visitor room from socket: ${visitorRoom}`);
+      io.to(visitorRoom).emit('new_message', agentMessage);
+      io.to(visitorRoom).emit('agent_message', {
+        content: data.content,
+        conversationId: conversationId,
+        senderId: socket.data.userId,
+        senderName: socket.data.user.name || 'Agent'
+      });
     }
+  }
 
-    socket.emit('message_sent', agentMessage);
-  } 
+  // 4. Send confirmation back to sender
+  socket.emit('message_sent', agentMessage);
+  console.log(`✅ Message broadcasted successfully`);
+}
   else {
     console.warn(`⚠️ Unknown sender type for message`);
     socket.emit('error', { message: 'Could not process message' });

@@ -3,18 +3,41 @@
 export interface Message {
   id: string;
   content: string;
-  sender: 'user' | 'bot' | 'agent';
+  sender: 'user' | 'bot' | 'agent' | 'admin';
   timestamp: Date;
   status?: 'sending' | 'sent' | 'delivered' | 'read';
+  senderType?: 'system' | 'agent' | 'admin' | 'visitor' | 'user';
+  senderId?: string;
+  conversationId?: string;
+  createdAt?: string;
+}
+
+export interface DBMessage {
+  _id: string;
+  conversationId: string;
+  senderId: string;
+  senderType: 'system' | 'agent' | 'admin' | 'visitor' | 'user';  
+  senderName?: string;
+  content: string;
+  type: 'text' | 'image' | 'file' | 'system';
+  readBy: string[];
+  deliveredTo: string[];
+  status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SocketMessage {
   id?: string;
+  _id?: string; 
   content: string;
-  senderType?: 'agent' | 'user' | 'bot' | string; // what your backend actually sends
-  sender?: 'agent' | 'user' | 'bot' | string;
-  message?: string; // sometimes backends use this key
+  senderType?: 'agent' | 'user' | 'bot' | 'system' | 'admin' | 'visitor';  
+  sender?: 'agent' | 'user' | 'bot' | string;  // ← For compatibility
+  senderId?: string;      // ← Database uses senderId
+  message?: string;
   timestamp?: string | Date;
+  createdAt?: string;     // ← Database uses createdAt
+  conversationId?: string;
 }
 
 

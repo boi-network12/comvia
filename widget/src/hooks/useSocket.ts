@@ -15,7 +15,7 @@ interface UseSocketOptions {
   onConnect?: () => void;
   onDisconnect?: () => void;
   onMessage?: (message: Message) => void;
-  onAgentMessage?: (data: { content: string; conversationId: string }) => void;
+  onAgentMessage?: (data: { content: string; conversationId: string; senderId: string }) => void;
 }
 
 interface UseSocketReturn {
@@ -149,11 +149,42 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     });
 
     // ✅ Listen for new messages (from agents or system)
-    socket.on('new_message', (message: Message) => {
+    socket.on('new_message', (message: any) => {
       console.log('📨 [Widget] New message received:', message);
+      // ✅ CHECK BOTH sender AND senderType
+     const isAgent = message.senderType === 'agent' || 
+                  message.senderType === 'admin' ||
+                  message.sender === 'agent' || 
+                  message.sender === 'admin';
+
+       const isSystem = message.senderType === 'system' || message.sender === 'system';
+
+       // ✅ If sender is agent, also trigger agent message handler
+      if (isAgent) {
+        if (options.onAgentMessage) {
+          options.onAgentMessage({
+            content: message.content,
+            conversationId: message.conversationId || message.id,
+            senderId: message.senderId || message._id || 'agent'
+          });
+        }
+      }
       
+      // ✅ Convert database message to widget message format
       if (options.onMessage) {
-        options.onMessage(message);
+        // Map DB fields to widget fields
+        const widgetMessage = {
+          id: message._id || message.id || Date.now().toString(),
+          content: message.content || message.message || '',
+          // ✅ Determine sender based on senderType
+          sender: isAgent ? 'agent' : 
+                  isSystem ? 'bot' : 
+                  message.senderType === 'visitor' ? 'user' : 
+                  message.sender || 'bot',
+          timestamp: new Date(message.createdAt || message.timestamp || Date.now()),
+          status: message.status || 'delivered'
+        };
+        options.onMessage(widgetMessage);
       }
     });
 
@@ -172,6 +203,31 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     // You can use this to show typing indicator
     console.log('✏️ [Widget] User typing:', data);
     // If you want to show typing indicator in UI, you can add it here
+  });
+
+  // Auto-reconnect and rejoin rooms
+  socket.on('reconnect', () => {
+    console.log('🔄 [Widget] Reconnected to socket');
+    setIsConnected(true);
+    setError(null);
+    
+    // ✅ Re-identify as visitor
+    const visitorId = visitorIdRef.current;
+    const companyId = options.companyId || (window as any).comviaSettings?.companyId;
+    
+    socket.emit('identify_visitor', {
+      visitorId: visitorId,
+      companyId: companyId,
+      userAgent: navigator.userAgent,
+      url: window.location.href,
+    });
+    
+    // ✅ Rejoin conversation if we have one
+    const conversationId = localStorage.getItem('comvia_conversation_id');
+    if (conversationId) {
+      socket.emit('join_conversation', conversationId);
+      console.log(`📌 [Widget] Rejoined conversation: ${conversationId}`);
+    }
   });
 
     // Error handling

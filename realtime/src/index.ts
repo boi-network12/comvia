@@ -89,6 +89,25 @@ app.post('/api/broadcast', express.json(), (req, res) => {
   }
 });
 
+app.get('/api/debug/rooms', (req, res) => {
+  const rooms = io.sockets.adapter.rooms;
+  const roomData: any = {};
+  
+  rooms.forEach((clients, roomName) => {
+    roomData[roomName] = {
+      clientCount: clients.size,
+      clients: Array.from(clients)
+    };
+  });
+  
+  res.json({
+    totalRooms: rooms.size,
+    rooms: roomData,
+    agentsRoom: rooms.get('agents')?.size || 0,
+    visitorRooms: Array.from(rooms.keys()).filter(r => r.startsWith('visitor_')).length
+  });
+});
+
 // ======================
 // Routes
 // ======================

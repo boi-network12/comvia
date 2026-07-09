@@ -76,11 +76,33 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
       companyId: companyId || undefined,
       onMessage: (message) => {
         console.log('📨 [WIDGET] New message from socket:', message);
-        addMessage({
-          content: message.content,
-          sender: 'bot',
-        });
-      },
+
+        // ✅ Check BOTH sender AND senderType
+       const isAgent = message.senderType === 'agent' || 
+                        message.senderType === 'admin' ||
+                        message.sender === 'agent' || 
+                        message.sender === 'admin';
+        
+        const isSystem = message.senderType === 'system';
+    
+
+         if (isAgent) {
+            addMessage({
+              content: message.content,
+              sender: 'agent',
+            });
+          } else if (isSystem) {
+            addMessage({
+              content: message.content,
+              sender: 'bot',
+            });
+          } else {
+            addMessage({
+              content: message.content,
+              sender: 'bot',
+            });
+          }
+        },
       onAgentMessage: (data) => {
         console.log('📨 [WIDGET] Agent message from socket:', data);
         addMessage({

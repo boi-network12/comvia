@@ -53,7 +53,7 @@ export function useWidget() {
   const socketOptions = useMemo(() => ({
     visitorId: visitorId,
     companyId: (window as any).comviaSettings?.companyId,
-    onAgentMessage: (data: { content: string; conversationId: string }) => {
+    onAgentMessage: (data: { content: string; conversationId: string, senderId: string }) => {
       console.log('📨 [Widget] Agent reply via socket:', data);
       addMessage({
         content: data.content,
@@ -66,12 +66,25 @@ export function useWidget() {
       const content = message.content || message.message || '';
       if (!content) return;
 
+      // ✅ Check senderType (database format) OR sender (widget format)
+    const isAgent = message.senderType === 'agent' || 
+                    message.senderType === 'admin' ||
+                    message.sender === 'agent' || 
+                    message.sender === 'admin';
+    
+    const isSystem = message.senderType === 'system' || message.sender === 'system';
+    const isVisitor = message.senderType === 'visitor' || message.sender === 'visitor';
+
       let sender: 'user' | 'bot' | 'agent' = 'bot';
 
-      if (message.senderType === 'agent' || message.sender === 'agent') {
+      if (isAgent) {
         sender = 'agent';
-      } else if (message.senderType === 'user' || message.sender === 'user') {
-        sender = 'user'; // or 'bot' depending on your logic
+      } else if (isSystem) {
+        sender = 'bot';
+      } else if (isVisitor) {
+        sender = 'user';
+      } else {
+        sender = 'bot';
       }
 
       addMessage({
