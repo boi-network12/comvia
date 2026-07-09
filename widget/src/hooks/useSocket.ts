@@ -689,7 +689,6 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     }, 15000);
 
     // Clean up timeout on connect
-    const origOnConnect = onConnect;
     socket.once('connect', () => {
       clearTimeout(timeoutId);
     });
