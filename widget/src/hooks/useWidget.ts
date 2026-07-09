@@ -45,9 +45,9 @@ export function useWidget() {
     if (!visitorId) {
       visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       localStorage.setItem('comvia_visitor_id', visitorId);
-      // console.log('🆕 [WIDGET] Created new visitor ID:', visitorId);
+      console.log('🆕 [WIDGET] Created new visitor ID:', visitorId);
     } else {
-      // console.log('♻️ [WIDGET] Using existing visitor ID:', visitorId);
+      console.log('♻️ [WIDGET] Using existing visitor ID:', visitorId);
     }
     return visitorId;
   }, []);
@@ -135,7 +135,7 @@ export function useWidget() {
   const sendMessage = useCallback((content: string, sender: 'user' | 'agent' = 'user') => {
     if (!content || !content.trim()) return;
     
-    // console.log(`📤 [WIDGET] Sending message: "${content}" from ${sender}`);
+    console.log(`📤 [WIDGET] Sending message: "${content}" from ${sender}`);
     
     // Add user message immediately (optimistic)
     addMessage({ content, sender });
