@@ -61,6 +61,7 @@ export function setupSocketHandlers(
     socket.data.isVisitor = true;
     
     socket.join(`visitor_${data.visitorId}`);
+    console.log(`📌 [SOCKET] Visitor joined room: ${data.visitorId}`);
     
     if (data.companyId) {
       socket.join(`company_${data.companyId}`);
@@ -69,6 +70,7 @@ export function setupSocketHandlers(
     // Also join the conversation room if we have one
     if (data.conversationId) {
       socket.join(data.conversationId);
+      console.log(`📌 [SOCKET] Visitor joined conversation: ${data.conversationId}`);
     }
     
     io.to('agents').emit('visitor_online', {
