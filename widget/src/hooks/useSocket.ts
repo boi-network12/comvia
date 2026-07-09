@@ -97,13 +97,13 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     socketRef.current = null;
     setIsConnected(false);
     isConnectingRef.current = false;
-    console.log('🔌 [Widget] Disconnected');
+    // // console.log('🔌 [Widget] Disconnected');
   }, []);
 
   const connect = useCallback(() => {
     // ✅ If already connected globally, just update state
     if (globalSocketConnected && globalSocket) {
-      console.log('🟢 [Widget] Already connected globally');
+      // console.log('🟢 [Widget] Already connected globally');
       setIsConnected(true);
       socketRef.current = globalSocket;
       return;
@@ -111,7 +111,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
 
     // If connection is in progress, return
     if (isConnectingRef.current) {
-      console.log('⏳ [Widget] Connection already in progress');
+      // console.log('⏳ [Widget] Connection already in progress');
       return;
     }
 
@@ -124,7 +124,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
 
     // ✅ If same visitor ID, reuse existing socket
     if (globalVisitorId === visitorId && globalSocket) {
-      console.log(`♻️ [Widget] Reusing existing socket for ${visitorId}`);
+      // console.log(`♻️ [Widget] Reusing existing socket for ${visitorId}`);
       socketRef.current = globalSocket;
       setIsConnected(globalSocketConnected);
       return;
@@ -141,7 +141,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     const socketUrl = options.socketUrl || getSocketUrl();
     const companyId = options.companyId || (window as any).comviaSettings?.companyId;
 
-    console.log(`🔌 [Widget] Creating new socket connection for ${visitorId}`);
+    // console.log(`🔌 [Widget] Creating new socket connection for ${visitorId}`);
     isConnectingRef.current = true;
     globalVisitorId = visitorId;
 
@@ -169,7 +169,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
 
       // Connection events
       socket.on('connect', () => {
-        console.log('🟢 [Widget] Socket connected!');
+        // console.log('🟢 [Widget] Socket connected!');
         globalSocketConnected = true;
         setIsConnected(true);
         isConnectingRef.current = false;
@@ -188,7 +188,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
         const conversationId = localStorage.getItem('comvia_conversation_id');
         if (conversationId) {
           socket.emit('join_conversation', conversationId);
-          console.log(`📌 [Widget] Joined conversation: ${conversationId}`);
+          // console.log(`📌 [Widget] Joined conversation: ${conversationId}`);
         }
         
         if (globalCallbacks.onConnect) globalCallbacks.onConnect();
@@ -201,8 +201,8 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
         setReconnectAttempts(prev => prev + 1);
       });
 
-      socket.on('disconnect', (reason: string) => {
-        console.log(`🔴 [Widget] Disconnected: ${reason}`);
+      socket.on('disconnect', (_: string) => {
+        // console.log(`🔴 [Widget] Disconnected: ${reason}`);
         globalSocketConnected = false;
         setIsConnected(false);
         isConnectingRef.current = false;
@@ -212,18 +212,18 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
 
       // ✅ Message handlers
       socket.on('agent_message', (data: { content: string; conversationId: string; senderId: string }) => {
-        console.log('📨 [Widget] Agent message:', data);
+        // console.log('📨 [Widget] Agent message:', data);
         if (globalCallbacks.onAgentMessage) {
           globalCallbacks.onAgentMessage(data);
         }
       });
 
       socket.on('new_message', (message: any) => {
-        console.log('📨 [Widget] New message:', message);
+        // console.log('📨 [Widget] New message:', message);
         
         // ✅ Skip if this is from the visitor themselves
         if (message.senderId === visitorId) {
-          console.log('⏭️ [Widget] Skipping own message');
+          // console.log('⏭️ [Widget] Skipping own message');
           return;
         }
         
@@ -258,12 +258,12 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
         }
       });
 
-      socket.on('message_sent', (data: { messageId: string; status: string }) => {
-        console.log('✅ [Widget] Message sent:', data);
+      socket.on('message_sent', (_: { messageId: string; status: string }) => {
+        // console.log('✅ [Widget] Message sent:', data);
       });
 
       socket.on('reconnect', () => {
-        console.log('🔄 [Widget] Reconnected');
+        // console.log('🔄 [Widget] Reconnected');
         globalSocketConnected = true;
         setIsConnected(true);
         setError(null);
@@ -287,7 +287,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     // Connection timeout
     const timeoutId = setTimeout(() => {
       if (isConnectingRef.current && mountedRef.current) {
-        console.log('⏰ [Widget] Connection timeout');
+        // console.log('⏰ [Widget] Connection timeout');
         isConnectingRef.current = false;
         setError('Connection timeout');
         socket.disconnect();
