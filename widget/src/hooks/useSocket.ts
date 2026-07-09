@@ -51,6 +51,17 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxReconnectAttempts = 10;
   const isConnectingRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    return () => {
+      // Reset connecting state on unmount
+      isConnectingRef.current = false;
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
+  }, []);
   
   useEffect(() => {
     if (!visitorIdRef.current) {
@@ -73,6 +84,15 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     }
 
      isConnectingRef.current = true;
+
+     // ✅ Add a timeout to prevent getting stuck
+      const connectionTimeout = setTimeout(() => {
+        if (isConnectingRef.current) {
+          console.log('⏰ [Widget] Connection timeout, resetting state...');
+          isConnectingRef.current = false;
+          setError('Connection timeout');
+        }
+      }, 15000);
 
     // Clean up existing socket
     if (socketRef.current) {
@@ -107,6 +127,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
 
     // ✅ Connection events
     socket.on('connect', () => {
+      clearTimeout(connectionTimeout);
       console.log('🟢 [Widget] Socket connected successfully!');
       setIsConnected(true);
       isConnectingRef.current = false; 
@@ -125,6 +146,14 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
       if (options.onConnect) options.onConnect();
     });
 
+    socket.on('connect_error', (err) => {
+      clearTimeout(connectionTimeout); 
+      console.error('❌ [Widget] Socket connection error:', err.message);
+      setError(err.message);
+      isConnectingRef.current = false; 
+      setReconnectAttempts(prev => prev + 1);
+    });
+
     socket.on('disconnect', (reason) => {
       console.log(`🔴 [Widget] Socket disconnected: ${reason}`);
       setIsConnected(false);
@@ -132,12 +161,6 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
       if (options.onDisconnect) options.onDisconnect();
     });
 
-    socket.on('connect_error', (err) => {
-      console.error('❌ [Widget] Socket connection error:', err.message);
-      setError(err.message);
-      isConnectingRef.current = false; 
-      setReconnectAttempts(prev => prev + 1);
-    });
 
     // ✅ Listen for agent replies
     socket.on('agent_message', (data: { content: string; conversationId: string; senderId: string }) => {
