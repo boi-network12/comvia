@@ -150,7 +150,9 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
       query: {
         visitorId: visitorId,
         companyId: companyId || '',
-        type: 'visitor'
+        type: 'visitor',
+        countryCode: localStorage.getItem('comvia_visitor_country') || '',
+        countryFlag: localStorage.getItem('comvia_visitor_flag') || '🌍',
       },
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -309,11 +311,17 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
 
   }, []);
 
-  const sendMessage = useCallback((conversationId: string, content: string): boolean => {
+  const sendMessage = useCallback((conversationId: string, content: string, locationData?: any): boolean => {
     if (!globalSocket?.connected) {
       console.warn('⚠️ [Widget] Cannot send message: not connected');
       return false;
     }
+
+    // ✅ Get location data from localStorage
+    const location = locationData || {
+      countryCode: localStorage.getItem('comvia_visitor_country') || '',
+      countryFlag: localStorage.getItem('comvia_visitor_flag') || '🌍',
+    };
     
     globalSocket.emit('send_message', {
       conversationId,
@@ -321,6 +329,7 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
       sender: 'visitor',
       visitorId: visitorIdRef.current,
       timestamp: new Date().toISOString(),
+      location: location 
     });
     
     return true;

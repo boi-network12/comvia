@@ -169,6 +169,10 @@ export function setupSocketHandlers(
     sender: string; 
     visitorId?: string;
     timestamp?: string;
+    location?: {  // ✅ Add location to the data
+      countryCode?: string;
+      countryFlag?: string;
+    }
   }) => {
 
     console.log(`📨 [SOCKET] Message from:`, data);
@@ -195,10 +199,18 @@ export function setupSocketHandlers(
           sender: 'visitor',
           userId: data.visitorId || socket.data.visitorId,
           timestamp: data.timestamp || new Date().toISOString(),
-          companyId: socket.data.companyId
+          companyId: socket.data.companyId,
+          location: {
+          countryCode: socket.data.visitorCountryCode || data.location?.countryCode || '',
+          countryFlag: socket.data.visitorFlag || data.location?.countryFlag || '🌍',
+        }
         });
 
-        console.log('✅ Visitor message saved to DB');
+        console.log('✅ Visitor message saved to DB with location:', {
+          countryCode: socket.data.visitorCountryCode,
+          countryFlag: socket.data.visitorFlag,
+          countryName: socket.data.visitorCountry,
+        });
 
         const realConversationId = response.data.data?.conversationId || data.conversationId;
         const realMessageId = response.data.data?.messageId || `msg_${Date.now()}`;
