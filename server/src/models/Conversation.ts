@@ -27,6 +27,10 @@ export interface IConversation extends Document {
     browser?: string;
     location?: string;
     ip?: string;
+    visitorId?: string;
+    visitorFlag?: string;
+    visitorCountryCode?: string;
+    visitorCountry?: string;
   };
   internalNotes: Array<{
     content: string;
@@ -109,6 +113,10 @@ const ConversationSchema = new Schema<IConversation>({
     browser: String,
     location: String,
     ip: String,
+    visitorId: String,   
+    visitorFlag: String,        // 🇳🇬 etc.
+    visitorCountryCode: String, // "NG" etc.
+    visitorCountry: String,
   },
   internalNotes: [{
     content: String,
