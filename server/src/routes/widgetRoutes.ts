@@ -105,11 +105,16 @@ router.post('/visitor/message', async (req, res) => {
         });
       }
 
+      // ✅ Get location data from request or localStorage
+      const visitorFlag = req.body.flag || metadata?.flag || '🌍';
+      const visitorCountryCode = req.body.countryCode || metadata?.countryCode || '';
+      const visitorCountry = req.body.country || metadata?.country || '';
+
       conversation = await Conversation.create({
         userId: companyUser._id,
         visitorId: userId,
         companyId,
-        title: `Chat with Visitor`,
+        title: `Chat with Visitor ${visitorFlag}`,
         status: 'open',
         priority: 'medium',
         channel: 'widget',
@@ -118,6 +123,9 @@ router.post('/visitor/message', async (req, res) => {
         metadata: {
           visitorName: 'Visitor',
           visitorId: userId,
+          visitorFlag: visitorFlag,
+          visitorCountryCode: visitorCountryCode,
+          visitorCountry: visitorCountry,
           page: req.headers.referer || 'Unknown',
           companyId: companyId,
           ...metadata
@@ -128,6 +136,15 @@ router.post('/visitor/message', async (req, res) => {
       console.log(`✅ Created new conversation: ${conversation._id}`);
     } else {
       console.log(`📌 Found existing conversation: ${conversation._id}`);
+
+      // ✅ UPDATE: If location data is provided, update it
+      if (req.body.flag || req.body.countryCode) {
+        conversation.metadata.visitorFlag = req.body.flag || conversation.metadata?.visitorFlag || '🌍';
+        conversation.metadata.visitorCountryCode = req.body.countryCode || conversation.metadata?.visitorCountryCode || '';
+        conversation.metadata.visitorCountry = req.body.country || conversation.metadata?.visitorCountry || '';
+        await conversation.save();
+        console.log(`✅ Updated visitor location: ${conversation.metadata.visitorCountry}`);
+      }
       
       // If conversation was closed/resolved, reopen it
       if (conversation.status === 'resolved' || conversation.status === 'closed') {
@@ -232,6 +249,8 @@ router.post('/visitor/message', async (req, res) => {
       data: {
         messageId: message._id,
         conversationId: conversation._id,
+        visitorFlag: conversation.metadata?.visitorFlag || '🌍',
+        visitorCountry: conversation.metadata?.visitorCountry || '',
         reply: autoReplyContent,
         autoReplyId: autoReplyMessage?._id || null,
         autoReplyReason: smartReply.reason || null,

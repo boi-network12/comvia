@@ -53,7 +53,12 @@ export function setupSocketHandlers(
     companyId: string; 
     userAgent?: string; 
     url?: string ,
-    conversationId?: string
+    conversationId?: string,
+      location?: {
+      countryCode?: string;
+      flag?: string;
+      country?: string;
+    }
   }) => {
     console.log(`👤 [SOCKET] Visitor identified: ${data.visitorId}`);
 
@@ -72,6 +77,13 @@ export function setupSocketHandlers(
         oldSocket.disconnect(true);
       }
       visitorConnections.delete(data.visitorId);
+    }
+
+    // ✅ Store location data on socket
+    if (data.location) {
+      socket.data.visitorCountryCode = data.location.countryCode || '';
+      socket.data.visitorFlag = data.location.flag || '🌍';
+      socket.data.visitorCountry = data.location.country || '';
     }
     
     // ✅ Store this connection
@@ -99,6 +111,11 @@ export function setupSocketHandlers(
       companyId: data.companyId,
       userAgent: data.userAgent,
       url: data.url,
+      location: {
+        countryCode: socket.data.visitorCountryCode,
+        flag: socket.data.visitorFlag,
+        country: socket.data.visitorCountry,
+      },
       timestamp: new Date().toISOString()
     });
   });

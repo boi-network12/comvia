@@ -9,7 +9,20 @@ import { v4 as uuidv4 } from 'uuid';
 // @access  Public
 export const trackVisitor = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { visitorId, name, email, page, referrer, userAgent, ip, socketId } = req.body;
+    const { 
+      visitorId, 
+      name, 
+      email, 
+      page, 
+      referrer, 
+      userAgent, 
+      ip, 
+      socketId,
+      countryCode,
+      countryFlag,
+      country
+    } = req.body;
+
 
     // Check if visitor already has a conversation
     let conversation = await Conversation.findOne({
@@ -40,6 +53,9 @@ export const trackVisitor = async (req: Request, res: Response, next: NextFuncti
           visitorEmail: email,
           page: page,
           ip: ip,
+          visitorFlag: countryFlag || '🌍',
+          visitorCountryCode: countryCode || '',
+          visitorCountry: country || '',
         },
         lastMessageAt: new Date(),
       });
@@ -53,6 +69,15 @@ export const trackVisitor = async (req: Request, res: Response, next: NextFuncti
         type: 'system',
         status: 'sent',
       });
+    } else {
+      // ✅ UPDATE: If conversation exists, update location data
+      if (countryCode || countryFlag) {
+        conversation.metadata.visitorFlag = countryFlag || conversation.metadata?.visitorFlag || '🌍';
+        conversation.metadata.visitorCountryCode = countryCode || conversation.metadata?.visitorCountryCode || '';
+        conversation.metadata.visitorCountry = country || conversation.metadata?.visitorCountry || '';
+        await conversation.save();
+        console.log(`✅ [SERVER] Updated visitor location: ${country || 'Unknown'}`);
+      }
     }
 
     res.status(200).json({
@@ -60,6 +85,11 @@ export const trackVisitor = async (req: Request, res: Response, next: NextFuncti
       data: {
         conversationId: conversation._id,
         visitorId: visitorId,
+        location: {
+          flag: conversation.metadata?.visitorFlag || '🌍',
+          countryCode: conversation.metadata?.visitorCountryCode || '',
+          country: conversation.metadata?.visitorCountry || '',
+        }
       },
     });
   } catch (error) {

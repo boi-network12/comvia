@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useRealtimeContext } from "@/contexts";
+import { getCountryFlag } from "@/utils/geoLocation";
 
 type ConversationStatus = "open" | "in-progress" | "resolved" | "escalated" | "closed";
 
@@ -99,8 +100,7 @@ const handleStatusFilter = useCallback((status: string) => {
       status: (newStatus || undefined) as ConversationStatus | undefined
     });
   }, [search, statusFilter, loadConversations]);
-  // Filter buttons
-  const statusOptions: (ConversationStatus | "")[] = ["", "open", "in-progress", "resolved", "escalated", "closed"];
+  
 
 
   const getStatusBadge = (status: string) => {
@@ -264,7 +264,13 @@ const handleStatusFilter = useCallback((status: string) => {
                   <div className="p-4 sm:p-6 flex gap-4">
                     {/* Avatar */}
                     <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 mt-0.5">
-                      {conversation.metadata?.visitorName?.charAt(0) || "V"}
+                      {conversation.metadata?.visitorFlag ? (
+                        <span className="text-lg">{conversation.metadata.visitorFlag}</span>
+                      ) : conversation.metadata?.visitorCountryCode ? (
+                        <span className="text-lg">{getCountryFlag(conversation.metadata.visitorCountryCode)}</span>
+                      ) : (
+                        conversation.metadata?.visitorName?.charAt(0) || "V"
+                      )}
                     </div>
 
                     {/* Main Content */}

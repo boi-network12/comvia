@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
+import { getCountryFlag } from "@/utils/geoLocation";
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -506,7 +507,13 @@ export default function DashboardPage() {
             >
               {/* Avatar - Column 1 */}
               <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full gradient-primary flex items-center justify-center text-white font-medium text-xs sm:text-sm flex-shrink-0">
-                {conv.metadata?.visitorName?.charAt(0)?.toUpperCase() || 'V'}
+                {conv.metadata?.visitorFlag ? (
+                  <span className="text-lg">{conv.metadata.visitorFlag}</span>
+                ) : conv.metadata?.visitorCountryCode ? (
+                  <span className="text-lg">{getCountryFlag(conv.metadata.visitorCountryCode)}</span>
+                ) : (
+                  conv.metadata?.visitorName?.charAt(0) || "V"
+                )}
               </div>
               
               {/* Content - Column 2 (takes remaining space) */}

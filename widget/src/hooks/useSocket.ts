@@ -175,6 +175,10 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
         isConnectingRef.current = false;
         setError(null);
         setReconnectAttempts(0);
+
+        // ✅ Get location data from localStorage
+        const countryCode = localStorage.getItem('comvia_visitor_country') || '';
+        const countryFlag = localStorage.getItem('comvia_visitor_flag') || '🌍';
         
         // Identify as visitor
         socket.emit('identify_visitor', {
@@ -182,6 +186,10 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
           companyId: companyId,
           userAgent: navigator.userAgent,
           url: window.location.href,
+          location: {
+            countryCode: countryCode,
+            flag: countryFlag,
+          }
         });
         
         // Join conversation if we have one

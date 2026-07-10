@@ -20,6 +20,8 @@ export interface Message {
 export interface ConversationMetadata {
   visitorName?: string;
   visitorEmail?: string;
+  visitorFlag?: string;
+  visitorCountryCode?: string;
   page?: string;
   browser?: string;
   location?: string;
@@ -66,6 +68,8 @@ export interface Conversation {
   metadata: {
     visitorName?: string;
     visitorEmail?: string;
+    visitorFlag?: string;
+    visitorCountryCode?: string;
     page?: string;
     browser?: string;
     location?: string;
