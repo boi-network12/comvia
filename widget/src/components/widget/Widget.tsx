@@ -12,6 +12,7 @@ import { WidgetQuickReplies } from './WidgetQuickReplies';
 import { cn } from '../../utils/helpers';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useWidget } from '../../hooks/useWidget';
+import { getCountryFlag, getVisitorGeoLocation } from '../../utils/geoLocation';
 
 export const Widget: React.FC = () => {
   const {
@@ -50,6 +51,39 @@ export const Widget: React.FC = () => {
     console.log('🔌 Widget mounting, initiating connection...');
     connectSocket();
   }, [isLoading, companyId, isConnected, connectSocket]);
+
+  // ✅ FETCH LOCATION ON MOUNT
+  useEffect(() => {
+    const fetchLocation = async () => {
+      try {
+        const geo = await getVisitorGeoLocation();
+        if (geo) {
+          const flag = getCountryFlag(geo.countryCode);
+          
+          // ✅ Save to localStorage for socket connection
+          localStorage.setItem('comvia_visitor_country', geo.country);
+          localStorage.setItem('comvia_visitor_country_code', geo.countryCode);
+          localStorage.setItem('comvia_visitor_flag', flag);
+          
+          // ✅ Also save to window for other components
+          (window as any).comviaVisitor = {
+            country: geo.country,
+            countryCode: geo.countryCode,
+            flag: flag,
+            ip: geo.ip
+          };
+          
+          console.log('✅ Location fetched:', geo.country, flag);
+        }
+      } catch (error) {
+        console.error('❌ Failed to fetch location:', error);
+        // Set defaults
+        localStorage.setItem('comvia_visitor_flag', '🌍');
+      }
+    };
+    
+    fetchLocation();
+  }, []);
 
   // Close widget on escape key
   useEffect(() => {

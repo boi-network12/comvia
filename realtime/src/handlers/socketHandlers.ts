@@ -201,9 +201,11 @@ export function setupSocketHandlers(
           timestamp: data.timestamp || new Date().toISOString(),
           companyId: socket.data.companyId,
           location: {
+            countryCode: socket.data.visitorCountryCode || data.location?.countryCode || '',
+            countryFlag: socket.data.visitorFlag || data.location?.countryFlag || '🌍',
+          },
+          flag: socket.data.visitorFlag || data.location?.countryFlag || '🌍',
           countryCode: socket.data.visitorCountryCode || data.location?.countryCode || '',
-          countryFlag: socket.data.visitorFlag || data.location?.countryFlag || '🌍',
-        }
         });
 
         console.log('✅ Visitor message saved to DB with location:', {

@@ -319,17 +319,22 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
 
     // ✅ Get location data from localStorage
     const location = locationData || {
-      countryCode: localStorage.getItem('comvia_visitor_country') || '',
-      countryFlag: localStorage.getItem('comvia_visitor_flag') || '🌍',
+      countryCode: localStorage.getItem('comvia_visitor_country_code') || '',
+      country: localStorage.getItem('comvia_visitor_country') || '',
+      flag: localStorage.getItem('comvia_visitor_flag') || '🌍',
     };
-    
+      
     globalSocket.emit('send_message', {
       conversationId,
       content,
       sender: 'visitor',
       visitorId: visitorIdRef.current,
       timestamp: new Date().toISOString(),
-      location: location 
+      location: {
+        countryCode: location.countryCode,
+        countryFlag: location.flag,
+        countryName: location.country,
+      }
     });
     
     return true;
