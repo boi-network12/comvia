@@ -223,9 +223,6 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
     
     // console.log(`📤 [WIDGET] Sending message: "${content}" from ${sender}`);
     
-    // ❌ REMOVE THIS - useWidget already adds the message
-  // addMessage({ content, sender });
-    
     const userId = user?.id || localStorage.getItem('comvia_visitor_id') || `visitor_${Date.now()}`;
     const windowConfig = (window as any).comviaSettings || {};
     const companyId = windowConfig.companyId || windowConfig.company_id;
