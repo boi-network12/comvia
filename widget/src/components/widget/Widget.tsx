@@ -18,7 +18,6 @@ export const Widget: React.FC = () => {
     isOpen,
     isMinimized,
     messages,
-    isTyping,
     settings,
     isLoading,
     closeWidget,
@@ -130,7 +129,7 @@ export const Widget: React.FC = () => {
             {/* Body */}
             {!isMinimized && (
               <>
-                <WidgetBody messages={messages} isTyping={isTyping} />
+                <WidgetBody messages={messages} />
                 <WidgetQuickReplies
                   replies={settings.quickReplies}
                   onSelect={(reply) => {

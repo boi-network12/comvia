@@ -3,21 +3,19 @@
 import React, { useRef, useEffect } from 'react';
 import type { Message } from '../../types';
 import { WidgetMessage } from './WidgetMessage';
-import { TypingIndicator } from '../chat/TypingIndicator';
 
 interface WidgetBodyProps {
   messages: Message[];
-  isTyping: boolean;
 }
 
-export const WidgetBody: React.FC<WidgetBodyProps> = ({ messages, isTyping }) => {
+export const WidgetBody: React.FC<WidgetBodyProps> = ({ messages }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [messages, isTyping]);
+  }, [messages]);
 
   return (
     <div
@@ -27,8 +25,6 @@ export const WidgetBody: React.FC<WidgetBodyProps> = ({ messages, isTyping }) =>
       {messages.map((message) => (
         <WidgetMessage key={message.id} message={message} />
       ))}
-      
-      {isTyping && <TypingIndicator />}
     </div>
   );
 };
