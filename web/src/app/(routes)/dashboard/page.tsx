@@ -139,8 +139,13 @@ export default function DashboardPage() {
   ];
 
   // Safe way to get first letter
-  const getInitial = (name?: string, email?: string): string => {
-    const str = name?.trim() || email?.trim() || "U";
+  const getInitial = (name?: string, email?: string, metadata?: {
+    visitorFlag?: string,
+    visitorCountryCode?: string
+  }): string => {
+    if (metadata?.visitorFlag) return metadata.visitorFlag;
+    if (metadata?.visitorCountryCode) return getCountryFlag(metadata.visitorCountryCode);
+    const str = name?.trim() || email?.trim() || "V";
     return str.charAt(0).toUpperCase();
   };
 
@@ -158,7 +163,7 @@ export default function DashboardPage() {
     id: conv._id || index,
     user: {
       name: conv.metadata?.visitorName || 'Anonymous',
-      avatar: getInitial(conv.metadata?.visitorName),
+      avatar: getInitial(conv.metadata?.visitorName, undefined, conv.metadata),
       color: `bg-${['blue', 'purple', 'emerald', 'orange', 'pink'][index % 5]}-500`,
     },
     action: conv.status === 'resolved' ? 'resolved' : 
