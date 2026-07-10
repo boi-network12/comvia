@@ -20,6 +20,7 @@ export interface IConversation extends Document {
   unreadCount: number;
   resolvedAt?: Date;
   escalatedAt?: Date;
+  
   metadata: {
     visitorName?: string;
     visitorEmail?: string;
