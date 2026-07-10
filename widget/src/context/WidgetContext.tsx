@@ -8,6 +8,7 @@ import { useWidgetStore } from '../store/widgetStore';
 import { useSocket } from '../hooks/useSocket';
 import { widgetAPI } from '../utils/api';
 import type { WidgetConfig, WidgetSettings, Message } from '../types';
+import { getCountryFlag, getVisitorGeoLocation } from '../utils/geoLocation';
 
 interface WidgetContextType {
   isOpen: boolean;
@@ -69,6 +70,7 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
   // ✅ Use ref to track if socket connection has been initiated
   const connectionInitiatedRef = useRef(false);
   const processedMessagesRef = useRef<Set<string>>(new Set());
+
 
   // ✅ Memoize the message handlers
   const handleMessage = useCallback((message: Message) => {
@@ -140,7 +142,21 @@ export function WidgetProvider({ children }: { children: ReactNode }) {
       
       const windowConfig = (window as any).comviaSettings || {};
       const companyId = windowConfig.companyId;
-      
+
+      // ✅ Fetch visitor location
+      let visitorLocation = null;
+      try {
+        visitorLocation = await getVisitorGeoLocation();
+        if (visitorLocation) {
+          console.log('📍 Visitor location:', visitorLocation.country);
+          // Store in localStorage or state for later use
+          localStorage.setItem('comvia_visitor_country', visitorLocation.countryCode);
+          localStorage.setItem('comvia_visitor_flag', getCountryFlag(visitorLocation.countryCode));
+        }
+      } catch (err) {
+        console.log('Could not get location');
+      }
+        
       // console.log('🔍 [WIDGET] Company ID:', companyId);
       
       if (companyId) {

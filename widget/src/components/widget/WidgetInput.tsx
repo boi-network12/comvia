@@ -93,7 +93,7 @@ export const WidgetInput: React.FC<WidgetInputProps> = ({
 
         <button
           onClick={handleSend}
-          // disabled={!message.trim() || !isConnected}
+          disabled={!message.trim()}
           className={cn(
             'p-2 rounded-lg text-white transition-all',
             'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -105,12 +105,6 @@ export const WidgetInput: React.FC<WidgetInputProps> = ({
           <Send className="w-4 h-4" />
         </button>
       </div>
-      
-      {/* {!isConnected && (
-        <p className="text-[10px] text-yellow-500 mt-1 text-center">
-          ⚠️ Reconnecting to chat server...
-        </p>
-      )} */}
     </div>
   );
 };

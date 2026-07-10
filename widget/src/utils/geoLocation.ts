@@ -18,7 +18,6 @@ export interface GeoLocation {
  */
 export async function getVisitorGeoLocation(): Promise<GeoLocation | null> {
   try {
-    // Using ipapi.co - free and reliable
     const response = await fetch('https://ipapi.co/json/', {
       headers: {
         'Accept': 'application/json',
@@ -32,9 +31,9 @@ export async function getVisitorGeoLocation(): Promise<GeoLocation | null> {
     const data = await response.json();
     
     return {
-      ip: data.ip,
+      ip: data.ip || '',
       country: data.country_name || 'Unknown',
-      countryCode: data.country_code || 'XX',
+      countryCode: data.country_code || '',
       region: data.region || 'Unknown',
       city: data.city || 'Unknown',
       timezone: data.timezone || 'UTC',
@@ -47,20 +46,22 @@ export async function getVisitorGeoLocation(): Promise<GeoLocation | null> {
     
     // Fallback: try ip-api.com
     try {
-      const fallbackResponse = await fetch('http://ip-api.com/json/');
+      const fallbackResponse = await fetch('https://ip-api.com/json/');
       if (fallbackResponse.ok) {
         const data = await fallbackResponse.json();
-        return {
-          ip: data.query,
-          country: data.country || 'Unknown',
-          countryCode: data.countryCode || 'XX',
-          region: data.regionName || 'Unknown',
-          city: data.city || 'Unknown',
-          timezone: data.timezone || 'UTC',
-          isp: data.isp || 'Unknown',
-          latitude: data.lat,
-          longitude: data.lon,
-        };
+        if (data.status === 'success') {
+          return {
+            ip: data.query || '',
+            country: data.country || 'Unknown',
+            countryCode: data.countryCode || '',
+            region: data.regionName || 'Unknown',
+            city: data.city || 'Unknown',
+            timezone: data.timezone || 'UTC',
+            isp: data.isp || 'Unknown',
+            latitude: data.lat,
+            longitude: data.lon,
+          };
+        }
       }
     } catch (fallbackError) {
       console.error('❌ Fallback location failed:', fallbackError);
@@ -74,9 +75,17 @@ export async function getVisitorGeoLocation(): Promise<GeoLocation | null> {
  * Get a flag emoji for a country code
  */
 export function getCountryFlag(countryCode: string): string {
+  // ✅ Handle undefined, null, or empty string
+  if (!countryCode || countryCode === 'undefined' || countryCode === 'null') {
+    return '🌍';
+  }
+
+  const code = countryCode.toUpperCase().trim();
+  
   const flags: Record<string, string> = {
     'US': '🇺🇸',
     'GB': '🇬🇧',
+    'UK': '🇬🇧',
     'CA': '🇨🇦',
     'AU': '🇦🇺',
     'DE': '🇩🇪',
@@ -120,18 +129,28 @@ export function getCountryFlag(countryCode: string): string {
     'CO': '🇨🇴',
     'PE': '🇵🇪',
     'VE': '🇻🇪',
+    'IL': '🇮🇱',
+    'TR': '🇹🇷',
+    'PK': '🇵🇰',
+    'BD': '🇧🇩',
+    'ID': '🇮🇩',
   };
   
-  return flags[countryCode.toUpperCase()] || '🌍';
+  return flags[code] || '🌍';
 }
 
 /**
  * Get a greeting message based on visitor's country
  */
 export function getGreetingByCountry(countryCode: string): string {
+  if (!countryCode) return 'Hello! 🌍';
+  
+  const code = countryCode.toUpperCase().trim();
+  
   const greetings: Record<string, string> = {
     'US': 'Hello! 🇺🇸',
     'GB': 'Hello! 🇬🇧',
+    'UK': 'Hello! 🇬🇧',
     'CA': 'Hello! 🇨🇦',
     'AU': 'G\'day! 🇦🇺',
     'DE': 'Hallo! 🇩🇪',
@@ -176,5 +195,5 @@ export function getGreetingByCountry(countryCode: string): string {
     'VE': '¡Hola! 🇻🇪',
   };
   
-  return greetings[countryCode.toUpperCase()] || 'Hello! 🌍';
+  return greetings[code] || 'Hello! 🌍';
 }
