@@ -1,9 +1,9 @@
 // src/components/Widget/WidgetHeader.tsx
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Minimize2, Maximize2, X } from 'lucide-react';
 import { useWidgetContext } from '../../context';
-import { getCountryFlag, getVisitorGeoLocation } from '../../utils/geoLocation';
+import { getCountryFlag } from '../../utils/geoLocation';
 
 interface WidgetHeaderProps {
   onToggleMinimize: () => void;
@@ -12,36 +12,8 @@ interface WidgetHeaderProps {
 
 export const WidgetHeader: React.FC<WidgetHeaderProps> = ({ onClose }) => {
   const { settings, isMinimized, minimizeWidget, maximizeWidget } = useWidgetContext();
-  const [countryCode, setCountryCode] = useState<string>('');
-  const [flag, setFlag] = useState<string>('🌍');
-
-  // ✅ Get country code from localStorage on mount
-  useEffect(() => {
-    const getCountry = async () => {
-      // Try to get from localStorage first
-      let code = localStorage.getItem('comvia_visitor_country');
-      
-      if (!code) {
-        // If not in localStorage, fetch it
-        try {
-          const location = await getVisitorGeoLocation();
-          if (location?.countryCode) {
-            code = location.countryCode;
-            localStorage.setItem('comvia_visitor_country', code);
-          }
-        } catch (error) {
-          console.error('Failed to get location:', error);
-        }
-      }
-      
-      if (code) {
-        setCountryCode(code);
-        setFlag(getCountryFlag(code));
-      }
-    };
-    
-    getCountry();
-  }, []);
+  const countryCode = localStorage.getItem('comvia_visitor_country') || '';
+  const flag = getCountryFlag(countryCode)
 
   const color = settings?.color || '#F97316';
   const companyName = settings?.companyName || 'Comvia';
@@ -69,20 +41,26 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({ onClose }) => {
             </div>
           )}
           
-          <div className="min-w-0">
-            <p className="font-semibold text-sm truncate flex items-center gap-1.5">
-              {companyName}
-              <span className="text-base">{flag}</span>
-            </p>
+           <div className="min-w-0">
+            <p className="font-semibold text-sm truncate">{companyName} {flag || '🌍'}</p>
             <div className="flex items-center gap-1.5">
+              
               <span className="w-1.5 h-1.5 bg-green-400 rounded-full inline-block animate-pulse" />
-              <span className="text-xs opacity-80">Online</span>
+                  <span className="text-xs opacity-80">Online</span>
             </div>
           </div>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-1">
+          {/* Connection indicator icon */}
+          <div className="hidden sm:block mr-1">
+            {/* {isConnected ? (
+              <Wifi className="w-3.5 h-3.5 opacity-70" />
+            ) : (
+              <WifiOff className="w-3.5 h-3.5 opacity-70" />
+            )} */}
+          </div>
           <button
             onClick={isMinimized ? maximizeWidget : minimizeWidget}
             className="hidden md:block p-1.5 rounded-lg hover:bg-white/20 transition-colors"
@@ -102,6 +80,14 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({ onClose }) => {
             <X className="w-4 h-4" />
           </button>
         </div>
+        {/* {!isConnected && (
+        <div className="mt-2 px-2 py-0.5 bg-black/20 rounded text-xs text-center">
+          <span className="flex items-center justify-center gap-1.5">
+            <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full inline-block animate-pulse" />
+            Reconnecting...
+          </span>
+        </div>
+      )} */}
       </div>
     </div>
   );
