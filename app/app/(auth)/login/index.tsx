@@ -17,23 +17,29 @@ import { ThemedText } from '@/components/customs/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { theme, isDark } = useTheme();
+  const { login, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = async () => {
-    setIsLoading(true);
-    // Simulate login
-    setTimeout(() => {
-      setIsLoading(false);
-      // Navigate to dashboard
-      router.replace('/dashboard');
-    }, 1500);
+ const handleLogin = async () => {
+    if (!email || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    setError('');
+    try {
+      await login(email.trim(), password);
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please try again.');
+    }
   };
 
   return (
@@ -77,6 +83,15 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.form}>
+              {error ? (
+                <View style={[styles.errorContainer, { backgroundColor: theme.colors.error + '15' }]}>
+                  <Ionicons name="alert-circle" size={20} color={theme.colors.error} />
+                  <ThemedText style={[styles.errorText, { color: theme.colors.error }]}>
+                    {error}
+                  </ThemedText>
+                </View>
+              ) : null}
+              
               <View style={styles.inputGroup}>
                 <ThemedText variant="label" weight="medium" style={styles.inputLabel}>
                   Email Address
@@ -88,10 +103,14 @@ export default function LoginScreen() {
                     placeholder="you@example.com"
                     placeholderTextColor={theme.colors.textMuted}
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(text) => {
+                      setEmail(text);
+                      setError('');
+                    }}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
+                    editable={!isLoading}
                   />
                 </View>
               </View>
@@ -116,9 +135,13 @@ export default function LoginScreen() {
                     placeholder="Enter your password"
                     placeholderTextColor={theme.colors.textMuted}
                     value={password}
-                    onChangeText={setPassword}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      setError('');
+                    }}
                     secureTextEntry={!showPassword}
                     autoCorrect={false}
+                    editable={!isLoading}
                   />
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                     <Ionicons 
@@ -143,7 +166,7 @@ export default function LoginScreen() {
                   end={{ x: 1, y: 0 }}
                 >
                   {isLoading ? (
-                    <Ionicons name="reload" size={24} color="#FFFFFF" style={styles.loadingIcon} />
+                    <Ionicons name="reload" size={22} color="#FFFFFF" style={styles.loadingIcon} />
                   ) : (
                     <>
                       <ThemedText style={[styles.loginButtonText, { color: '#FFFFFF' }]}>
@@ -258,6 +281,17 @@ const styles = StyleSheet.create({
   },
   forgotLink: {
     fontSize: 13,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    gap: 10,
+  },
+  errorText: {
+    fontSize: 14,
+    flex: 1,
   },
   inputWrapper: {
     flexDirection: 'row',

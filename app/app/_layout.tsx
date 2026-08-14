@@ -9,7 +9,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import SplashScreenComponent from '@/components/customs/SplashScreen';
 import 'react-native-reanimated';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ThemedView } from '@/components/customs/ThemedView';
+import { ActivityIndicator } from 'react-native';
 
 
 SplashScreen.preventAutoHideAsync();
@@ -17,6 +19,7 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
   const { theme } = useTheme();
+  const { state, isLoading } = useAuth();
   const [loaded] = useFonts({
     Roboto: require('../assets/fonts/Roboto-Regular.ttf'),
     'Roboto-Medium': require('../assets/fonts/Roboto-Medium.ttf'),
@@ -53,10 +56,24 @@ function RootLayoutContent() {
 
   // i will still add state when authenticated 
   useEffect(() => {
-    if (loaded && splashDone) {
-      router.replace('/');
+    if (loaded && splashDone && state.isReady) {
+      if (state.isAuth) {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/');
+      }
     }
-  },[loaded, splashDone])
+  }, [loaded, splashDone, state.isReady, state.isAuth]);
+
+  // Show loading state
+  if (isLoading || !state.isReady) {
+    return (
+      <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </ThemedView>
+    );
+  }
+
 
   // show custom splash screen until fonts are loaded
   if (!loaded || !splashDone) {
