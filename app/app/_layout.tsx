@@ -1,4 +1,4 @@
-//  this is the root layout of the app. It wraps all pages and layouts in the app. You can use this to keep state when navigating between pages, or to add a persistent layout that you want to share across all pages.
+// app/_layout.tsx (root layout)
 import React, { useEffect, useState } from 'react';
 import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -14,34 +14,33 @@ import { ThemedView } from '@/components/customs/ThemedView';
 import { ActivityIndicator } from 'react-native';
 import { SnackbarProvider } from '@/contexts/SnackbarContext';
 
-
 SplashScreen.preventAutoHideAsync();
-
 
 function RootLayoutContent() {
   const { theme } = useTheme();
-  const { state, isLoading } = useAuth();
+  const { state, isLoading, isAuthenticated } = useAuth();
   const [loaded] = useFonts({
     Roboto: require('../assets/fonts/Roboto-Regular.ttf'),
     'Roboto-Medium': require('../assets/fonts/Roboto-Medium.ttf'),
     'Roboto-Bold': require('../assets/fonts/Roboto-Bold.ttf'),
   });
   const [splashDone, setSplashDone] = useState(false);
+  const [isNavigationReady, setIsNavigationReady] = useState(false);
 
+  // Handle native splash screen
   useEffect(() => {
-    // Prevent the native splash screen from auto-hiding while the app loads resources
     async function prepare() {
       try {
         await SplashScreen.preventAutoHideAsync();
       } catch (e) {
-        // ignore errors (native module may not be available in some environments)
+        // ignore errors
       }
     }
     prepare();
   }, []);
 
+  // Hide native splash when fonts are loaded
   useEffect(() => {
-    // Once fonts (and other resources) are loaded, hide the native splash so the React tree is visible
     async function hideNativeSplash() {
       if (loaded) {
         try {
@@ -54,29 +53,44 @@ function RootLayoutContent() {
     hideNativeSplash();
   }, [loaded]);
 
-
-  // i will still add state when authenticated 
+  // Handle navigation based on auth state
   useEffect(() => {
-    if (loaded && splashDone && state.isReady) {
-      if (state.isAuth) {
-        router.replace('/dashboard');
-      } else {
-        router.replace('/');
-      }
+    // Only navigate when:
+    // 1. Fonts are loaded
+    // 2. Splash animation is done
+    // 3. Auth state is ready
+    // 4. We haven't navigated yet
+    if (loaded && splashDone && state.isReady && !isNavigationReady) {
+      setIsNavigationReady(true);
+      
+      // Small delay to ensure everything is mounted
+      setTimeout(() => {
+        if (isAuthenticated) {
+          console.log('🔐 User is authenticated, navigating to dashboard');
+          router.replace('/dashboard');
+        } else {
+          console.log('👤 User is not authenticated, navigating to login');
+          router.replace('/');
+        }
+      }, 100);
     }
-  }, [loaded, splashDone, state.isReady, state.isAuth]);
+  }, [loaded, splashDone, state.isReady, isAuthenticated, isNavigationReady]);
 
-  // Show loading state
-  if (isLoading || !state.isReady) {
+  // Show loading state while auth is being restored
+  if (!state.isReady || isLoading) {
     return (
-      <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
+      <ThemedView style={{ 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        backgroundColor: theme.colors.background 
+      }}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </ThemedView>
     );
   }
 
-
-  // show custom splash screen until fonts are loaded
+  // Show custom splash screen until fonts are loaded
   if (!loaded || !splashDone) {
     return <SplashScreenComponent onAnimationComplete={() => setSplashDone(true)} />;
   }
@@ -88,13 +102,15 @@ function RootLayoutContent() {
         contentStyle: { backgroundColor: theme.colors.background },
       }}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="dashboard" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="signup" />
       </Stack>
     </Host>
   );
 }
 
 export default function RootLayout() {
-
   return (
     <ThemeProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>

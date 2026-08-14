@@ -86,64 +86,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Load stored auth data on mount
   useEffect(() => {
-    const loadStoredData = async () => {
-      try {
-        const [accessToken, refreshToken, userString] = await Promise.all([
-          SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN),
-          SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN),
-          SecureStore.getItemAsync(STORAGE_KEYS.USER),
-        ]);
+  const loadStoredData = async () => {
+    try {
+      const [accessToken, userString] = await Promise.all([
+        SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN),
+        SecureStore.getItemAsync(STORAGE_KEYS.USER),
+      ]);
 
-        if (accessToken && refreshToken && userString) {
+      // Check if we have a valid session
+      if (accessToken && userString) {
+        try {
           const user = JSON.parse(userString) as User;
+          
+          // Validate token by making a test request
+          // Optional: You can call /auth/me to validate the token
+          
           dispatch({
             type: 'RESTORE',
             payload: {
               accessToken,
-              refreshToken,
+              refreshToken: 'cookie-stored', // Placeholder
               user,
               isAuth: true,
             },
           });
-        } else {
-          dispatch({ type: 'RESTORE', payload: {} });
+        } catch (parseError) {
+          console.error('Error parsing user data:', parseError);
+          // Clear invalid data
+          await clearStoredData();
+          dispatch({ type: 'RESTORE', payload: { isAuth: false } });
         }
-      } catch (error) {
-        console.error('Error loading auth data:', error);
-        dispatch({ type: 'RESTORE', payload: {} });
+      } else {
+        dispatch({ type: 'RESTORE', payload: { isAuth: false } });
       }
-    };
+    } catch (error) {
+      console.error('Error loading auth data:', error);
+      dispatch({ type: 'RESTORE', payload: { isAuth: false } });
+    }
+  };
 
-    loadStoredData();
-  }, []);
+  loadStoredData();
+}, []);
+
 
   // Persist tokens and user
   // contexts/AuthContext.tsx
 
-const persist = useCallback(async (user: User, accessToken: string, refreshToken: string) => {
-    // Validate inputs
-    if (!accessToken || typeof accessToken !== 'string') {
-        throw new Error('Invalid access token');
-    }
-    if (!refreshToken || typeof refreshToken !== 'string') {
-        throw new Error('Invalid refresh token');
-    }
-    if (!user || typeof user !== 'object') {
-        throw new Error('Invalid user data');
-    }
+const persist = useCallback(async (user: User, accessToken: string) => {
+  // Validate inputs
+  if (!accessToken || typeof accessToken !== 'string') {
+    throw new Error('Invalid access token');
+  }
+  if (!user || typeof user !== 'object') {
+    throw new Error('Invalid user data');
+  }
 
-    try {
-        // Store tokens
-        await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-        await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
-        
-        // Store user with error handling
-        const userString = JSON.stringify(user);
-        await SecureStore.setItemAsync(STORAGE_KEYS.USER, userString);
-    } catch (error) {
-        console.error('Error persisting auth data:', error);
-        throw error;
-    }
+  try {
+    // Store only the access token and user data
+    await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+    
+    const userString = JSON.stringify(user);
+    await SecureStore.setItemAsync(STORAGE_KEYS.USER, userString);
+  } catch (error) {
+    console.error('Error persisting auth data:', error);
+    throw error;
+  }
 }, []);
 
   // Clear stored data
@@ -157,43 +164,50 @@ const persist = useCallback(async (user: User, accessToken: string, refreshToken
 
   // Login
   const login = useCallback(async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const data = await apiFetch<{
-        success: boolean;
-        message?: string;
-        accessToken: string;
-        refreshToken: string;
+  setIsLoading(true);
+  try {
+    const response = await apiFetch<{
+      success: boolean;
+      message?: string;
+      data: {
         user: User;
-      }>('/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+        accessToken: string;
+      };
+    }>('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
 
-      if (data.success) {
-        await persist(data.user, data.accessToken, data.refreshToken);
-        dispatch({
-          type: 'LOGIN',
-          payload: {
-            user: data.user,
-            accessToken: data.accessToken,
-            refreshToken: data.refreshToken,
-          },
-        });
-        showSuccess(data.message || 'Welcome back! ')
-        router.replace('/dashboard');
-      } else {
-        throw new Error(data.message || 'Login failed');
-      }
-    } catch (error: any) {
-      const message = error?.body?.message || error?.message || 'Login failed. Please try again.';
-      showError(message);
-      throw new Error(message);
-    } finally {
-      setIsLoading(false);
+    if (response.success) {
+      const { user, accessToken } = response.data;
+      
+      // The refresh token is set as an HTTP-only cookie by the server
+      // We don't need to store it in SecureStore, but we'll store the access token
+      await persist(user, accessToken); // Note: refresh token is in cookie
+      
+      dispatch({
+        type: 'LOGIN',
+        payload: {
+          user: user,
+          accessToken: accessToken,
+          refreshToken: 'cookie-stored', // Placeholder since it's in HTTP-only cookie
+        },
+      });
+      
+      showSuccess(response.message || 'Welcome back!');
+      router.replace('/dashboard');
+    } else {
+      throw new Error(response.message || 'Login failed');
     }
-  }, [persist]);
+  } catch (error: any) {
+    const message = error?.body?.message || error?.message || 'Login failed. Please try again.';
+    showError(message);
+    throw new Error(message);
+  } finally {
+    setIsLoading(false);
+  }
+}, [persist]);
 
   // Logout
   const logout = useCallback(async () => {
@@ -221,67 +235,58 @@ const persist = useCallback(async (user: User, accessToken: string, refreshToken
 
   // Refresh token
   const refreshToken = useCallback(async (): Promise<string | null> => {
-    // If already refreshing, return existing promise
-    if (refreshPromise.current) {
-      return refreshPromise.current;
-    }
+  if (refreshPromise.current) {
+    return refreshPromise.current;
+  }
 
-    // Prevent multiple refresh attempts
-    if (isRefreshing.current) {
-      return null;
-    }
+  if (isRefreshing.current) {
+    return null;
+  }
 
-    isRefreshing.current = true;
+  isRefreshing.current = true;
 
-    const promise = (async () => {
-      try {
-        const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
-
-        const data = await apiFetch<{
-          success: boolean;
+  const promise = (async () => {
+    try {
+      // The refresh token is automatically sent as a cookie
+      const data = await apiFetch<{
+        success: boolean;
+        data: {
           accessToken: string;
-          refreshToken: string;
-        }>('/auth/refresh', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken }),
-        });
+        };
+      }>('/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // No body needed - refresh token is in cookie
+      });
 
-        if (!data.success) {
-          throw new Error('Refresh failed');
-        }
-
-        // Save new tokens
-        await Promise.all([
-          SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, data.accessToken),
-          SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken),
-        ]);
-
-        // Update state
-        dispatch({
-          type: 'REFRESH',
-          payload: { accessToken: data.accessToken },
-        });
-
-        return data.accessToken;
-      } catch (error) {
-        // If refresh fails, logout
-        await clearStoredData();
-        dispatch({ type: 'LOGOUT' });
-        router.replace('/login');
-        throw error;
-      } finally {
-        isRefreshing.current = false;
-        refreshPromise.current = null;
+      if (!data.success) {
+        throw new Error('Refresh failed');
       }
-    })();
 
-    refreshPromise.current = promise;
-    return promise;
-  }, [clearStoredData]);
+      // Save new access token
+      await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, data.data.accessToken);
+
+      dispatch({
+        type: 'REFRESH',
+        payload: { accessToken: data.data.accessToken },
+      });
+
+      return data.data.accessToken;
+    } catch (error) {
+      // If refresh fails, logout
+      await clearStoredData();
+      dispatch({ type: 'LOGOUT' });
+      router.replace('/login');
+      throw error;
+    } finally {
+      isRefreshing.current = false;
+      refreshPromise.current = null;
+    }
+  })();
+
+  refreshPromise.current = promise;
+  return promise;
+}, [clearStoredData]);
 
   // Context value
   const value: AuthContextType = {

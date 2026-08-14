@@ -117,7 +117,8 @@ export async function apiFetch<T = any>(
             const refreshRes = await fetch(`${BACKEND_URI}/api/auth/refresh`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refreshToken })
+                // No body needed - cookie is sent automatically
+                credentials: 'include', // Important for cookies
             });
             if (!refreshRes.ok) {
                 const errBody = await refreshRes.json().catch(() => ({})) as any;

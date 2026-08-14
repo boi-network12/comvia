@@ -18,6 +18,7 @@ export const getCorsOptions = (): CorsOptions => {
     'https://comvia-realtime.fly.dev',
     'http://localhost:3000',
     'http://localhost:5173',
+    'exp://10.34.246.4:8081',
   ];
 
   // Merge all allowed origins
