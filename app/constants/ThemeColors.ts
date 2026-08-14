@@ -11,8 +11,8 @@ export const themeColors = {
     border: '#E5E7EB',
     borderLight: '#F3F4F6',
     primary: '#F97316', // Your brand color
-    primaryLight: '#EEF2FF',
-    primaryDark: '#4F46E5',
+    primaryLight: '#FEF3C7',
+    primaryDark: '#EA580C',
     success: '#10B981',
     warning: '#F59E0B',
     error: '#EF4444',
@@ -34,9 +34,9 @@ export const themeColors = {
     textMuted: '#6B7280',
     border: '#2A2A2A',
     borderLight: '#1F1F1F',
-    primary: '#E27C32', // Lighter version for dark mode
-    primaryLight: '#1E1B4B',
-    primaryDark: '#6366F1',
+    primary: '#FB923C', // Lighter orange for dark mode
+    primaryLight: '#2D1B0E',
+    primaryDark: '#F97316',
     success: '#34D399',
     warning: '#FBBF24',
     error: '#F87171',
