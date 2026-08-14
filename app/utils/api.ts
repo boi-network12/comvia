@@ -54,11 +54,17 @@ const processQueue = (error: any, token: string | null) => {
 };
 
 // central fetch with auth & error
+// utils/api.ts - Fixed version
 export async function apiFetch<T = any>(
     endpoint: string,
     opts: ApiFetchOptions = {}
 ): Promise<T> {
-    const url = `${BACKEND_URI}/api/${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+    // Fix: Remove leading slash from endpoint and ensure single slash
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+    const url = `${BACKEND_URI}/api/${cleanEndpoint}`;
+    
+    console.log('🌐 API Request URL:', url); // Debug log
+    
     const headers = new Headers(opts.headers ?? {});
 
     // set content type if body is present and not already set
@@ -79,7 +85,7 @@ export async function apiFetch<T = any>(
         ...opts,
         headers,
         signal: opts.signal,
-    })
+    });
 
     // handle 401 - token refresh
     if (
@@ -162,11 +168,9 @@ export async function apiFetch<T = any>(
         throw error;
     }
 
-    // This line was causing "no-unused-expressions"
-    // Fix: assign to variable
     const data = await res.json();
     return data as T;
-} 
+}
 
 // Human readable error message for API errors
 export const handleApiError = (error: any): string => {

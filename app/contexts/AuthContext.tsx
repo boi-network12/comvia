@@ -4,6 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import { apiFetch } from '../utils/api';
 import { AuthState, User, LoginPayload } from '@/types/auth';
 import { router } from 'expo-router';
+import { useSnackbar } from './SnackbarContext';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -77,6 +78,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // Provider
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { showError, showSuccess } = useSnackbar(); 
   const [state, dispatch] = useReducer(authReducer, initialState);
   const [isLoading, setIsLoading] = useState(false);
   const isRefreshing = useRef(false);
@@ -116,13 +118,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Persist tokens and user
-  const persist = useCallback(async (user: User, accessToken: string, refreshToken: string) => {
-    await Promise.all([
-      SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken),
-      SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refreshToken),
-      SecureStore.setItemAsync(STORAGE_KEYS.USER, JSON.stringify(user)),
-    ]);
-  }, []);
+  // contexts/AuthContext.tsx
+
+const persist = useCallback(async (user: User, accessToken: string, refreshToken: string) => {
+    // Validate inputs
+    if (!accessToken || typeof accessToken !== 'string') {
+        throw new Error('Invalid access token');
+    }
+    if (!refreshToken || typeof refreshToken !== 'string') {
+        throw new Error('Invalid refresh token');
+    }
+    if (!user || typeof user !== 'object') {
+        throw new Error('Invalid user data');
+    }
+
+    try {
+        // Store tokens
+        await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+        await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+        
+        // Store user with error handling
+        const userString = JSON.stringify(user);
+        await SecureStore.setItemAsync(STORAGE_KEYS.USER, userString);
+    } catch (error) {
+        console.error('Error persisting auth data:', error);
+        throw error;
+    }
+}, []);
 
   // Clear stored data
   const clearStoredData = useCallback(async () => {
@@ -159,12 +181,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             refreshToken: data.refreshToken,
           },
         });
+        showSuccess(data.message || 'Welcome back! ')
         router.replace('/dashboard');
       } else {
         throw new Error(data.message || 'Login failed');
       }
     } catch (error: any) {
       const message = error?.body?.message || error?.message || 'Login failed. Please try again.';
+      showError(message);
       throw new Error(message);
     } finally {
       setIsLoading(false);

@@ -12,6 +12,7 @@ import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemedView } from '@/components/customs/ThemedView';
 import { ActivityIndicator } from 'react-native';
+import { SnackbarProvider } from '@/contexts/SnackbarContext';
 
 
 SplashScreen.preventAutoHideAsync();
@@ -97,9 +98,11 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <AuthProvider>
-          <RootLayoutContent />
-        </AuthProvider>
+        <SnackbarProvider>
+          <AuthProvider>
+            <RootLayoutContent />
+          </AuthProvider>
+        </SnackbarProvider>
       </GestureHandlerRootView>
     </ThemeProvider>
   );
