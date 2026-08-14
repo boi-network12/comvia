@@ -1,3 +1,4 @@
+import { useTheme } from '@/contexts/ThemeContext';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -15,24 +16,26 @@ interface SplashScreenProps {
 export default function SplashScreen({
   onAnimationComplete,
 }: SplashScreenProps) {
+  const { theme } = useTheme();
   const [displayText, setDisplayText] = useState('');
 
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.9)).current;
-  const dotOpacity = useRef(new Animated.Value(0)).current;
-
-  const fullText = 'comvia';
+  const opacity = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0.9)).current;
 
   useEffect(() => {
-    // Logo entrance
+    const fullText = 'comvia';
+    let index = 0;
+
+    // Logo animation
     Animated.parallel([
-      Animated.timing(logoOpacity, {
+      Animated.timing(opacity, {
         toValue: 1,
         duration: 500,
         easing: Easing.out(Easing.ease),
         useNativeDriver: true,
       }),
-      Animated.spring(logoScale, {
+
+      Animated.spring(scale, {
         toValue: 1,
         friction: 7,
         tension: 50,
@@ -40,21 +43,13 @@ export default function SplashScreen({
       }),
     ]).start();
 
-    let index = 0;
-
-    const interval = setInterval(() => {
+    // Typing animation
+    const typingInterval = setInterval(() => {
       if (index < fullText.length) {
-        setDisplayText((prev) => prev + fullText[index]);
-        index++;
+        index += 1;
+        setDisplayText(fullText.substring(0, index));
       } else {
-        clearInterval(interval);
-
-        // Loading dots fade in
-        Animated.timing(dotOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }).start();
+        clearInterval(typingInterval);
 
         setTimeout(() => {
           onAnimationComplete();
@@ -62,103 +57,81 @@ export default function SplashScreen({
       }
     }, 150);
 
-    return () => clearInterval(interval);
-  }, [onAnimationComplete]);
+    return () => {
+      clearInterval(typingInterval);
+    };
+  }, []);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-
-        {/* Center content */}
-        <Animated.View
-          style={[
-            styles.logoContainer,
-            {
-              opacity: logoOpacity,
-              transform: [{ scale: logoScale }],
-            },
-          ]}
-        >
-          <Text style={styles.logoText}>{displayText}</Text>
-
-          {/* Small accent line */}
-          <View style={styles.accentLine} />
-
-          {/* Loading dots */}
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.container}>
           <Animated.View
             style={[
-              styles.loadingContainer,
+              styles.logoContainer,
               {
-                opacity: dotOpacity,
+                opacity,
+                transform: [{ scale }],
               },
             ]}
           >
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
+            <Text style={[styles.logoText, { color: theme.colors.text }]}>
+              {displayText}
+            </Text>
+
+            <View style={[styles.accentLine, { backgroundColor: theme.colors.primary }]} />
+
+            <View style={styles.loadingContainer}>
+              <View style={[styles.dot, { backgroundColor: theme.colors.text, opacity: 0.7 }]} />
+              <View style={[styles.dot, { backgroundColor: theme.colors.text, opacity: 0.7 }]} />
+              <View style={[styles.dot, { backgroundColor: theme.colors.text, opacity: 0.7 }]} />
+            </View>
           </Animated.View>
-        </Animated.View>
 
-        {/* Bottom branding */}
-        <Text style={styles.tagline}>
-          Communication, simplified.
-        </Text>
+          <Text style={[styles.tagline, { color: theme.colors.textMuted }]}>
+            Communication, simplified.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
-      </View>
-    </SafeAreaView>
-  );
-}
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#000',
   },
-
   container: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
-
   logoContainer: {
     alignItems: 'center',
   },
-
   logoText: {
-    color: '#fff',
     fontSize: 52,
     fontWeight: '700',
     letterSpacing: -2,
   },
-
   accentLine: {
     width: 32,
     height: 3,
     borderRadius: 10,
-    backgroundColor: '#fff',
     marginTop: 12,
   },
-
   loadingContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 5,
     marginTop: 28,
   },
-
   dot: {
     width: 5,
     height: 5,
     borderRadius: 5,
-    backgroundColor: '#fff',
-    opacity: 0.7,
   },
-
   tagline: {
     position: 'absolute',
     bottom: 40,
-    color: '#666',
     fontSize: 12,
     letterSpacing: 0.5,
   },

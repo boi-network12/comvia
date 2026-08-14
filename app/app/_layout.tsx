@@ -8,12 +8,14 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import SplashScreenComponent from '@/components/customs/SplashScreen';
 import 'react-native-reanimated';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 
 
 SplashScreen.preventAutoHideAsync();
 
 
 function RootLayoutContent() {
+  const { theme } = useTheme();
   const [loaded] = useFonts({
     Roboto: require('../assets/fonts/Roboto-Regular.ttf'),
     'Roboto-Medium': require('../assets/fonts/Roboto-Medium.ttf'),
@@ -51,7 +53,7 @@ function RootLayoutContent() {
   // i will still add state when authenticated 
   useEffect(() => {
     if (loaded && splashDone) {
-      router.replace('/starting-screen');
+      router.replace('/');
     }
   },[loaded, splashDone])
 
@@ -62,19 +64,23 @@ function RootLayoutContent() {
 
   return (
     <Host>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="starting-screen" />
+      <Stack screenOptions={{ 
+        headerShown: false,
+        contentStyle: { backgroundColor: theme.colors.background },
+      }}>
+        <Stack.Screen name="index" />
       </Stack>
     </Host>
-  )
+  );
 }
 
 export default function RootLayout() {
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="auto"/>
+    <ThemeProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
         <RootLayoutContent />
-    </GestureHandlerRootView>
+      </GestureHandlerRootView>
+    </ThemeProvider>
   );
 }

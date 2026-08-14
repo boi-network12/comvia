@@ -1,0 +1,91 @@
+// Define theme colors
+export const themeColors = {
+  light: {
+    background: '#FFFFFF',
+    backgroundSecondary: '#F8F9FA',
+    surface: '#FFFFFF',
+    surfaceSecondary: '#F1F3F5',
+    text: '#1A1A1A',
+    textSecondary: '#6B7280',
+    textMuted: '#9CA3AF',
+    border: '#E5E7EB',
+    borderLight: '#F3F4F6',
+    primary: '#F97316', // Your brand color
+    primaryLight: '#EEF2FF',
+    primaryDark: '#4F46E5',
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    info: '#3B82F6',
+    card: '#FFFFFF',
+    shadow: 'rgba(0,0,0,0.05)',
+    overlay: 'rgba(0,0,0,0.5)',
+    input: '#F3F4F6',
+    inputText: '#1A1A1A',
+    placeholder: '#9CA3AF',
+  },
+  dark: {
+    background: '#0A0A0A',
+    backgroundSecondary: '#1A1A1A',
+    surface: '#1A1A1A',
+    surfaceSecondary: '#2A2A2A',
+    text: '#FFFFFF',
+    textSecondary: '#9CA3AF',
+    textMuted: '#6B7280',
+    border: '#2A2A2A',
+    borderLight: '#1F1F1F',
+    primary: '#E27C32', // Lighter version for dark mode
+    primaryLight: '#1E1B4B',
+    primaryDark: '#6366F1',
+    success: '#34D399',
+    warning: '#FBBF24',
+    error: '#F87171',
+    info: '#60A5FA',
+    card: '#1A1A1A',
+    shadow: 'rgba(0,0,0,0.3)',
+    overlay: 'rgba(0,0,0,0.7)',
+    input: '#2A2A2A',
+    inputText: '#FFFFFF',
+    placeholder: '#6B7280',
+  },
+} as const;
+
+
+// Shadow presets
+export const shadows = {
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  base: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  lg: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  xl: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+} as const;
